@@ -1,0 +1,40 @@
+the levels go really quickly at high levels - when aliens get low feed more aliens isntead of increment level
+
+when you die when king is there is is still there afterwards - need a reset king function
+
+wingman upgrade turing speed and flying speed + health
+
+
+at the edge of the world the queen jitters just dissapears
+the alienqueen still move to the right side and then dissapears
+
+
+
+look at the ship over base top up and down thing
+
+
+special aliens get better at higher levels
+
+
+
+MISSIONS
+
+
+The player must intercept and destroy it before it reaches the surface and causes catastrophic damage.
+
+Evacuation Mission: A human outpost is under heavy alien attack. The player must hold off the alien forces long enough for the outpost personnel to evacuate and then ensure their safe passage to a rendezvous point.
+
+CAmoflage mission. The player looks lke an alien
+
+Decoy Mission: The player must lure alien forces away from a critical location by creating a diversion, such as setting up a decoy base or staging a mock attack.
+
+
+Lunar Eclipse: A lunar eclipse is about to occur, which will plunge parts of the moon into darkness. 
+
+
+
+
+
+
+
+
