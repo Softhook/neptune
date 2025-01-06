@@ -252,9 +252,9 @@ window.onerror = function(message, source, lineno, colno, error) { // Global err
 };
 
 function preload() {
-  font = loadFont('/assets/Neptune.otf');
-  neptuneImage = loadImage('/assets/neptune.jpg');
-  earthImage = loadImage('/assets/earth.png');
+  font = loadFont('assets/Neptune.otf');
+  neptuneImage = loadImage('assets/neptune.jpg');
+  earthImage = loadImage('assets/earth.png');
   soundManager = new SoundManager();
   totalAssets = soundManager.getTotalAssets();
   soundManager.preloadWithCallback(assetLoaded);
