@@ -731,6 +731,7 @@ die() {
 
   // Destroy all alien worms with explosions
   for (let worm of AlienWorm.worms) {
+    if (!worm.segments || worm.segments.length < 1) continue; 
     let explosionPromise = new Promise((resolve) => {
       setTimeout(() => {
         explosions.push(new Explosion(worm.segments[0].pos, worm.segments[0].size * 3, color(0, 255, 0), color(0, 100, 0)));
