@@ -650,7 +650,7 @@ die() {
   console.log(`King died`);
   this.hasDied = true;
   soundManager.play('queenDeath');
-  announcer.setEnabled(false);
+  //announcer.setEnabled(false);
 
   
   // Create an array to hold promises for each explosion sequence
