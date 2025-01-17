@@ -1509,7 +1509,8 @@ function victory() {
     RuinedShip.createFromShip(ship);   
     soundManager.stop('shipThrust');
     soundManager.stop('warning');
-    announcer.stop();
+    //announcer.stop();
+    announcer.dispose();
     gameOverSoundPlayed = true;
   }
   
