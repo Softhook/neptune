@@ -1553,7 +1553,7 @@ class Alien extends Entity {
     this.uniqueId = `alien-${this.id}`;
     this.shootCooldown = 0;
     this.hasGrabbedPod = false;
-    this.health = 2;
+    this.health = 1 + level;
     this.randomTarget = null;
     this.shootingRange = shootingRange;
     this.speed = random(1.5, 2.5);
@@ -1620,7 +1620,7 @@ class Alien extends Entity {
       direction.mult(0.5 * this.speed);
     }
 
-    this.vel.add(direction).limit(this.speed + 5 * Math.tanh(0.2 * (level - 1)));
+    this.vel.add(direction).limit(this.speed + 3 * Math.tanh(0.2 * (level - 1)));
   }
 
 
