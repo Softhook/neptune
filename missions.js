@@ -12,7 +12,7 @@ class AlienArtifactMission {
     this.missionStartTime = Date.now();
 
     announcer.speak(
-      "Commander, a giant alien artifact has appeared. We think only bullets can harm it. Destroy quickly before something bad happens.",
+      "Commander, a giant alien artifact has appeared. We think only bullets can harm it. Destroy it quickly before something bad happens.",
       1,
       2,
       0
