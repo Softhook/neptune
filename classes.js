@@ -1805,7 +1805,7 @@ class Alien extends Entity {
   }
 
   static calculateAttackInterval() {
-    return Math.max(Alien.defaultAttackFrequency - level * 1000, 1200);
+    return Math.max(Alien.defaultAttackFrequency - level * 500, 1200);
   }
 
   static updateAliens() {
@@ -1846,7 +1846,7 @@ class Alien extends Entity {
     for (const alien of availableAliens) {
       if (random() < 0.5) {
         alien.attackMode = true;
-        alien.attackDuration = random(900, 1800);
+        alien.attackDuration = random(500, 1200);
       }
     }
   }
