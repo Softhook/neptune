@@ -3780,7 +3780,7 @@ class SoundManager {
 
   getVolume(soundName) {
     const volumes = {
-      shipThrust: 0.2, missileLaunch: 0.5, diamondImpact: 0.6, hunterSpawned: 0.8, destroyerSpawned: 0.8, walkerShoot: 0.2, warning: 0.5
+      shipThrust: 0.2, missileLaunch: 0.5, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
     };
     return volumes[soundName] || 1.0;
   }
