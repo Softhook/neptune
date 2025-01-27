@@ -5602,8 +5602,8 @@ class EarthquakeManager {
     this.earthquakeIntensity = 0;
     this.earthquakeWarningTimer = 0;
     this.earthquakeDuration = 0;
-    this.maxEarthquakeIntensity = 8;
-    this.earthquakeProbability = 0.00005; // Adjust as needed 0.00005
+    this.maxEarthquakeIntensity = 10;
+    this.earthquakeProbability = 0.00005; // Adjust as needed
   }
 
   update() {
@@ -5634,31 +5634,29 @@ class EarthquakeManager {
 
   startEarthquake() {
     this.isEarthquake = true;
-    this.earthquakeDuration = random(100,300); // 2-5 seconds at 60 fps
+    this.earthquakeDuration = random(100, 400);
+    this.earthquakeIntensity = random(1, this.maxEarthquakeIntensity); // Random intensity
     soundManager.play('earthquake');
     this.damageSurfaceEntities();
   }
 
-  damageSurfaceEntities(){
+  damageSurfaceEntities() {
+    let damageFactor = this.earthquakeIntensity / this.maxEarthquakeIntensity;
     for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
       let base = MoonBase.moonBases[i];
-       base.health -= 50;
+      base.health -= 50 * damageFactor;
     }
     for (let nest of Nest.nests) {
-        nest.health -= 2;
-      }  
-    
-        for (let rig of DrillRig.rigs) {
-        rig.health -= 50;
-      } 
-    
-     if (RescueMission.strandedAstronaut){
-       RescueMission.strandedAstronaut.takeDamage(50);
-     }
-    
+      nest.health -= 2 * damageFactor;
+    }
+    for (let rig of DrillRig.rigs) {
+      rig.health -= 50 * damageFactor;
+    }
+    if (RescueMission.strandedAstronaut) {
+      RescueMission.strandedAstronaut.takeDamage(50 * damageFactor);
+    }
   }
 
-  
   updateCameraShake() {
     let currentIntensity = this.calculateShakeIntensity();
     this.cameraShake.set(
@@ -5671,13 +5669,13 @@ class EarthquakeManager {
     let progress = 1 - (this.earthquakeDuration / 300); // Assuming 300 is the total duration
     if (progress < 0.2) {
       // Ramp up
-      return this.maxEarthquakeIntensity * (progress / 0.2);
+      return this.earthquakeIntensity * (progress / 0.2);
     } else if (progress > 0.8) {
       // Ramp down
-      return this.maxEarthquakeIntensity * (1 - (progress - 0.8) / 0.2);
+      return this.earthquakeIntensity * (1 - (progress - 0.8) / 0.2);
     } else {
       // Peak intensity
-      return this.maxEarthquakeIntensity;
+      return this.earthquakeIntensity;
     }
   }
 
