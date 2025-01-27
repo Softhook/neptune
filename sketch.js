@@ -105,21 +105,14 @@ function setup() {
   gameState = 'loading';
   skyColors = [NIGHT, DAWN, DAY, DUSK, NIGHT].map(c => color(...c)); // Precompute color arrays for faster interpolation
   
-    upgrades = new Upgrades();
+  upgrades = new Upgrades();
   upgradeMenu = new UpgradeMenu(upgrades);
   earthquakeManager = new EarthquakeManager();
   methaneBlizzard = new MethaneBlizzard();
   
   
-    alienQueen = AlienQueen.create();
-    alienKing = AlienKing.create();
-  
-  //profilerSeq = new ProfilerSequential(100);
- //profilerSeq.addFunction('Original drawWindLines', drawWindLines);
-  //profilerSeq.addFunction('Optimized drawWindLines', drawWindLinesOptimized);
-  
-
-
+  alienQueen = AlienQueen.create();
+  alienKing = AlienKing.create();
   
   announcer = new Announcement();
   
@@ -1283,9 +1276,9 @@ function drawBackground() {
   }
   updateShootingStars();
 
-  //drawWindLines();
+
   drawWindLinesOptimized();
-     //profilerSeq.profileFrame();
+
 }
 
 function drawRotatingEarth() {
@@ -1350,52 +1343,9 @@ function updateShootingStars() {
   }
 }
 
-function drawWindLines() {
-  push();
-  // translate(-cameraOffset, 0); // Uncomment if cameraOffset is needed
-
-  const windMagnitude = windForce / maxWindForce; // Normalize to 0-1 range
-  const invertedWindAngle = windAngle + PI; // Invert the angle
-  const windDirX = cos(invertedWindAngle);
-  const windDirY = sin(invertedWindAngle);
-  
-  noFill();
-  
-  const amplitude = 100 * windMagnitude; // Pre-calculate amplitude
-  const phaseIncrement = 0.02; // Phase increment
-
-  // Draw swirling gas bands
-  for (let i = -80; i < height; i += 30) {
-    stroke(255, 100 * windMagnitude); // Adjust color as needed
-    beginShape();
-
-    for (let x = -100; x < worldWidth+100; x += 10) {
-      // Project the point onto the inverted wind direction
-      const proj = x * windDirX + i * windDirY;
-
-      // Calculate phase based on projection
-      const phase = proj * 0.01 + frameCount * phaseIncrement;
-
-      // Calculate offset in inverted wind direction
-      const offset = sin(phase) * amplitude;
-      const xOffset = offset * windDirX;
-      const yOffset = offset * windDirY;
-
-      vertex(x + xOffset, i + yOffset);
-    }
-
-    endShape();
-  }
-  
-  pop();
-}
-
-
 function drawWindLinesOptimized() {
   push();
   
-  // translate(-cameraOffset.x, 0); // Uncomment if cameraOffset is needed
-
   const windMagnitude = windForce / maxWindForce; // Normalize to 0-1 range
   const invertedWindAngle = windAngle + PI; // Invert the angle
   const windDirX = cos(invertedWindAngle);
