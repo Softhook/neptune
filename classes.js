@@ -6692,6 +6692,102 @@ class MethaneBlizzard {
 
 
 
+class Storm {
+  constructor() {
+    this.isActive = false;
+    this.isWarning = false;
+    this.warningDuration = 180; // 3 seconds
+    this.stormDuration = 1800; // 30 seconds
+    this.fadeDuration = 180; // 3-second visual fade
+    this.windFadeOutDuration = 120; // 2-second wind fade (at 60 fps)
+    this.alpha = 0;
+    this.maxWindForce = 0.01;
+    this.previousWindForce = 0;
+    this.visibility = 1;
+    this.stormProbability = 0.00002;
+    this.warningTimer = 0;
+  }
+
+  activate() {
+    this.previousWindForce = windForce; // store current wind force
+    this.isWarning = true;
+    this.warningTimer = this.warningDuration;
+    this.isActive = false;
+    this.alpha = 0;
+    announcer.speak("Storm warning!", 0, 2);
+  }
+
+  update() {
+    if (!this.isActive && !this.isWarning && random() < this.stormProbability) {
+      this.activate();
+    }
+
+    if (this.isWarning) {
+      this.warningTimer--;
+      if (this.warningTimer <= 0) {
+        this.isWarning = false;
+        this.isActive = true;
+        this.stormTimer = this.stormDuration;
+        windForce = this.maxWindForce;
+      }
+    }
+
+    if (this.isActive) {
+      this.stormTimer--;
+
+      // Fade wind force in last 2 seconds
+      if (this.stormTimer < this.windFadeOutDuration) {
+        let t = map(this.stormTimer, this.windFadeOutDuration, 0, 0, 1);
+        windForce = lerp(this.maxWindForce, this.previousWindForce, t);
+      }
+
+      this.updateAlpha();
+
+      if (this.stormTimer <= 0) {
+        this.deactivate();
+      }
+    }
+  }
+
+  updateAlpha() {
+    if (this.isWarning) {
+      this.alpha = map(this.warningTimer, this.warningDuration, 0, 0, 255);
+    } else if (this.isActive) {
+      if (this.stormTimer > this.stormDuration - this.fadeDuration) {
+        this.alpha = map(
+          this.stormDuration - this.stormTimer, 0, this.fadeDuration, 0, 255
+        );
+      } else if (this.stormTimer < this.fadeDuration) {
+        this.alpha = map(this.stormTimer, 0, this.fadeDuration, 0, 255);
+      } else {
+        this.alpha = 255;
+      }
+    }
+    this.visibility = map(this.alpha, 0, 255, 1, 0.3);
+  }
+
+  draw() {
+    if (this.isWarning || this.isActive) {
+      this.drawBackgroundTint();
+    }
+  }
+
+  drawBackgroundTint() {
+    fill(100, 50, 50, this.alpha * 0.3);
+    rect(0, 0, worldWidth, height);
+  }
+
+  deactivate() {
+    this.isActive = false;
+    windForce = this.previousWindForce; // restore original wind force
+  }
+
+  isStormActive() {
+    return this.isActive;
+  }
+}
+
+
 class WalkerRobot extends Entity {
   static walkerCounter = 0;
   static walkers = [];

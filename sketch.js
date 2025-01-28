@@ -4,7 +4,7 @@ Neptune
 Christian Nold & Sebastian Nold Boraschi 2024
 with Claude 3.5 Sonnet 
 
-Version 67 Planetary Methane, Magentic Storms and Walker Robots
+Version 68 Planetary Methane, Magentic Storms and Walker Robots
 
 */
 
@@ -91,6 +91,7 @@ let introMusic = true;
 let earthquakeManager;
 let magneticStorm;
 let methaneBlizzard;
+let storm;
 
 let alienKing = null;
 
@@ -109,6 +110,7 @@ function setup() {
   upgradeMenu = new UpgradeMenu(upgrades);
   earthquakeManager = new EarthquakeManager();
   methaneBlizzard = new MethaneBlizzard();
+  storm = new Storm();
   
   
   alienQueen = AlienQueen.create();
@@ -394,6 +396,7 @@ function drawGame() {
 
   MissionControl.draw();
   methaneBlizzard.draw();
+  storm.draw();
 
 
   
@@ -492,6 +495,7 @@ function updateGame() {
   
   earthquakeManager.update();
   methaneBlizzard.update();
+  storm.update();
   
   if (frameCount % 60 === 0) {
     updateEnergyFactorBasedOnAliens();
@@ -745,7 +749,7 @@ function displayTitleScreen() {
     textSize(25);
   text("CHRISTIAN NOLD + SEBASTIAN NOLD BORASCHI", width / 2, height / 2 + 120);
   textSize(12);
-  text("Version 67 - Planetary Methane, Magentic Storms and Walker Robots", width / 2, height / 2 + 160);
+  text("Version 68 - Storms and Bug Fixes", width / 2, height / 2 + 160);
   
   let pulseOpacity = sin(frameCount * 0.05) * 127 + 128; // Value between 1 and 255 
   textSize(20);
