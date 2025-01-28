@@ -1163,7 +1163,7 @@ function drawHUD() {
     `Nests: ${Nest.nests.length}`,
     `Plants: ${AlienPlant.plants.length}`,
     `Bases: ${MoonBase.moonBases.length}`,
-    `Wind: ${Math.round((wind.mag() / maxWindForce) * 100)}%`,
+    `Wind: ${Math.round((windForce / maxWindForce) * 100)}%`,
 
   ].forEach((line, index) => {
     text(line, leftMargin, topMargin + (index + 2) * lineHeight);
