@@ -7157,12 +7157,12 @@ class WalkerRobot extends Entity {
 class QuantumStorm {
   constructor() {
     this.quantumParticles = [];
-    this.numParticles = 1000;
+    this.numParticles = 500;
     this.isActive = false;
     this.duration = 0;
     this.fadeDuration = 120;
     this.alpha = 0;
-    this.stormProbability = 0.03;
+    this.stormProbability = 0.00002;
     this.vortexPoints = [];
     this.quantumRotation = 0;
     this.initializeParticles();
@@ -7188,11 +7188,11 @@ class QuantumStorm {
 
   activate() {
     this.isActive = true;
-    this.duration = 450; // 7.5 seconds
+    this.duration = 1200; // 20 seconds
     this.alpha = 0;
     this.initializeParticles();
     soundManager.play('quantumRift');
-    announcer.speak("Quantum Instability Detected! Spatial Rifts Forming", 0, 2);
+    announcer.speak("Quantum Instability Detected!", 0, 2);
   }
 
   update() {
@@ -7230,18 +7230,6 @@ class QuantumStorm {
         
         particle.update(this.vortexPoints, this.quantumRotation);
       });
-
-      // Randomly clone game entities (adds gameplay challenge)
-      if (frameCount % 30 === 0) {
-        gameEntities.forEach(entity => {
-          if (random() < 0.05) {
-            let clone = entity.clone();
-            clone.pos.add(p5.Vector.random2D().mult(50));
-            gameEntities.push(clone);
-            setTimeout(() => gameEntities.splice(gameEntities.indexOf(clone), 1), 5000);
-          }
-        });
-      }
 
       if (this.duration <= 0) this.deactivate();
     }
