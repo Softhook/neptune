@@ -7153,3 +7153,187 @@ class WalkerRobot extends Entity {
     WalkerRobot.spawnCooldown = 0;
   }
 }
+
+class QuantumStorm {
+  constructor() {
+    this.quantumParticles = [];
+    this.numParticles = 1000;
+    this.isActive = false;
+    this.duration = 0;
+    this.fadeDuration = 120;
+    this.alpha = 0;
+    this.stormProbability = 0.03;
+    this.vortexPoints = [];
+    this.quantumRotation = 0;
+    this.initializeParticles();
+  }
+
+  initializeParticles() {
+    this.quantumParticles = [];
+    for (let i = 0; i < this.numParticles; i++) {
+      this.quantumParticles.push(new QuantumParticle(
+        random(worldWidth), 
+        random(height),
+        random(360)
+      ));
+    }
+    
+    // Create 3 floating vortex points
+    this.vortexPoints = [
+      createVector(random(worldWidth), random(height)),
+      createVector(random(worldWidth), random(height)),
+      createVector(random(worldWidth), random(height))
+    ];
+  }
+
+  activate() {
+    this.isActive = true;
+    this.duration = 450; // 7.5 seconds
+    this.alpha = 0;
+    this.initializeParticles();
+    soundManager.play('quantumRift');
+    announcer.speak("Quantum Instability Detected! Spatial Rifts Forming", 0, 2);
+  }
+
+  update() {
+    if (!this.isActive && random() < this.stormProbability) {
+      this.activate();
+    }
+
+    if (this.isActive) {
+      this.duration--;
+      this.quantumRotation += 0.02;
+
+      // Update fade
+      this.alpha = map(
+        constrain(this.duration, 0, this.fadeDuration), 
+        0, this.fadeDuration, 
+        0, 255, 
+        true
+      );
+
+      // Move vortex points in random patterns
+      this.vortexPoints.forEach(v => {
+        v.add(p5.Vector.random2D().mult(0.5));
+        v.x = constrain(v.x, 0, worldWidth);
+        v.y = constrain(v.y, 0, height);
+      });
+
+      // Update particles with quantum behavior
+      this.quantumParticles.forEach(particle => {
+        // Chance to teleport when near vortex points
+        this.vortexPoints.forEach(vortex => {
+          if (particle.pos.dist(vortex) < 50 && random() < 0.1) {
+            particle.teleport();
+          }
+        });
+        
+        particle.update(this.vortexPoints, this.quantumRotation);
+      });
+
+      // Randomly clone game entities (adds gameplay challenge)
+      if (frameCount % 30 === 0) {
+        gameEntities.forEach(entity => {
+          if (random() < 0.05) {
+            let clone = entity.clone();
+            clone.pos.add(p5.Vector.random2D().mult(50));
+            gameEntities.push(clone);
+            setTimeout(() => gameEntities.splice(gameEntities.indexOf(clone), 1), 5000);
+          }
+        });
+      }
+
+      if (this.duration <= 0) this.deactivate();
+    }
+  }
+
+  draw() {
+    if (this.isActive) {
+      push();
+      blendMode(ADD);
+      noFill();
+      strokeWeight(1.5);
+      
+      this.quantumParticles.forEach(particle => {
+        if (isInView(particle.pos, particle.size)) {
+          // Draw glowing triangle with rotation
+          push();
+          translate(particle.pos.x, particle.pos.y);
+          rotate(particle.rotation);
+          stroke(190, 100, 100, this.alpha * 0.8);
+          triangle(
+            -particle.size, -particle.size,
+            particle.size, -particle.size,
+            0, particle.size
+          );
+          pop();
+          
+          // Draw connection lines to vortices
+          this.vortexPoints.forEach(vortex => {
+            if (particle.pos.dist(vortex) < 150) {
+              stroke(
+                280, 
+                100, 
+                map(particle.pos.dist(vortex), 0, 150, 100, 30), 
+                this.alpha * 0.3
+              );
+              line(particle.pos.x, particle.pos.y, vortex.x, vortex.y);
+            }
+          });
+        }
+      });
+      
+      // Draw vortex effects
+      this.vortexPoints.forEach(vortex => {
+        fill(280, 100, 100, this.alpha * 0.2);
+        noStroke();
+        ellipse(vortex.x, vortex.y, 30, 30);
+      });
+      
+      pop();
+    }
+  }
+
+  deactivate() {
+    this.isActive = false;
+    announcer.speak("Quantum field stabilizing", 0, 2);
+  }
+}
+
+class QuantumParticle {
+  constructor(x, y, rotation) {
+    this.pos = createVector(x, y);
+    this.rotation = rotation;
+    this.size = random(2, 5);
+    this.velocity = p5.Vector.random2D().mult(random(0.5, 2));
+    this.trail = [];
+  }
+
+  teleport() {
+    this.pos = createVector(random(worldWidth), random(height));
+    this.trail = []; // Reset trail
+  }
+
+  update(vortexPoints, globalRotation) {
+    this.trail.push(this.pos.copy());
+    if (this.trail.length > 10) this.trail.shift();
+
+    // Apply multiple vortex influences
+    vortexPoints.forEach(vortex => {
+      let force = p5.Vector.sub(vortex, this.pos);
+      let distance = force.mag();
+      if (distance < 200) {
+        force.setMag(map(distance, 0, 200, 2, 0.1));
+        this.velocity.add(force);
+      }
+    });
+
+    this.velocity.limit(3);
+    this.pos.add(this.velocity);
+    this.rotation += 0.1 + noise(this.pos.x * 0.01, this.pos.y * 0.01) * 0.3;
+
+    // Bounce off edges
+    if (this.pos.x < 0 || this.pos.x > worldWidth) this.velocity.x *= -1;
+    if (this.pos.y < 0 || this.pos.y > height) this.velocity.y *= -1;
+  }
+}

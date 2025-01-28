@@ -92,6 +92,7 @@ let earthquakeManager;
 let magneticStorm;
 let methaneBlizzard;
 let storm;
+let quantumStorm;
 
 let alienKing = null;
 
@@ -111,6 +112,7 @@ function setup() {
   earthquakeManager = new EarthquakeManager();
   methaneBlizzard = new MethaneBlizzard();
   storm = new Storm();
+  quantumStorm = new QuantumStorm();
   
   
   alienQueen = AlienQueen.create();
@@ -397,6 +399,7 @@ function drawGame() {
   MissionControl.draw();
   methaneBlizzard.draw();
   storm.draw();
+  quantumStorm.draw();
 
 
   
@@ -496,6 +499,7 @@ function updateGame() {
   earthquakeManager.update();
   methaneBlizzard.update();
   storm.update();
+  quantumStorm.update();
   
   if (frameCount % 60 === 0) {
     updateEnergyFactorBasedOnAliens();
