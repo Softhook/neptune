@@ -7187,6 +7187,7 @@ class QuantumStorm {
   }
 
   activate() {
+    gravity.y = -gravity.y;
     this.isActive = true;
     this.duration = 1200; // 20 seconds
     this.alpha = 0;
@@ -7284,7 +7285,8 @@ class QuantumStorm {
 
   deactivate() {
     this.isActive = false;
-    announcer.speak("Quantum field stabilizing", 0, 2);
+    announcer.speak("Quantum field stabilised", 0, 2);
+    gravity.y = -gravity.y;
   }
 }
 
