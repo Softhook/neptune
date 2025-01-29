@@ -93,6 +93,7 @@ let magneticStorm;
 let methaneBlizzard;
 let storm;
 let quantumStorm;
+let eclipse;
 
 let alienKing = null;
 
@@ -113,6 +114,7 @@ function setup() {
   methaneBlizzard = new MethaneBlizzard();
   storm = new Storm();
   quantumStorm = new QuantumStorm();
+  eclipse = new Eclipse();
   
   
   alienQueen = AlienQueen.create();
@@ -400,6 +402,7 @@ function drawGame() {
   methaneBlizzard.draw();
   storm.draw();
   quantumStorm.draw();
+  eclipse.draw();
 
 
   
@@ -500,6 +503,7 @@ function updateGame() {
   methaneBlizzard.update();
   storm.update();
   quantumStorm.update();
+  eclipse.update();
   
   if (frameCount % 60 === 0) {
     updateEnergyFactorBasedOnAliens();

@@ -3722,7 +3722,7 @@ class SoundManager {
     this.currentlyPlaying = [];
     this.soundFiles = [
       'shipThrust', 'magneticStorm','methane','queenDeath','walker','shipShooting', 'shipHit', 'shipDropOffPod', 'enterKing','teleportKing', 'laserKing','walkerShoot',
-      'alienShooting', 'gameOver', 'nextLevel', 'alienPodPickup',
+      'alienShooting', 'gameOver', 'nextLevel', 'alienPodPickup', 'quantumRift', 'eclipseWarning',
       'alienPodDropOff', 'alienDestruction', 'nestDestruction','teleport',
       'moonBaseDestruction', 'hunterSpawned','zapperSpawned', 'wormDead','destroyerSpawned',
       'shipBomb', 'meteorImpact','diamondImpact','earthquake','astronautJump','missileImpact','nestBurstDefense','balloonPop','warning'
@@ -3771,7 +3771,7 @@ class SoundManager {
     const priorities = {
       queenDeath: 5,walker: 3, methane: 3, magneticStorm: 2, shipThrust: 2, shipShooting: 4, shipHit: 5, shipDropOffPod: 3,
       alienShooting: 2, gameOver: 5, nextLevel: 5, alienPodPickup: 1,enterKing: 5, teleportKing: 3, laserKing: 1,
-      alienPodDropOff: 2, alienDestruction: 3, nestDestruction: 4,walkerShoot: 2,
+      alienPodDropOff: 2, alienDestruction: 3, nestDestruction: 4,walkerShoot: 2,quantumRift: 5, eclipseWarning: 5,
       moonBaseDestruction: 5, teleport: 5, hunterSpawned: 2, destroyerSpawned: 2, zapperSpawned: 2,earthquake: 4,
       shipBomb: 4, meteorImpact: 1, wormDead: 4, astronautJump: 4, nestBurstDefense: 1, balloonPop: 3,diamondImpact: 1,missileLaunch: 3, missileImpact: 5,warning: 3
     };
@@ -5251,7 +5251,7 @@ class UpgradeMenu {
         } else if (money < upgrade.cost) {
           announcer.speak(`Not enough money`,0, 2);
         } else if (this.upgrades.purchase(upgradeName)) {
-          announcer.speak(`${upgradeName} upgraded`,0, 2);
+          //announcer.speak(`${upgradeName} upgraded`,0, 2);
         } else {
           announcer.speak(`Unable to upgrade ${upgradeName}`,0, 2);
         }
@@ -7325,5 +7325,74 @@ class QuantumParticle {
     // Bounce off edges
     if (this.pos.x < 0 || this.pos.x > worldWidth) this.velocity.x *= -1;
     if (this.pos.y < 0 || this.pos.y > height) this.velocity.y *= -1;
+  }
+}
+
+class Eclipse {
+  constructor() {
+    this.isActive = false;
+    this.duration = 0;
+    this.warningDuration = 600; // 10 seconds (60fps)
+    this.fadeInDuration = 600;  // 10 seconds
+    this.darkDuration = 60;    // 1 seconds
+    this.fadeOutDuration = 600; // 10 seconds
+    this.totalDuration = this.warningDuration + this.fadeInDuration + this.darkDuration + this.fadeOutDuration;
+    this.alpha = 0;
+    this.warningMessage = "";
+
+    // Added probability for an eclipse to occur
+    this.eclipseProbability = 0.00002;
+  }
+
+  activate() {
+    this.isActive = true;
+    this.duration = this.totalDuration;
+    this.alpha = 0;
+    this.warningMessage = "Eclipse in 10 seconds!";
+    soundManager.play('eclipseWarning');
+    announcer.speak(this.warningMessage, 0, 2);
+  }
+
+  update() {
+    // Check if eclipse should start
+    if (!this.isActive && random() < this.eclipseProbability) {
+      this.activate();
+    }
+
+    if (this.isActive) {
+      this.duration--;
+
+      const timeLeft = this.duration;
+      const transitionStart = this.fadeInDuration + this.darkDuration + this.fadeOutDuration;
+      const darkStart = this.darkDuration + this.fadeOutDuration;
+
+      if (timeLeft > transitionStart) {
+      } else if (timeLeft > darkStart) {
+        // Fade to dark phase
+        const fadeProgress = timeLeft - darkStart;
+        this.alpha = map(fadeProgress, this.fadeInDuration, 0, 0, 255);
+        this.warningMessage = "";
+      } else if (timeLeft > this.fadeOutDuration) {
+        // Darkness phase
+        this.alpha = 255;
+      } else {
+        // Fade back phase
+        this.alpha = map(timeLeft, this.fadeOutDuration, 0, 255, 0);
+      }
+
+      if (this.duration <= 0) this.deactivate();
+    }
+  }
+
+  draw() {
+    if (this.isActive) {
+      fill(0, 0, 0, this.alpha);
+      noStroke();
+      rect(0, 0, worldWidth, height);
+    }
+  }
+
+  deactivate() {
+    this.isActive = false;
   }
 }

@@ -1,12 +1,5 @@
-the levels go really quickly at high levels - when aliens get low feed more aliens isntead of increment level
-
-when you die when king is there is is still there afterwards - need a reset king function
 
 wingman upgrade turing speed and flying speed + health
-
-
-at the edge of the world the queen jitters just dissapears
-the alienqueen still move to the right side and then dissapears
 
 
 
