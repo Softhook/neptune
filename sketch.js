@@ -1005,7 +1005,10 @@ function handleShipKeys() {
       break;
     case 'd':
       ship.dropBase();
-      break;     
+      break;
+    case 'e':
+       WalkerRobot.spawnWalker(ship.pos);
+      break;
   }
     
   if (keyCode === DOWN_ARROW && !upgradeMenu.isOpen) {

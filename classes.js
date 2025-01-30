@@ -3780,7 +3780,7 @@ class SoundManager {
 
   getVolume(soundName) {
     const volumes = {
-      shipThrust: 0.2, missileLaunch: 0.5, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
+      shipThrust: 0.2, missileLaunch: 0.5, nestDestruction: 0.8, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
     };
     return volumes[soundName] || 1.0;
   }
@@ -6804,7 +6804,7 @@ class WalkerRobot extends Entity {
     this.speed = 0.5;
     this.direction = random() < 0.5 ? -1 : 1; // -1 for left, 1 for right
     this.legAngle = 0;
-    this.legSpeed = 0.1;
+    this.legSpeed = 0.03;
     this.shootCooldown = 0;
     this.shootRange = 250;
     this.bodyHeight = 20;
@@ -7160,7 +7160,7 @@ class QuantumStorm {
     this.numParticles = 500;
     this.isActive = false;
     this.duration = 0;
-    this.fadeDuration = 120;
+    this.fadeDuration = 360;
     this.alpha = 0;
     this.stormProbability = 0.00002;
     this.vortexPoints = [];
