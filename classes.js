@@ -1569,8 +1569,20 @@ class Alien extends Entity {
     this.dodgeCooldown = 60;
   }
 
+  freeze(duration) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
+  }
 
   update() {
+    if (this.isFrozen) {
+      this.freezeTimer--;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      return; // Stop movement while frozen
+    }
+    
     super.update();
     this.vel.mult(0.98);
     this.pos.y = constrain(this.pos.y, 0, height);
@@ -1917,8 +1929,25 @@ class Hunter extends Alien {
     this.pulseSpeed = 0.05;
     this.maxPulseSize = 1.4;
     this.maxSpeed = 3;
+
+    this.isFrozen = false;
+    this.freezeTimer = 0;
   }
+
+  freeze(duration) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
+  }
+
 update() {
+    if (this.isFrozen) {
+      this.freezeTimer--;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      return;
+    }
+
   this.updateTarget();
   let distanceToTarget = p5.Vector.dist(this.pos, this.target.pos);
 
@@ -2042,9 +2071,26 @@ class Zapper extends Hunter {
     this.zapExplosionDuration = 50; // Duration of zap explosion effect
     this.zapExplosionTimer = 0;
     this.runAwaySpeed = 3; // Speed at which the Zapper runs away
+
+    this.isFrozen = false;
+    this.freezeTimer = 0;
+  }
+
+
+  freeze(duration) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
   }
 
   update() {
+    if (this.isFrozen) {
+      this.freezeTimer--;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      return;
+    }
+
     super.update();
 
     if (this.zapCooldown > 0) {
@@ -2162,9 +2208,25 @@ class Destroyer extends Hunter {
     this.shiftingSpeed = 1; // Speed of the shifting movement
     this.shiftPhase = 0; // Phase of the shifting motion
     this.isOverTarget = false; // Flag to check if destroyer is over the target
+
+    this.isFrozen = false;
+    this.freezeTimer = 0;
+  }
+
+    freeze(duration) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
   }
 
   update() {
+    if (this.isFrozen) {
+      this.freezeTimer--;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      return;
+    }
+
     this.updatePulse();
     this.updateMovement();
     this.checkShootingOpportunity();
@@ -2351,9 +2413,9 @@ class AlienWorm {
     this.damageTimer = 0;
     this.direction = initialDirection; // 1 for right, -1 for left
     this.color = colory || color(random(100, 200), random(100, 200), random(100, 200));
-    
-    debug.log(`Worm spawned at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)}) with initial direction: ${this.direction}`);
   }
+
+
 
   update() {
     // Move the head
@@ -3419,14 +3481,34 @@ class Turret extends Entity {
     this.angle = -PI / 2; // Default angle pointing upwards
     this.health = Turret.defaultHealth;
     this.accuracy = 0.04; // 0.1 = 18 degrees deviation, lower means more accurate
+
+
+    // Freeze Burst properties
+    this.burstDefenseRadius = 150;
+    this.burstDefenseCooldown = 0;
+    this.burstDefenseMaxCooldown = 300; // 5 seconds cooldown
+    this.freezeDuration = 180; // 3 seconds frozen
+    this.burstDefenseAnimationFrames = 30;
+    this.currentBurstFrame = 0;
   }
 
   update() {
     if (this.shootCooldown > 0) {
       this.shootCooldown--;
     }
+    if (this.burstDefenseCooldown > 0) {
+      this.burstDefenseCooldown--;
+    }
+    if (this.currentBurstFrame > 0) {
+      this.currentBurstFrame--;
+    }
+
     let closestTarget = this.findClosestTarget();
     if (closestTarget) {
+
+    if (this.burstDefenseCooldown <= 0) {
+      this.activateBurstDefense();
+    }
       // Ensure the target has a valid position
       let targetPos = this.getTargetPosition(closestTarget);
       if (targetPos) {
@@ -3436,6 +3518,9 @@ class Turret extends Entity {
         }
       }
     }
+
+
+
   }
 
   draw() {
@@ -3444,8 +3529,42 @@ class Turret extends Entity {
     fill(200);
     triangle(0, -10, -10, 10, 10, 10);
     pop();
-    
+
+        // Draw freeze burst animation
+    if (this.currentBurstFrame > 0) {
+      let progress = this.currentBurstFrame / this.burstDefenseAnimationFrames;
+      let radius = this.burstDefenseRadius * (1 - progress);
+      noFill();
+      stroke(100, 100, 255, 255 * progress); // Blue freeze burst effect
+      strokeWeight(3 * progress);
+      ellipse(this.pos.x, this.pos.y, radius * 2);
+      noStroke();
+    }
   }
+
+
+activateBurstDefense() {
+  this.burstDefenseCooldown = this.burstDefenseMaxCooldown;
+  this.currentBurstFrame = this.burstDefenseAnimationFrames;
+
+  // Create an array of all alien types
+  let allAliens = [
+    ...Alien.aliens,
+    ...Hunter.hunters,
+    ...Zapper.zappers,
+    ...Destroyer.destroyers
+  ];
+
+  // Apply freeze effect to all aliens within range
+  for (let alien of allAliens) {
+    let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
+    if (d < this.burstDefenseRadius) {
+      alien.freeze(this.freezeDuration);
+    }
+  }
+
+  soundManager.play('turretFreezeBurst');
+}
 
   findClosestTarget() {
     let closestTarget = null;
@@ -3723,7 +3842,7 @@ class SoundManager {
     this.soundFiles = [
       'shipThrust', 'magneticStorm','methane','queenDeath','walker','shipShooting', 'shipHit', 'shipDropOffPod', 'enterKing','teleportKing', 'laserKing','walkerShoot',
       'alienShooting', 'gameOver', 'nextLevel', 'alienPodPickup', 'quantumRift', 'eclipseWarning',
-      'alienPodDropOff', 'alienDestruction', 'nestDestruction','teleport',
+      'alienPodDropOff', 'alienDestruction', 'nestDestruction','teleport','turretFreezeBurst',
       'moonBaseDestruction', 'hunterSpawned','zapperSpawned', 'wormDead','destroyerSpawned',
       'shipBomb', 'meteorImpact','diamondImpact','earthquake','astronautJump','missileImpact','nestBurstDefense','balloonPop','warning'
     ];
@@ -3771,7 +3890,7 @@ class SoundManager {
     const priorities = {
       queenDeath: 5,walker: 3, methane: 3, magneticStorm: 2, shipThrust: 2, shipShooting: 4, shipHit: 5, shipDropOffPod: 3,
       alienShooting: 2, gameOver: 5, nextLevel: 5, alienPodPickup: 1,enterKing: 5, teleportKing: 3, laserKing: 1,
-      alienPodDropOff: 2, alienDestruction: 3, nestDestruction: 4,walkerShoot: 2,quantumRift: 5, eclipseWarning: 5,
+      alienPodDropOff: 2, alienDestruction: 3, turretFreezeBurst: 1, nestDestruction: 4,walkerShoot: 2,quantumRift: 5, eclipseWarning: 5,
       moonBaseDestruction: 5, teleport: 5, hunterSpawned: 2, destroyerSpawned: 2, zapperSpawned: 2,earthquake: 4,
       shipBomb: 4, meteorImpact: 1, wormDead: 4, astronautJump: 4, nestBurstDefense: 1, balloonPop: 3,diamondImpact: 1,missileLaunch: 3, missileImpact: 5,warning: 3
     };
@@ -3780,7 +3899,7 @@ class SoundManager {
 
   getVolume(soundName) {
     const volumes = {
-      shipThrust: 0.2, missileLaunch: 0.5, nestDestruction: 0.8, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
+      shipThrust: 0.2, missileLaunch: 0.5, turretFreezeBurst: 0.8, nestDestruction: 0.8, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
     };
     return volumes[soundName] || 1.0;
   }
