@@ -2413,11 +2413,23 @@ class AlienWorm {
     this.damageTimer = 0;
     this.direction = initialDirection; // 1 for right, -1 for left
     this.color = colory || color(random(100, 200), random(100, 200), random(100, 200));
+
+    this.isFrozen = false;
+    this.freezeTimer = 0;
   }
 
 
 
   update() {
+
+    if (this.isFrozen) {
+      this.freezeTimer--;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      return;
+    }
+
     // Move the head
     let surfaceY = getSurfaceYAtX(this.segments[0].pos.x + this.speed * this.direction);
     this.segments[0].pos.x += this.speed * this.direction;
@@ -2457,6 +2469,11 @@ class AlienWorm {
     if (this.damageTimer > 0) {
       this.damageTimer--;
     }
+  }
+
+  freeze(duration) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
   }
 
   draw() {
@@ -3560,6 +3577,15 @@ activateBurstDefense() {
     let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
     if (d < this.burstDefenseRadius) {
       alien.freeze(this.freezeDuration);
+    }
+  }
+
+    // Freeze AlienWorms (check head segment)
+  for (let worm of AlienWorm.worms) {
+    let head = worm.segments[0]; // Head segment
+    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+    if (d < this.burstDefenseRadius) {
+      worm.freeze(this.freezeDuration);
     }
   }
 
@@ -7081,7 +7107,7 @@ class WalkerRobot extends Entity {
     ...Alien.aliens,
     ...Hunter.hunters,
     ...Zapper.zappers,
-    ...Destroyer.destroyers
+    ...Destroyer.destroyers,
   ];
 
   // Apply freeze effect to all aliens within range
@@ -7089,6 +7115,16 @@ class WalkerRobot extends Entity {
     let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
     if (d < this.burstDefenseRadius) {
       alien.freeze(this.freezeDuration);
+    }
+  }
+
+  
+  // Freeze AlienWorms (check head segment)
+  for (let worm of AlienWorm.worms) {
+    let head = worm.segments[0]; // Head segment
+    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+    if (d < this.burstDefenseRadius) {
+      worm.freeze(this.freezeDuration);
     }
   }
 
