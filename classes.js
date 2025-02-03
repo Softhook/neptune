@@ -3484,7 +3484,7 @@ class Turret extends Entity {
 
 
     // Freeze Burst properties
-    this.burstDefenseRadius = 150;
+    this.burstDefenseRadius = Turret.defaultRange;
     this.burstDefenseCooldown = 0;
     this.burstDefenseMaxCooldown = 300; // 5 seconds cooldown
     this.freezeDuration = 180; // 3 seconds frozen
@@ -6937,6 +6937,14 @@ class WalkerRobot extends Entity {
     this.maxRotationAngle = PI / 6; // Maximum rotation angle (30 degrees)
     this.rider = null;
     this.surfacePoints = []; // Store surface points for smooth movement
+
+      // Freeze Burst properties
+  this.burstDefenseRadius = 200; // Range of the freeze burst
+  this.burstDefenseCooldown = 0; // Current cooldown timer
+  this.burstDefenseMaxCooldown = 300; // Cooldown time (5 seconds at 60 fps)
+  this.freezeDuration = 180; // Duration of the freeze effect (3 seconds at 60 fps)
+  this.burstDefenseAnimationFrames = 30; // Number of frames for the animation
+  this.currentBurstFrame = 0; // Current frame of the animation
   }
 
   update() {
@@ -6944,13 +6952,33 @@ class WalkerRobot extends Entity {
     this.shoot();
     this.checkBulletCollision();
     this.updateLegPhase();
+
+  if (this.burstDefenseCooldown > 0) {
+    this.burstDefenseCooldown--;
+  }
+  if (this.currentBurstFrame > 0) {
+    this.currentBurstFrame--;
+  }
     
     if (this.rider) {
       this.updateRiderPosition();
     }
+
   }
 
   move() {
+    if (this.rider) {
+      // If there's a rider, control the robot based on the astronaut's input
+      if (keyIsDown(LEFT_ARROW)) {
+        this.direction = -1;
+      } else if (keyIsDown(RIGHT_ARROW)) {
+        this.direction = 1;
+      } else {
+        // If no keys are pressed, stop moving
+        //this.direction = 0;
+      }
+    }
+
     // Calculate new position
     let moveAmount = this.speed * this.direction;
     let newX = this.pos.x + moveAmount;
@@ -7044,6 +7072,29 @@ class WalkerRobot extends Entity {
     this.rider.pos.y = this.pos.y + rotatedOffsetY;
   }
 
+  activateBurstDefense() {
+  this.burstDefenseCooldown = this.burstDefenseMaxCooldown;
+  this.currentBurstFrame = this.burstDefenseAnimationFrames;
+
+  // Create an array of all alien types
+  let allAliens = [
+    ...Alien.aliens,
+    ...Hunter.hunters,
+    ...Zapper.zappers,
+    ...Destroyer.destroyers
+  ];
+
+  // Apply freeze effect to all aliens within range
+  for (let alien of allAliens) {
+    let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
+    if (d < this.burstDefenseRadius) {
+      alien.freeze(this.freezeDuration);
+    }
+  }
+
+  soundManager.play('turretFreezeBurst'); // Play the freeze burst sound
+}
+
   shoot() {
     if (this.shootCooldown > 0) {
       this.shootCooldown--;
@@ -7056,6 +7107,11 @@ class WalkerRobot extends Entity {
       Bullet.addBullet(this.pos.copy(), bulletVel, 5, true);
       this.shootCooldown = WalkerRobot.SHOOT_SPEED;
       soundManager.play('walkerShoot');
+
+        // Activate freeze burst if cooldown is ready
+  if (this.burstDefenseCooldown <= 0) {
+    this.activateBurstDefense();
+  }
     }
   }
 
@@ -7127,16 +7183,17 @@ class WalkerRobot extends Entity {
     
     this.drawHealthBar();
 
-    // Debug: Draw surface points
-    if (debug.isEnabled) {
-      push();
-      noStroke();
-      fill(255, 0, 0);
-      for (let point of this.surfacePoints) {
-        ellipse(point.x, point.y, 4, 4);
-      }
-      pop();
-    }
+
+  // Draw freeze burst animation
+  if (this.currentBurstFrame > 0) {
+    let progress = this.currentBurstFrame / this.burstDefenseAnimationFrames;
+    let radius = this.burstDefenseRadius * (1 - progress);
+    noFill();
+    stroke(100, 100, 255, 255 * progress); // Blue freeze burst effect
+    strokeWeight(3 * progress);
+    ellipse(this.pos.x, this.pos.y, radius * 2);
+    noStroke();
+  }
   }
 
   drawLegs() {
