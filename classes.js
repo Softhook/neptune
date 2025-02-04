@@ -2930,14 +2930,18 @@ checkCollisionWithWingmen() {
     }
   }
 
-  static drawBullets() {
-    for (let bullet of Bullet.activeObjects) {
-      if (isInView(bullet.pos, bullet.size)) {
-        fill(255, 255, 0);
-        ellipse(bullet.pos.x, bullet.pos.y, bullet.size, bullet.size);
+static drawBullets() {
+  for (let bullet of Bullet.activeObjects) {
+    if (isInView(bullet.pos, bullet.size)) {
+      if (bullet.isPlayerBullet) {
+        fill(255, 0, 0); // Red for player bullets
+      } else {
+        fill(255, 255, 0); // Yellow for enemy bullets
       }
+      ellipse(bullet.pos.x, bullet.pos.y, bullet.size, bullet.size);
     }
   }
+}
 }
 
 class Bomb extends Entity {
