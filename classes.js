@@ -1,135 +1,3 @@
-class ProfilerSequential {
-  /**
-   * Creates an instance of ProfilerSequential.
-   * @param {number} framesToProfile - Number of frames over which to profile each function.
-   */
-  constructor(framesToProfile = 100) {
-    this.framesToProfile = framesToProfile;
-    this.functions = []; // Array to store functions with their profiling data
-    this.currentFunctionIndex = 0;
-    this.currentFrame = 0;
-    this.isProfiling = false;
-    this.results = {};
-  }
-
-  /**
-   * Adds a function to be profiled.
-   * @param {string} name - Unique identifier for the function.
-   * @param {function} func - The function to profile.
-   */
-  addFunction(name, func) {
-    this.functions.push({
-      name: name,
-      func: func,
-      totalTime: 0,
-      averageTime: 0
-    });
-  }
-
-  /**
-   * Starts the profiling process.
-   */
-  startProfiling() {
-    if (this.functions.length === 0) {
-      console.warn("No functions registered for profiling.");
-      return;
-    }
-    this.isProfiling = true;
-    this.currentFunctionIndex = 0;
-    this.currentFrame = 0;
-    // Reset previous results
-    for (let func of this.functions) {
-      func.totalTime = 0;
-      func.averageTime = 0;
-    }
-    console.log("Sequential Profiling started...");
-  }
-
-  /**
-   * Profiles the current function each frame.
-   */
-  profileFrame() {
-    if (!this.isProfiling) return;
-
-    const currentFunction = this.functions[this.currentFunctionIndex];
-
-    // Start timing
-    const startTime = performance.now();
-
-    // Execute the function
-    currentFunction.func();
-
-    // End timing
-    const endTime = performance.now();
-    const timeTaken = endTime - startTime;
-
-    // Accumulate time
-    currentFunction.totalTime += timeTaken;
-
-    this.currentFrame++;
-
-    if (this.currentFrame >= this.framesToProfile) {
-      // Calculate average
-      currentFunction.averageTime = currentFunction.totalTime / this.framesToProfile;
-      this.results[currentFunction.name] = currentFunction.averageTime;
-
-      console.log(
-        `Profiling Completed for "${currentFunction.name}": ${currentFunction.averageTime.toFixed(4)} ms over ${this.framesToProfile} frames.`
-      );
-
-      // Move to next function
-      this.currentFunctionIndex++;
-      this.currentFrame = 0;
-
-      if (this.currentFunctionIndex >= this.functions.length) {
-        this.isProfiling = false;
-        console.log("Sequential Profiling completed for all functions.");
-      } else {
-        console.log(`Starting profiling for "${this.functions[this.currentFunctionIndex].name}"...`);
-      }
-    }
-  }
-
-  /**
-   * Logs all profiling results to the console.
-   */
-  logAllResults() {
-    if (Object.keys(this.results).length === 0) {
-      console.log("No profiling results to display.");
-      return;
-    }
-    console.log("All Profiling Results:");
-    for (let name in this.results) {
-      console.log(`${name}: ${this.results[name].toFixed(4)} ms`);
-    }
-  }
-
-  /**
-   * Displays the current profiling results on the canvas.
-   * @param {number} x - X-coordinate for text placement.
-   * @param {number} y - Y-coordinate for text placement.
-   * @param {number} [lineHeight=20] - Space between lines.
-   */
-  displayResults(x, y, lineHeight = 20) {
-    if (Object.keys(this.results).length === 0) return;
-
-    fill(255);
-    noStroke();
-    textSize(16);
-    let currentY = y;
-
-    for (let name in this.results) {
-      text(
-        `${name}: ${this.results[name].toFixed(4)} ms`,
-        x,
-        currentY
-      );
-      currentY += lineHeight;
-    }
-  }
-}
-
-
 
 class Entity {
   constructor(pos, vel, size) {
@@ -148,43 +16,6 @@ class Entity {
   }
 }
 
-/**
- * MoonBase Class
-
- * Overview:
- * - MoonBase manages the creation, updating, and rendering of bases on the surface.
- * - Each base has properties such as size, position, health, and can launch and manage barrage balloons.
- * - The class includes both instance methods for individual bases and static methods for managing all bases.
- * 
- * Key Features:
- * 1. Base Creation: Bases can be created at random locations or from existing "nests".
- * 2. Health System: Bases have health that can decrease (presumably from attacks) and regenerate over time.
- * 3. Barrage Balloons: Each base can launch and manage a limited number of barrage balloons.
- * 4. Radar Animation: Bases have an animated radar dish.
- * 5. Automatic Updates: The class uses GameTimer for periodic healing and balloon launching.
- * 
- * Static Properties:
- * - BASE_HEIGHT, BASE_WIDTH: Default dimensions for bases.
- * - moonBases: Array storing all active MoonBase instances.
- * - maxBalloons: Maximum number of balloons allowed per base.
- * 
- * Methods:
- * - constructor(width, height, pos): Creates a new MoonBase instance.
- * - static updateAll(): Updates all existing moon bases, handling destruction if necessary.
- * - static drawAll(): Renders all moon bases that are in the view.
- * - static createFromNest(nest): Creates a new MoonBase from a given nest object.
- * - static resetBases(): Clears all existing moon bases.
- * - findSuitableLocation(): Determines an appropriate position for a new base.
- * - findFlattestSegment(): Locates the flattest segment of the moon's surface for base placement.
- * - draw(): Renders the individual moon base, including its structure and health bar.
- * - update(): Updates the base's state, including radar animation and balloon management.
- * - heal(): Increases the base's health over time.
- * - launchBarrageBalloon(): Creates and launches a new barrage balloon if conditions allow.
- * 
- * Integration:
- * This class interacts with other game elements such as GameTimer, RuinedBase, BarrageBalloon,
- * and global variables like moonSurface. It also uses a soundManager for audio feedback.
- */
 
 class MoonBase {
   static BASE_HEIGHT = 20;
@@ -600,56 +431,10 @@ class RuinedShip {
 }
 
 
-/**
- * Astronaut Class
- * 
- * This class represents an Astronaut entity in a space-themed game environment.
- * It extends the Entity class, suggesting a hierarchy of game objects.
- * 
- * Overview:
- * - The Astronaut is a player-controlled character that can move, jump, interact with objects,
- *   and perform various actions on the moon's surface.
- * - It manages the astronaut's movement, sprite rendering, interactions with other game elements,
- *   and special abilities like throwing bombs and placing structures.
- * 
- * Key Features:
- * 1. Movement: Horizontal movement and jumping mechanics.
- * 2. Sprite Rendering: Custom sprite creation and rendering.
- * 3. Object Interaction: Ability to grab and deliver pods, interact with bases.
- * 4. Special Actions: Throwing bombs, placing drill rigs, shields, and turrets.
- * 5. Targeting System: A directional targeting line for aiming actions.
- * 6. Ship Integration: Can enter and leave a ship.
- * 
- * Properties:
- * - Basic: position, velocity, size, sprite, walking speed, facing direction
- * - Jumping: jump force, cooldown, and related states
- * - Bomb Throwing: cooldown, throw strength, and related states
- * - Interaction States: hasGrabbedPod, isInShip
- * - Targeting: targetAngle, targetLineLength, targetLineOffset
- * 
- * Methods:
- * - constructor(pos, size): Initializes a new Astronaut instance.
- * - createSprite(): Generates the astronaut's visual representation.
- * - update(): Handles movement, jumping, interactions, and state updates.
- * - draw(): Renders the astronaut and its targeting line.
- * - jump(): Initiates a jump action.
- * - placeDrillRig(): Places a drill rig on the moon's surface.
- * - dropBase(): Deploys a new MoonBase.
- * - startBombThrow(), releaseBombThrow(): Manages bomb throwing mechanics.
- * - leaveShip(): Transitions the astronaut out of the ship.
- * - checkPodInteraction(), grabPod(): Handles pod pickup mechanics.
- * - checkBaseInteraction(), dropOffPod(): Manages pod delivery to bases.
- * - placeShield(), placeTurret(): Deploys defensive structures.
- * - isCloseToShip(): Checks proximity to the ship.
- * 
- * Integration:
- * This class interacts with various game elements such as the moon surface, pods,
- * bases, bombs, shields, and turrets. It also uses global variables like 'energy'
- * and 'money', and interacts with game systems like 'soundManager' and 'announcer'.
- * 
- */
+
 
 class Astronaut extends Entity {
+
   constructor(pos, size) {
     super(pos, createVector(0, 0), size);
     this.sprite = this.createSprite();
@@ -2919,6 +2704,19 @@ checkCollisionWithWingmen() {
     return false;
   }
 
+static updatePlayerBulletColour() {
+  const bulletDamageLevel = (typeof upgrades !== "undefined" && upgrades.availableUpgrades?.bulletDamage?.level) || 0;
+
+  const colours = [
+    [255, 255, 0], // Level 0: Yellow
+    [255, 165, 0], // Level 1: Orange
+    [255, 69, 0],  // Level 2: Red-Orange
+    [255, 0, 0]    // Level 3+: Red
+  ];
+
+  Bullet.playerBulletColour = colours[Math.min(bulletDamageLevel, 3)];
+}
+
   static updateBullets() {
     for (let i = Bullet.activeObjects.length - 1; i >= 0; i--) {
       let bullet = Bullet.activeObjects[i];
@@ -2933,15 +2731,13 @@ checkCollisionWithWingmen() {
 static drawBullets() {
   for (let bullet of Bullet.activeObjects) {
     if (isInView(bullet.pos, bullet.size)) {
-      if (bullet.isPlayerBullet) {
-        fill(255, 0, 0); // Red for player bullets
-      } else {
-        fill(255, 255, 0); // Yellow for enemy bullets
-      }
+      const colour = bullet.isPlayerBullet ? Bullet.playerBulletColour : [0, 255, 0]; // Enemy bullets are green
+      fill(...colour);
       ellipse(bullet.pos.x, bullet.pos.y, bullet.size, bullet.size);
     }
   }
 }
+
 }
 
 class Bomb extends Entity {
@@ -3493,11 +3289,12 @@ static createNests(count) {
 class Turret extends Entity {
   static  defaultHealth = 4;
   static defaultRange = 200;
+  static ShootCooldown = 120;
   
   constructor(pos) {
     super(pos, createVector(0, 0), 20);
     this.shootCooldown = 0;
-    this.maxShootCooldown = 120;
+    this.maxShootCooldown = Turret.ShootCooldown;
     this.range = Turret.defaultRange;
     this.angle = -PI / 2; // Default angle pointing upwards
     this.health = Turret.defaultHealth;
@@ -5164,13 +4961,14 @@ class Upgrades {
     this.availableUpgrades = {
       energyCharge: { cost: 5000, level: 0, maxLevel: 1000, description: "Energy Charge +10000" },
       energyCapacity: { cost: 3000, level: 0, maxLevel: 5, description: "Upgrade Energy Capacity" },
-      shipSpeed: { cost: 1000, level: 0, maxLevel: 5, description: "Increase ship speed" },
+      shipSpeed: { cost: 1000, level: 0, maxLevel: 5, description: "Improve ship maneuverability" },
+      astronautSpeed: { cost: 1000, level: 0, maxLevel: 2, description: "Upgrade Spacesuit" },
       bulletDamage: { cost: 1500, level: 0, maxLevel: 3, description: "Increase bullet damage" },
       shieldNumber: { cost: 2500, level: 0, maxLevel: 6, description: "Upgrade No. Shields" },
       turret: { cost: 1800, level: 0, maxLevel: 4, description: "Upgrade Turret" },
       barrageBalloon: { cost: 1000, level: 0, maxLevel: 8, description: "Upgrade Barrage Balloons" },
       cruiseMissile: { cost: 1800, level: 0, maxLevel: 5, description: "Upgrade Cruise Missile" },
-      wingMan: { cost: 5000, level: 0, maxLevel: 2, description: "Upgrade No. Wingmen" },
+      wingMan: { cost: 4000, level: 0, maxLevel: 3, description: "Upgrade Wingmen" },
       bombDamage: { cost: 2000, level: 0, maxLevel: 5, description: "Upgrade Bombs" },
       walkerRobot: { cost: 2000, level: 0, maxLevel: 4, description: "Upgrade Walker Robots" },
       drillRig: { cost: 2000, level: 0, maxLevel: 3, description: "Upgrade Drill Rigs" }
@@ -5202,21 +5000,25 @@ class Upgrades {
   }
 
   revertUpgradeEffects() {
-    // Revert all upgrade effects to their initial values
+    // Revert all upgrade effects to their default values
     ship.thrustPower = 0.1;
     ship.rotationSpeed = 0.05;
+    astronaut.walkSpeed = 2;
     maxEnergy = 15000;
     Shield.MAX_SHIELDS = 3;
     Turret.defaultHealth = 4;
     Turret.defaultRange = 200;
+    Turret.ShootCooldown = 120;
     MoonBase.maxBalloons = 0;
     Bullet.damageMultiplier = 1;
     Bomb.defaultExplosionRadius = 50;
     Bomb.defaultBombDamage = 3;
-    Wingman.MAX_WINGMEN = 1;
+    Wingman.MAX_WINGMEN = 0;
     Missile.defaultExplosionRadius = 100;
     Missile.defaultDamage = 5;
+    DrillRig.ENERGY_GENERATION_RATE = 0.1;
     WalkerRobot.SHOOT_SPEED = 50;
+    WalkerRobot.MAX_WALKERS = 0;
   }
 
   
@@ -5235,8 +5037,12 @@ class Upgrades {
         ship.thrustPower += 0.02;
         ship.rotationSpeed += 0.01;
         break;
+      case 'astronautSpeed':
+        astronaut.walkSpeed += 1;
+        break;
       case 'bulletDamage':
         Bullet.damageMultiplier += 0.5;
+        Bullet.updatePlayerBulletColour(); // Update colour
         break;
       case 'bombDamage':
         Bomb.defaultExplosionRadius += 25;
@@ -5247,7 +5053,8 @@ class Upgrades {
         break;
       case 'turret':
         Turret.defaultHealth += 2;
-        Turret.defaultRange += 100;      
+        Turret.defaultRange += 100;
+        Turret.ShootCooldown -= 12;      
         break;
       case 'barrageBalloon':
         MoonBase.maxBalloons += 1;
@@ -5264,6 +5071,7 @@ class Upgrades {
         break;  
       case 'walkerRobot':
         WalkerRobot.SHOOT_SPEED -= 12;
+        WalkerRobot.MAX_WALKERS += 1;
         break;  
     }
   }
@@ -5841,7 +5649,7 @@ class EarthquakeManager {
 
 class Wingman extends Ship {
   static wingmen = [];
-  static MAX_WINGMEN = 1;
+  static MAX_WINGMEN = 0;
   static spawnCooldown = 300; // 5 seconds at 60 fps
   static canSpawn = true;
 
@@ -6940,7 +6748,7 @@ class Storm {
 class WalkerRobot extends Entity {
   static walkerCounter = 0;
   static walkers = [];
-  static MAX_WALKERS = 3;
+  static MAX_WALKERS = 0;
   static spawnCooldown = 0;
   static SPAWN_COOLDOWN_TIME = 600; // 10 seconds at 60 fps
   static SHOOT_SPEED = 40;

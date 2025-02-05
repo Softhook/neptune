@@ -97,7 +97,6 @@ let eclipse;
 
 let alienKing = null;
 
-let profilerSeq;
 
 
 function setup() {
@@ -647,6 +646,7 @@ function resetGame() {
   AlienPlant.clusterCenters = [];
   AlienPlant.lastSpawnTime = 0;
   Bullet.damageMultiplier = 1;
+  Bullet.updatePlayerBulletColour();
   Bomb.defaultExplosionRadius = 30;
   Bomb.defaultBombDamage = 3;
   Turret.defaultHealth = 4;
@@ -663,10 +663,6 @@ function resetGame() {
 
   earthquakeManager = new EarthquakeManager();
 
-
-    // Start sequential profiling
-  //profilerSeq.startProfiling();
-  
   // Reset upgrades
   upgrades.reset();
   upgradeMenu.refresh();
