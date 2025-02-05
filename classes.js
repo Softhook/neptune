@@ -2743,6 +2743,7 @@ static drawBullets() {
 class Bomb extends Entity {
   static defaultExplosionRadius = 30;
   static defaultBombDamage = 3;
+  static bombColour = [255, 255, 0]; // Default to yellow (Level 0)
   
   constructor(pos, vel, size) {
     super(pos, vel, size);
@@ -2760,8 +2761,23 @@ class Bomb extends Entity {
   }
 
   draw() {
-    fill(255, 165, 0);
+    fill(...Bomb.bombColour);
     ellipse(this.pos.x, this.pos.y, this.size, this.size);
+  }
+
+    static updateBombColour() {
+    const bombDamageLevel = (typeof upgrades !== "undefined" && upgrades.availableUpgrades?.bombDamage?.level) || 0;
+
+    const colours = [
+      [255, 255, 0], // Level 0: Yellow
+      [255, 200, 0], // Level 1: Orange-Yellow
+      [255, 165, 0], // Level 2: Orange
+      [255, 69, 0],  // Level 3: Red-Orange
+      [255, 0, 0],   // Level 4: Red
+      [180, 0, 0]    // Level 5+: Dark Red
+    ];
+
+    Bomb.bombColour = colours[Math.min(bombDamageLevel, 5)];
   }
 
   checkCollision() {
@@ -5047,6 +5063,7 @@ class Upgrades {
       case 'bombDamage':
         Bomb.defaultExplosionRadius += 25;
         Bomb.defaultBombDamage += 1;
+        Bomb.updateBombColour();
         break;      
       case 'shieldNumber':
         Shield.MAX_SHIELDS += 1;

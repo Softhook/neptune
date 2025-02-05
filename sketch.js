@@ -649,6 +649,7 @@ function resetGame() {
   Bullet.updatePlayerBulletColour();
   Bomb.defaultExplosionRadius = 30;
   Bomb.defaultBombDamage = 3;
+  Bomb.updateBombColour();
   Turret.defaultHealth = 4;
   Turret.defaultRange = 200;
   Shield.MAX_SHIELDS = 3;
