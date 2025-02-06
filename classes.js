@@ -480,7 +480,27 @@ class Astronaut extends Entity {
   }
 
   update() {
-    if (cameraFollowsMissile) return; // Disable controls if missile is active
+    // Apply gravity if jumping
+    if (this.isJumping) {
+      this.vel.y += gravity.y;
+    } else {
+      // If not jumping, follow the moon surface
+      let surfaceY = getSurfaceYAtX(this.pos.x + this.vel.x);
+      this.vel.y = surfaceY - (this.pos.y + this.size / 2);
+    }
+      
+ super.update();
+    this.pos.x = (this.pos.x + worldWidth) % worldWidth; // Wrap around the world
+    
+    // Check for landing
+    let surfaceY = getSurfaceYAtX(this.pos.x);
+    if (this.pos.y + this.size / 2 >= surfaceY) {
+      this.pos.y = surfaceY - this.size / 2;
+      this.vel.y = 0;
+      this.isJumping = false;
+    }
+
+    if (cameraFollowsMissile || cameraFollowsDrone) return; // Disable controls if missile or drone active
     
     if (this.ridingWalker) {
       // Update position based on the walker's position
@@ -517,15 +537,7 @@ class Astronaut extends Entity {
       this.jump();
     }
     
-    // Apply gravity if jumping
-    if (this.isJumping) {
-      this.vel.y += gravity.y;
-    } else {
-      // If not jumping, follow the moon surface
-      let surfaceY = getSurfaceYAtX(this.pos.x + this.vel.x);
-      this.vel.y = surfaceY - (this.pos.y + this.size / 2);
-    }
-      
+
       
       
       
@@ -545,16 +557,7 @@ class Astronaut extends Entity {
       this.releaseBombThrow();
     }
     
-    super.update();
-    this.pos.x = (this.pos.x + worldWidth) % worldWidth; // Wrap around the world
-    
-    // Check for landing
-    let surfaceY = getSurfaceYAtX(this.pos.x);
-    if (this.pos.y + this.size / 2 >= surfaceY) {
-      this.pos.y = surfaceY - this.size / 2;
-      this.vel.y = 0;
-      this.isJumping = false;
-    }
+   
     
     if (this.hasGrabbedPod) {
       pod.pos = this.pos.copy();
@@ -870,7 +873,7 @@ class Ship extends Entity {
   }
 
   handleInput() {
-    if (cameraFollowsMissile) return;
+    if (cameraFollowsMissile || cameraFollowsDrone) return;
 
     const isStormActive = magneticStorm.isStormActive();
     const upKey = isStormActive ? DOWN_ARROW : UP_ARROW;
@@ -4827,6 +4830,137 @@ damageNearbyEntities() {
     let currentTime = millis();
     let elapsedTime = currentTime - this.lastLaunchTime;
     return Math.max(0, this.cooldownTime - elapsedTime);
+  }
+}
+
+class Drone extends Entity {
+  constructor(pos, vel, size) {
+    super(pos, vel, size);
+    this.speed = 2;
+    this.bombCooldown = 30;
+    this.bombTimer = 0;
+    this.active = false; // Active state for tracking if drone is in the game
+  }
+
+  update() {
+
+      this.applyWind();
+
+    this.handleInput();
+    super.update();
+
+    // Handle camera follow
+    if (cameraFollowsDrone) {
+      cameraOffset = constrain(this.pos.x - width / 2, 0, worldWidth - width);
+    }
+
+    // Handle bomb timer
+    this.bombTimer = max(0, this.bombTimer - 1);
+
+    // Check collision with surfaces or enemies
+    if (this.checkCollision()) {
+      this.destroy();
+    }
+  }
+
+
+
+
+applyWind() {
+  const windEffect = wind.copy().mult(0.2); // Scale wind down to a reasonable force
+  this.vel.add(windEffect); // Directly add a small portion of wind force
+  this.vel.limit(0.4); // Prevent excessive acceleration
+}
+
+
+  handleInput() {
+    if (keyIsDown(LEFT_ARROW)) this.pos.x -= this.speed;
+    if (keyIsDown(RIGHT_ARROW)) this.pos.x += this.speed;
+    if (keyIsDown(UP_ARROW)) this.pos.y -= this.speed;
+    if (keyIsDown(DOWN_ARROW)) this.pos.y += this.speed;
+
+    // Bomb drop with spacebar
+    if (keyIsDown(32) && this.bombTimer === 0) {
+      this.dropBomb();
+      this.bombTimer = this.bombCooldown;
+    }
+  }
+
+  dropBomb() {
+    let bombPos = createVector(this.pos.x, this.pos.y + this.size / 2);
+    let bombVel = createVector(0, 2);
+    let bombSize = 10;
+    bombs.push(new Bomb(bombPos, bombVel, bombSize));
+  }
+
+  checkCollision() {
+    // Check for collision with moon surface or enemies
+    for (let i = 0; i < moonSurface.length - 1; i++) {
+      let start = moonSurface[i];
+      let end = moonSurface[i + 1];
+      let d = distToSegment(this.pos, start, end);
+      if (d < this.size / 2) return true;
+    }
+
+    let entities = [...Nest.nests, ...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers];
+    for (let entity of entities) {
+      if (this.pos.dist(entity.pos) < (this.size + entity.size) / 2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  destroy() {
+    this.active = false;
+    cameraFollowsDrone = false;
+    explosions.push(new Explosion(this.pos, 20)); // Explosion effect
+    soundManager.play('shipBomb');
+  }
+
+  draw() {
+    push();
+    translate(this.pos.x, this.pos.y);
+    
+    fill(255);
+    // Draw the main body (a saucer-like shape)
+    ellipse(0, 0, this.size * 2, this.size); // Main body
+
+    // Draw some propellers or details on the drone (e.g., smaller circles)
+    fill(150);
+    ellipse(0, -this.size / 2, 10, 5); // Top propeller
+    ellipse(0, this.size / 2, 10, 5); // Bottom propeller
+
+
+    //rect(this.size, this.size, this.size, this.size);
+    pop();
+  }
+
+static launchDrone() {
+  if (activeDrone && activeDrone.active) {
+    activeDrone.destroy(); // Destroy the current active drone
+    return; // Return without launching a new drone
+  }
+
+    let dronePos = astronaut.pos.copy().add(0, -astronaut.size);
+    let startVelocity = createVector(0, 0);
+    let size = 12;
+    activeDrone = new Drone(dronePos, startVelocity, size);
+    activeDrone.active = true; // Make sure activeDrone is initialized correctly
+    cameraFollowsDrone = true;
+
+}
+
+  static updateDrone() {
+    if (activeDrone && activeDrone.active) {
+      activeDrone.update();
+    }
+  }
+
+  static drawDrone() {
+    if (activeDrone && activeDrone.active) {
+      activeDrone.draw();
+    }
   }
 }
 

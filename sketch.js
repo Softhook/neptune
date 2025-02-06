@@ -82,7 +82,9 @@ const FPS_UPDATE_INTERVAL = 1000; // Update FPS every 1 second
 let avgFPS =0;
 
 let activeMissile = null;
+let activeDrone = null;
 let cameraFollowsMissile = false;
+let cameraFollowsDrone = false;
 let upgrades, upgradeMenu;
 let debug;
 
@@ -338,16 +340,26 @@ function drawGame() {
   
 
   
-  
-  if (cameraFollowsMissile) {
-  cameraOffset = constrain(activeMissile.pos.x - width / 2, 0, worldWidth - width);
-} else if (!isWalking) {
-  cameraOffset = constrain(ship.pos.x - width / 2, 0, worldWidth - width);
 
-} else {
-  cameraOffset = constrain(astronaut.pos.x - width / 2, 0, worldWidth - width);
-}
   
+
+    switch (true) {
+      case cameraFollowsMissile:
+        cameraOffset = constrain(activeMissile.pos.x - width / 2, 0, worldWidth - width);
+        break;
+      
+      case cameraFollowsDrone:
+        cameraOffset = constrain(activeDrone.pos.x - width / 2, 0, worldWidth - width);
+        break;
+      
+      case !isWalking:
+        cameraOffset = constrain(ship.pos.x - width / 2, 0, worldWidth - width);
+        break;
+        
+      default:
+        cameraOffset = constrain(astronaut.pos.x - width / 2, 0, worldWidth - width);
+        break;
+    }
   
     MoonBase.drawAll();
   
@@ -387,6 +399,7 @@ function drawGame() {
   Meteor.drawMeteors();
   DiamondRain.drawDiamonds();
   Missile.drawMissile();
+  Drone.drawDrone();
 
   for (let bomb of bombs) {
       bomb.draw();
@@ -423,6 +436,7 @@ function updateGame() {
   Meteor.updateMeteors();
   DiamondRain.updateDiamonds();
   Missile.updateMissile();
+  Drone.updateDrone();
   RuinedBase.updatePositions();
   
   windSound.setWindForce(windForce);
@@ -598,6 +612,7 @@ function resetGame() {
   levelTransitionTimer = 0;
   gameOverSoundPlayed = false;
   cameraFollowsMissile = false;
+  cameraFollowsDrone = false;
 
   // Reset entities
 
@@ -878,7 +893,10 @@ function handlePlayingState() {
   if (gameMode === 'twoPlayer') {
     handleTwoPlayerKeys();
   }
-  if (!cameraFollowsMissile) {  // Only handle these keys if missile is not active
+
+
+  if (!cameraFollowsMissile && !cameraFollowsDrone) { // Only handle these keys if missile is not active
+    debug.log(`camera following drone? ${cameraFollowsDrone} `);
     if (key === 'x') {
       handleXKeyInteraction();
     } else if (isWalking) {
@@ -894,13 +912,15 @@ function handlePlayingState() {
     if (key === 'q') {
       Wingman.spawnWingman();
     }
+  }
   
     if (key === 'u') {
       upgradeMenu.toggle();
       return;
     }
+
     
-    if (upgradeMenu.isOpen) {
+  if (upgradeMenu.isOpen) {
     upgradeMenu.handleInput(keyCode);
     return;
   }
@@ -924,7 +944,7 @@ function handlePlayingState() {
     
     
     
-  }
+  
 
   
   
@@ -945,6 +965,11 @@ function handlePlayingState() {
   // Always allow missile launch
   if (key === 'w') {
     Missile.launchMissile();
+  }
+
+    // Always allow drone launch
+  if (key === 'l') {
+    Drone.launchDrone();
   }
 }
 
