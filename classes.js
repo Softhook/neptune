@@ -4796,6 +4796,12 @@ damageNearbyEntities() {
 
 
   static launchMissile() {
+
+  if (activeMissile && activeMissile.active) {
+    activeMissile.explode(); // Destroy the current active missile
+    return; // Return without launching a new missile
+  }
+
     let currentTime = millis();
     if (!cameraFollowsMissile && currentTime - this.lastLaunchTime >= this.cooldownTime) {
       let missilePos = ship.pos.copy().add(0, -ship.size);
@@ -4930,9 +4936,6 @@ applyWind() {
     fill(150);
     ellipse(0, -this.size / 2, 10, 5); // Top propeller
     ellipse(0, this.size / 2, 10, 5); // Bottom propeller
-
-
-    //rect(this.size, this.size, this.size, this.size);
     pop();
   }
 
