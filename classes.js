@@ -480,6 +480,9 @@ class Astronaut extends Entity {
   }
 
   update() {
+
+    this.constrainToWorld();
+
     // Apply gravity if jumping
     if (this.isJumping) {
       this.vel.y += gravity.y;
@@ -570,6 +573,11 @@ class Astronaut extends Entity {
     if (this.bombThrowCooldown > 0) {
       this.bombThrowCooldown--;
     }
+  }
+
+  constrainToWorld() {
+    this.pos.x = constrain(this.pos.x, 0, worldWidth);
+    this.pos.y = constrain(this.pos.y, 20, height);
   }
 
   checkWalkerInteraction() {
@@ -1103,10 +1111,16 @@ class Ship extends Entity {
     pop();
   }
 
-  applyZapEffect(duration) {
-    this.isZapped = true;
-    this.zapTimer = duration;
+applyZapEffect(duration) {
+  this.isZapped = true;
+  this.zapTimer = duration;
+  
+  // Release the pod if the ship is carrying it
+  if (this.hasGrabbedPod) {
+    this.hasGrabbedPod = false;
+    placePodOnSurface();
   }
+}
 
   drawForcefield() {
     push();
