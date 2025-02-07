@@ -2165,7 +2165,7 @@ static updateDestroyers() {
 
 class AlienWorm {
   static worms = [];
-  static MAX_WORMS = 2;
+  static MAX_WORMS = 8;
   static spawnCooldown = 0;
   static SPAWN_COOLDOWN_TIME = 600; // 10 seconds at 60 fps
 
@@ -4850,8 +4850,7 @@ class Drone extends Entity {
 
   update() {
 
-      this.applyWind();
-
+    this.applyWind();
     this.handleInput();
     super.update();
 
@@ -4944,8 +4943,14 @@ static launchDrone() {
     activeDrone.destroy(); // Destroy the current active drone
     return; // Return without launching a new drone
   }
+  
+let dronePos;
+if (isWalking) {
+  dronePos = astronaut.pos.copy().add(0, -astronaut.size);
+} else {
+  dronePos = ship.pos.copy().add(0, -astronaut.size);
+}
 
-    let dronePos = astronaut.pos.copy().add(0, -astronaut.size);
     let startVelocity = createVector(0, 0);
     let size = 12;
     activeDrone = new Drone(dronePos, startVelocity, size);
@@ -6954,21 +6959,19 @@ class WalkerRobot extends Entity {
     
     if (this.rider) {
       this.updateRiderPosition();
-    }
-
+    }  
   }
 
-  move() {
+move() {
     if (this.rider) {
-      // If there's a rider, control the robot based on the astronaut's input
-      if (keyIsDown(LEFT_ARROW)) {
-        this.direction = -1;
-      } else if (keyIsDown(RIGHT_ARROW)) {
-        this.direction = 1;
-      } else {
-        // If no keys are pressed, stop moving
-        //this.direction = 0;
-      }
+        // If there's a rider and the camera is NOT following a missile or drone, allow control
+        if (!(cameraFollowsMissile || cameraFollowsDrone)) {
+            if (keyIsDown(LEFT_ARROW)) {
+                this.direction = -1;
+            } else if (keyIsDown(RIGHT_ARROW)) {
+                this.direction = 1;
+            }
+        }
     }
 
     // Calculate new position
@@ -6977,9 +6980,9 @@ class WalkerRobot extends Entity {
 
     // Handle world wrapping
     if (newX < 0) {
-      newX = worldWidth;
+        newX = worldWidth;
     } else if (newX > worldWidth) {
-      newX = 0;
+        newX = 0;
     }
 
     // Get surface points for new position
@@ -6993,14 +6996,12 @@ class WalkerRobot extends Entity {
     let slope = Math.abs(newY - currentY) / Math.abs(newX - this.pos.x);
 
     if (slope > 12) { // If slope is too steep
-      // Reverse direction
-      this.direction *= -1;
-      // Recalculate new position
-      newX = this.pos.x + (this.speed * this.direction);
-      if (newX < 0) newX = worldWidth;
-      if (newX > worldWidth) newX = 0;
-      this.updateSurfacePoints(newX);
-      newY = this.calculateNewYPosition(newX);
+        this.direction *= -1;
+        newX = this.pos.x + (this.speed * this.direction);
+        if (newX < 0) newX = worldWidth;
+        if (newX > worldWidth) newX = 0;
+        this.updateSurfacePoints(newX);
+        newY = this.calculateNewYPosition(newX);
     }
 
     // Update position
@@ -7009,7 +7010,7 @@ class WalkerRobot extends Entity {
 
     // Update rotation angle
     this.updateRotationAngle();
-  }
+}
 
   calculateSurfaceDistance(x1, y1, x2, y2) {
     // Calculate the straight-line distance
