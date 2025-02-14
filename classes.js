@@ -4163,7 +4163,6 @@ static isInCluster(pos) {
     let plant = AlienPlant.plants[index];
     explosions.push(new Explosion(plant.pos, plant.currentSize, plant.color, color(50, 50, 50)));
     AlienPlant.plants.splice(index, 1);
-    money += 50;
   }
 }
 
@@ -5080,7 +5079,6 @@ checkAlienCollision() {
         
         // Damadge the alien
         alien.health -= 5;
-        money += 50;
         soundManager.play('alienDestruction');
         explosions.push(new Explosion(alien.pos, alien.size, color(0, 255, 0), color(0, 100, 0)));
         
@@ -5101,7 +5099,6 @@ checkAlienCollision() {
         // Damage the worm
         if (worm.takeDamage(2)) { // Assuming 2 damage per collision
           AlienWorm.worms.splice(i, 1);
-          money += 600; // Using the same score as when a worm is destroyed elsewhere
           soundManager.play('wormDead');
         }
         
