@@ -2179,7 +2179,7 @@ static updateDestroyers() {
 
 class AlienWorm {
   static worms = [];
-  static MAX_WORMS = 8;
+  static MAX_WORMS = 10;
   static spawnCooldown = 0;
   static SPAWN_COOLDOWN_TIME = 600; // 10 seconds at 60 fps
 
@@ -2465,7 +2465,11 @@ if (isWalking && !astronaut.ridingWalker) {
       AlienWorm.worms[i].update();
       if (AlienWorm.worms[i].health <= 0) {
         explosions.push(new Explosion(AlienWorm.worms[i].segments[0].pos, 40, color(0, 255, 0), color(0, 100, 0)));
-        money += 600;
+        
+        // Calculate reward based on worm's length
+      let reward = AlienWorm.worms[i].segments.length * 150; // Example: 150 money per segment
+      money += reward;
+
         soundManager.play('wormDead');
         AlienWorm.worms.splice(i, 1);
       }
@@ -2754,7 +2758,6 @@ static drawBullets() {
     }
   }
 }
-
 }
 
 class Bomb extends Entity {
@@ -5155,8 +5158,18 @@ class Upgrades {
       const upgrade = this.availableUpgrades[upgradeName];
       money -= upgrade.cost;
       upgrade.level++;
-      upgrade.cost = Math.floor(upgrade.cost * 1.9); // Increase cost for next level
       this.applyUpgrade(upgradeName);
+
+    // Increase the cost of the chosen upgrade by 1.9
+    upgrade.cost = Math.floor(upgrade.cost * 1.9);
+
+    // Increase the cost of all other upgrades by 1.3
+    for (let key in this.availableUpgrades) {
+      if (key !== upgradeName && this.availableUpgrades[key].level < this.availableUpgrades[key].maxLevel) {
+        this.availableUpgrades[key].cost = Math.floor(this.availableUpgrades[key].cost * 1.2);
+      }
+    }
+
       return true;
     }
     return false;
