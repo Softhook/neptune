@@ -4879,6 +4879,14 @@ class Drone extends Entity {
     this.bombCooldown = 30;
     this.bombTimer = 0;
     this.active = false; // Active state for tracking if drone is in the game
+  
+    // Freeze Burst properties
+    this.burstDefenseRadius = 200; // Same as Turret.defaultRange
+    this.burstDefenseCooldown = 0;
+    this.burstDefenseMaxCooldown = 300; // 5 seconds cooldown
+    this.freezeDuration = 180; // 3 seconds frozen
+    this.burstDefenseAnimationFrames = 30;
+    this.currentBurstFrame = 0;
   }
 
   update() {
@@ -4899,6 +4907,15 @@ class Drone extends Entity {
     if (this.checkCollision()) {
       this.destroy();
     }
+
+//burstdefence
+    if (this.burstDefenseCooldown > 0) {
+      this.burstDefenseCooldown--;
+    }
+    if (this.currentBurstFrame > 0) {
+      this.currentBurstFrame--;
+    }
+    this.updateFreezeBurstDefense();
   }
 
 
@@ -4969,6 +4986,57 @@ applyWind() {
     ellipse(0, -this.size / 2, 10, 5); // Top propeller
     ellipse(0, this.size / 2, 10, 5); // Bottom propeller
     pop();
+
+        // Draw freeze burst animation
+    if (this.currentBurstFrame > 0) {
+      let progress = this.currentBurstFrame / this.burstDefenseAnimationFrames;
+      let radius = this.burstDefenseRadius * (1 - progress);
+      noFill();
+      stroke(100, 100, 255, 255 * progress); // Blue freeze burst effect
+      strokeWeight(3 * progress);
+      ellipse(this.pos.x, this.pos.y, radius * 2);
+      noStroke();
+    }
+  }
+
+  activateFreezeBurstDefense() {
+    if (this.burstDefenseCooldown <= 0) {
+      this.burstDefenseCooldown = this.burstDefenseMaxCooldown;
+      this.currentBurstFrame = this.burstDefenseAnimationFrames;
+
+      // Create an array of all alien types
+      let allAliens = [
+        ...Alien.aliens,
+        ...Hunter.hunters,
+        ...Zapper.zappers,
+        ...Destroyer.destroyers
+      ];
+
+      // Apply freeze effect to all aliens within range
+      for (let alien of allAliens) {
+        let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
+        if (d < this.burstDefenseRadius) {
+          alien.freeze(this.freezeDuration);
+        }
+      }
+
+      // Freeze AlienWorms (check head segment)
+      for (let worm of AlienWorm.worms) {
+        let head = worm.segments[0]; // Head segment
+        let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+        if (d < this.burstDefenseRadius) {
+          worm.freeze(this.freezeDuration);
+        }
+      }
+
+      soundManager.play('turretFreezeBurst');
+    }
+  }
+
+  updateFreezeBurstDefense() {
+    if (this.burstDefenseCooldown <= 0) {
+      this.activateFreezeBurstDefense();
+    }
   }
 
 static launchDrone() {
