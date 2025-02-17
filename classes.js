@@ -437,8 +437,8 @@ class Astronaut extends Entity {
 
   constructor(pos, size) {
     super(pos, createVector(0, 0), size);
-    this.sprite = this.createSprite();
     this.walkSpeed = 2;
+    this.sprite = this.createSprite(color(255));
     this.hasGrabbedPod = false;
     this.isInShip = true;
     this.facing = 1; // 1 for right, -1 for left
@@ -466,9 +466,9 @@ class Astronaut extends Entity {
   }
 
 
-  createSprite() {
+  createSprite(spriteColor) {
     let sprite = createGraphics(20, 30);
-    sprite.fill(255);
+    sprite.fill(spriteColor);
     sprite.noStroke();
     sprite.ellipse(10, 8, 16, 16); // Head
     sprite.rect(6, 16, 8, 12); // Body
@@ -479,8 +479,25 @@ class Astronaut extends Entity {
     return sprite;
   }
 
-  update() {
+  updateSpriteColor() {
+    let spriteColor;
+    if (this.walkSpeed < 2) {
+      spriteColor = color(0, 255, 0); // Slow
+    } 
+    if (this.walkSpeed == 2) {
+      spriteColor = color(255); // White normal
+    } 
+    if (this.walkSpeed == 3) {
+      spriteColor = color(255, 255, 200);
+    }
+    if (this.walkSpeed == 4) {
+      spriteColor = color(255, 200, 200);
+    }
 
+    this.sprite = this.createSprite(spriteColor);
+  }
+
+  update() {
     this.constrainToWorld();
 
     // Apply gravity if jumping
@@ -5131,10 +5148,10 @@ checkAlienCollision() {
 class Upgrades {
   constructor() {
     this.availableUpgrades = {
-      energyCharge: { cost: 5000, level: 0, maxLevel: 1000, description: "Energy Charge +10000" },
+      energyCharge: { cost: 4000, level: 0, maxLevel: 1000, description: "Energy Charge +10000" },
       energyCapacity: { cost: 3000, level: 0, maxLevel: 5, description: "Upgrade Energy Capacity" },
-      shipSpeed: { cost: 1000, level: 0, maxLevel: 5, description: "Improve ship maneuverability" },
-      astronautSpeed: { cost: 1000, level: 0, maxLevel: 2, description: "Upgrade Spacesuit" },
+      shipSpeed: { cost: 1500, level: 0, maxLevel: 5, description: "Improve ship maneuverability" },
+      astronautSpeed: { cost: 1500, level: 0, maxLevel: 2, description: "Upgrade Spacesuit" },
       bulletDamage: { cost: 1500, level: 0, maxLevel: 3, description: "Increase bullet damage" },
       shieldNumber: { cost: 2500, level: 0, maxLevel: 6, description: "Upgrade No. Shields" },
       turret: { cost: 1800, level: 0, maxLevel: 4, description: "Upgrade Turret" },
@@ -5221,6 +5238,8 @@ class Upgrades {
         break;
       case 'astronautSpeed':
         astronaut.walkSpeed += 1;
+        astronaut.bombThrowCooldownTime -= 2;
+        astronaut.updateSpriteColor();
         break;
       case 'bulletDamage':
         Bullet.damageMultiplier += 0.5;
