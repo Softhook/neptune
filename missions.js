@@ -1,3 +1,91 @@
+class MissionControl {
+  static currentMission = null;
+  static missions = {
+    rescue: RescueMission,
+    noFlyZone: NoFlyZoneMission,
+    attack: AttackMission,
+    artifact_Recovery: ArtifactRecoveryMission,
+    build_Bases: BuildBaseMission,
+    wormHunt: WormHuntMission,
+    alienPlant_Infestation: AlienPlantInfestation,  
+    Defend_all_bases: BaseDefenseMission,
+    drill_for_Hydrogen: DrillMission,
+    earthDefense: EarthDefenseMission,
+    supply_Pickup: SupplyRunMission,
+    Shoot_alien_Artifact: AlienArtifactMission
+  };
+
+  static draw() {
+    if (this.currentMission) {
+      const MissionClass = this.missions[this.currentMission];
+      if (MissionClass && typeof MissionClass.draw === 'function') {
+        MissionClass.draw();
+      }
+    }
+  }
+
+  static startRandomMission() {
+    if (this.currentMission) return;
+
+    const availableMissions = Object.keys(this.missions);
+    const randomMission = availableMissions[Math.floor(Math.random() * availableMissions.length)];
+    this.startMission(randomMission);
+  }
+
+  static startMission(missionType) {
+    if (this.currentMission) {
+      debug.log("A mission is already in progress");
+      return;
+    }
+
+    const MissionClass = this.missions[missionType];
+    if (MissionClass) {
+      this.currentMission = missionType;
+      MissionClass.startMission();
+      debug.log(`Started ${missionType} mission`);
+    } else {
+      debug.log(`Unknown mission type: ${missionType}`);
+    }
+  }
+
+  static update() {
+    if (this.currentMission) {
+      const MissionClass = this.missions[this.currentMission];
+      MissionClass.update();
+
+      if (!MissionClass.isActive) {
+        this.endCurrentMission();
+      }
+    }
+  }
+
+  static getMissionTimerKey() {
+    if (!this.currentMission) return null;
+    const MissionClass = this.missions[this.currentMission];
+    return MissionClass.missionTimerKey;
+  }
+
+  static getTimeRemaining() {
+    const timerKey = this.getMissionTimerKey();
+    if (!timerKey) return 0;
+    return GameTimer.getTimeRemaining(timerKey);
+  }
+
+  static endCurrentMission() {
+    if (this.currentMission) {
+      const MissionClass = this.missions[this.currentMission];
+      debug.log(`Ending mission: ${this.currentMission}`);
+      MissionClass.resetMission();
+      this.currentMission = null;
+    }
+  }
+
+static resetAllMissions() {
+    this.currentMission = null;
+    Object.values(this.missions).forEach(MissionClass => MissionClass.resetMission());
+  }
+}
+
 class AlienArtifactMission {
   static isActive = false;
   static missionDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -141,7 +229,6 @@ class AlienArtifactMission {
       this.artifact.draw();
     }
   }
-
 }
 
 class AlienArtifact extends Entity {
@@ -242,11 +329,6 @@ class AlienArtifact extends Entity {
     explosions.push(new Explosion(this.pos.copy(), this.size * 3, color(0, 255, 0), color(50, 150, 50)));
   }
 }
-
-
-
-
-
 
 class SupplyRunMission {
   static isActive = false;
@@ -380,7 +462,6 @@ class SupplyRunMission {
       }
     }
   }
-
 }
 
 class Supply extends Entity {
@@ -424,7 +505,6 @@ class Supply extends Entity {
     soundManager.play('supplyCollect');
   }
 }
-
 
 class BaseDefenseMission {
   static isActive = false;
@@ -1354,90 +1434,3 @@ class AttackMission {
   }
 }
 
-class MissionControl {
-  static currentMission = null;
-  static missions = {
-    rescue: RescueMission,
-    noFlyZone: NoFlyZoneMission,
-    attack: AttackMission,
-    artifact_Recovery: ArtifactRecoveryMission,
-    build_Bases: BuildBaseMission,
-    wormHunt: WormHuntMission,
-    alienPlant_Infestation: AlienPlantInfestation,  
-    Defend_all_bases: BaseDefenseMission,
-    drill_for_Hydrogen: DrillMission,
-    earthDefense: EarthDefenseMission,
-    supply_Pickup: SupplyRunMission,
-    Shoot_alien_Artifact: AlienArtifactMission
-  };
-
-  static draw() {
-    if (this.currentMission) {
-      const MissionClass = this.missions[this.currentMission];
-      if (MissionClass && typeof MissionClass.draw === 'function') {
-        MissionClass.draw();
-      }
-    }
-  }
-
-  static startRandomMission() {
-    if (this.currentMission) return;
-
-    const availableMissions = Object.keys(this.missions);
-    const randomMission = availableMissions[Math.floor(Math.random() * availableMissions.length)];
-    this.startMission(randomMission);
-  }
-
-  static startMission(missionType) {
-    if (this.currentMission) {
-      debug.log("A mission is already in progress");
-      return;
-    }
-
-    const MissionClass = this.missions[missionType];
-    if (MissionClass) {
-      this.currentMission = missionType;
-      MissionClass.startMission();
-      debug.log(`Started ${missionType} mission`);
-    } else {
-      debug.log(`Unknown mission type: ${missionType}`);
-    }
-  }
-
-  static update() {
-    if (this.currentMission) {
-      const MissionClass = this.missions[this.currentMission];
-      MissionClass.update();
-
-      if (!MissionClass.isActive) {
-        this.endCurrentMission();
-      }
-    }
-  }
-
-  static getMissionTimerKey() {
-    if (!this.currentMission) return null;
-    const MissionClass = this.missions[this.currentMission];
-    return MissionClass.missionTimerKey;
-  }
-
-  static getTimeRemaining() {
-    const timerKey = this.getMissionTimerKey();
-    if (!timerKey) return 0;
-    return GameTimer.getTimeRemaining(timerKey);
-  }
-
-  static endCurrentMission() {
-    if (this.currentMission) {
-      const MissionClass = this.missions[this.currentMission];
-      debug.log(`Ending mission: ${this.currentMission}`);
-      MissionClass.resetMission();
-      this.currentMission = null;
-    }
-  }
-
-static resetAllMissions() {
-    this.currentMission = null;
-    Object.values(this.missions).forEach(MissionClass => MissionClass.resetMission());
-  }
-}
