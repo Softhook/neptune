@@ -3120,7 +3120,8 @@ class Upgrades {
     this.availableUpgrades = {
       energyCharge: { cost: 4000, level: 0, maxLevel: 1000, description: "Energy Charge +10000" },
       energyCapacity: { cost: 3000, level: 0, maxLevel: 5, description: "Upgrade Energy Capacity" },
-      shipSpeed: { cost: 1500, level: 0, maxLevel: 5, description: "Improve ship maneuverability" },
+      shipSpeed: { cost: 1500, level: 0, maxLevel: 5, description: "Improve Ship Maneuverability" },
+      parachute: { cost: 1000, level: 0, maxLevel: 3, description: "Upgrade Parachute" },
       astronautSpeed: { cost: 1500, level: 0, maxLevel: 2, description: "Upgrade Spacesuit" },
       bulletDamage: { cost: 1500, level: 0, maxLevel: 3, description: "Increase bullet damage" },
       shieldNumber: { cost: 2500, level: 0, maxLevel: 6, description: "Upgrade No. Shields" },
@@ -3210,6 +3211,10 @@ class Upgrades {
         astronaut.walkSpeed += 1;
         astronaut.bombThrowCooldownTime -= 2;
         astronaut.updateSpriteColor();
+        break;
+      case 'parachute':
+        ship.parachuteSize += 5;
+        ship.parachuteDrag = ship.parachuteDrag*2;
         break;
       case 'bulletDamage':
         Bullet.damageMultiplier += 0.5;
