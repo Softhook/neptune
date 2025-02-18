@@ -36,22 +36,25 @@ class MoonBase {
     this.balloons = [];
 
     MoonBase.moonBases.push(this);
+    this.id = MoonBase.moonBases.length;
 
     GameTimer.create(`moonbase_heal_${this.id}`, () => this.heal(), 3000, true);
     GameTimer.create(`moonbase_balloon_${this.id}`, () => this.launchBarrageBalloon(), 10000, true);
   }
 
-  static updateAll() {
-    for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
-      const base = MoonBase.moonBases[i];
-      base.update();
-      if (base.health <= 0) {
-        soundManager.play('moonBaseDestruction');
-        RuinedBase.createFromMoonBase(base);
-        MoonBase.moonBases.splice(i, 1);
-      }
+static updateAll() {
+  for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
+    const base = MoonBase.moonBases[i];
+    base.update();
+    if (base.health <= 0) {
+      soundManager.play('moonBaseDestruction');
+      RuinedBase.createFromMoonBase(base);
+      GameTimer.clear(`moonbase_heal_${base.id}`);
+      GameTimer.clear(`moonbase_balloon_${base.id}`);
+      MoonBase.moonBases.splice(i, 1);
     }
   }
+}
 
   static drawAll() {
     for (const base of MoonBase.moonBases) {
@@ -74,21 +77,20 @@ class MoonBase {
     MoonBase.moonBases = [];
   }
 
-  findSuitableLocation() {
-    const flattestSegment = this.findFlattestSegment();
-    if (flattestSegment !== null) {
-      const start = moonSurface[flattestSegment];
-      const end = moonSurface[flattestSegment + 1];
-      const avgY = (start.y + end.y) / 2;
-      start.y = end.y = avgY;
-      return createVector(start.x, avgY - this.height);
-    }
-
-    const baseSegmentIndex = floor(random(moonSurface.length - 1));
-    const start = moonSurface[baseSegmentIndex];
-    const end = moonSurface[baseSegmentIndex + 1];
-    return createVector(start.x, (start.y + end.y) / 2 - this.height);
+findSuitableLocation() {
+  const flattestSegment = this.findFlattestSegment();
+  if (flattestSegment !== null) {
+    const start = moonSurface[flattestSegment];
+    const end = moonSurface[flattestSegment + 1];
+    const avgY = (start.y + end.y) / 2;
+    return createVector(start.x, avgY - this.height);
   }
+
+  const baseSegmentIndex = floor(random(moonSurface.length - 1));
+  const start = moonSurface[baseSegmentIndex];
+  const end = moonSurface[baseSegmentIndex + 1];
+  return createVector(start.x, (start.y + end.y) / 2 - this.height);
+}
 
 
   findFlattestSegment() {
@@ -124,8 +126,16 @@ class MoonBase {
     arc(0, 4, this.radarDishRadius * 2, this.radarDishRadius * 2, PI, TWO_PI);
     pop();
 
+    //fill(255, 0, 0);
+    //rect(this.pos.x, this.pos.y, 100 - this.health, 5);
+
+     const healthBarWidth = this.width; // Full base width
+     const healthBarHeight = 5;
+     const damagePercentage = 1 - (this.health / this.maxHealth); // How much damage has been taken
+
+     // Draw damage bar (red, grows as damage increases)
     fill(255, 0, 0);
-    rect(this.pos.x, this.pos.y, 100 - this.health, 5);
+    rect(this.pos.x, this.pos.y, healthBarWidth * damagePercentage, healthBarHeight);
     pop();
   }
 
@@ -3120,6 +3130,7 @@ class Upgrades {
     this.availableUpgrades = {
       energyCharge: { cost: 4000, level: 0, maxLevel: 1000, description: "Energy Charge +10000" },
       energyCapacity: { cost: 3000, level: 0, maxLevel: 5, description: "Upgrade Energy Capacity" },
+      moonBase: { cost: 1500, level: 0, maxLevel: 5, description: "Upgrade Base Armour" },
       shipSpeed: { cost: 1500, level: 0, maxLevel: 5, description: "Improve Ship Maneuverability" },
       parachute: { cost: 1000, level: 0, maxLevel: 3, description: "Upgrade Parachute" },
       astronautSpeed: { cost: 1500, level: 0, maxLevel: 2, description: "Upgrade Spacesuit" },
@@ -3151,7 +3162,7 @@ class Upgrades {
     // Increase the cost of the chosen upgrade by 1.9
     upgrade.cost = Math.floor(upgrade.cost * 1.9);
 
-    // Increase the cost of all other upgrades by 1.3
+    // Increase the cost of all other upgrades by 1.2
     for (let key in this.availableUpgrades) {
       if (key !== upgradeName && this.availableUpgrades[key].level < this.availableUpgrades[key].maxLevel) {
         this.availableUpgrades[key].cost = Math.floor(this.availableUpgrades[key].cost * 1.2);
@@ -3180,6 +3191,14 @@ class Upgrades {
     Turret.defaultRange = 200;
     Turret.ShootCooldown = 120;
     MoonBase.maxBalloons = 0;
+
+    MoonBase.moonBases.forEach(base => {
+    base.maxHealth = 100;
+    base.towerWidth = 10;
+    base.radarDishRadius = 15;
+    base.healRate = 1;
+    });
+
     Bullet.damageMultiplier = 1;
     Bomb.defaultExplosionRadius = 50;
     Bomb.defaultBombDamage = 3;
@@ -3202,6 +3221,15 @@ class Upgrades {
         break;
       case 'energyCapacity':
         maxEnergy += 5000;
+        break;
+      case 'moonBase':
+        MoonBase.moonBases.forEach(base => {
+        base.towerWidth += 1;
+        base.radarDishRadius += 1;
+        base.maxHealth += 50;
+        base.healRate += 1;
+        base.health = base.maxHealth; // Heal base to full after upgrade
+        });
         break;
       case 'shipSpeed':
         ship.thrustPower += 0.02;
