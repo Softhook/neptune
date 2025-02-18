@@ -3990,37 +3990,23 @@ class AlienPlant extends Entity {
     this.pos.y = lerp(this.pos.y, this.targetPos.y, 0.1);
   }
 
-update() {
-  if (!this.isDecaying) {
+  update() {
     if (this.currentSize < this.maxSize) {
-      let growthRate = DiamondRain.isActive ? 
-        random(AlienPlant.enhancedGrowthRate[0], AlienPlant.enhancedGrowthRate[1]) :
-        this.growthRate;
-      this.currentSize += growthRate;
-      
-      // Check for decay chance
-      if (random() < this.decayChance) {
-        this.isDecaying = true;
-      }
-      
-      // Check if the plant has just reached full growth
-      if (this.currentSize >= this.maxSize && !this.fullyGrown) {
+      this.currentSize += DiamondRain.isActive 
+        ? random(AlienPlant.enhancedGrowthRate[0], AlienPlant.enhancedGrowthRate[1])
+        : this.growthRate;
+      if (!this.isDecaying && random() < this.decayChance) this.isDecaying = true;
+      if (!this.fullyGrown && this.currentSize >= this.maxSize) {
         this.fullyGrown = true;
         this.createNest();
       }
     }
+    
+    
+    if (this.isDecaying || this.currentSize >= this.maxSize) this.health -= this.decayRate;
+    if (this.health <= 0) this.destroy();
+    this.updatePosition();
   }
-  
-  this.updatePosition(); // Move this line here, outside of all conditions
-  
-  if (this.isDecaying || this.currentSize >= this.maxSize) {
-    this.health -= this.decayRate;
-  }
-
-  if (this.health <= 0) {
-    this.destroy();
-  }
-}
 
   createNest() {
     let nestPos = this.pos.copy();
