@@ -1,6 +1,6 @@
 class AlienPlant extends Entity {
   static plants = [];
-  static maxPlants = 50;
+  static maxPlants = 70;
   static clusterCenters = [];
   static maxClusters = 10;
   static spawnInterval = 5000; // ms
@@ -11,7 +11,7 @@ class AlienPlant extends Entity {
   constructor(pos, size, clusterColor) {
     super(pos, createVector(0, 0), size);
     this.maxSize = size;
-    this.currentSize = 5;
+    this.currentSize = 10;
     this.growthRate = random(AlienPlant.normalGrowthRate[0], AlienPlant.normalGrowthRate[1]);
     this.health = 100;
     this.decayRate = random(0.01, 0.03);
@@ -142,7 +142,7 @@ static isInCluster(pos) {
       clusterCenter.x + random(-100, 100),
       0
     );
-    let size = random(10, 50);
+    let size = random(40, 130);
     pos.y = getSurfaceYAtX(pos.x) - size; // Position the bottom of the plant on the surface
 
     // Prefer lower areas
@@ -289,16 +289,7 @@ class Nest extends Entity {
   draw() {
     push();
     translate(this.pos.x, this.pos.y + 10);
-
-    // Set fill color based on pods collected
-    //if (this.podsCollected >= 2) {
-    //  fill(50, 255, 50); // Bright green
-    //} else if (this.podsCollected === 1) {
-    //  fill(150, 210, 150); // Mid green
-    //} else {
-    //  fill(150, 160, 150); // Grey
-    //}
-        fill(this.color);
+    fill(this.color);
 
     // Draw the blobby shape
     beginShape();
