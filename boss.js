@@ -368,49 +368,6 @@ appearOnPlanet() {
   }
 }
 
-class Corner {
-  constructor(x, y) {
-    this.pos = createVector(x, y);
-    this.vel = createVector(0, 0);
-    this.acc = createVector(0, 0);
-    this.mass = 3;
-  }
-  
-  applyForce(force) {
-    let f = p5.Vector.div(force, this.mass);
-    this.acc.add(f);
-  }
-  
-  update() {
-    this.vel.add(this.acc);
-    this.pos.add(this.vel);
-    this.acc.mult(0);
-    this.vel.mult(0.99);
-  }
-}
-
-class Spring {
-  constructor(cornerA, cornerB, restLength, strength = 0.1) {
-    this.cornerA = cornerA;
-    this.cornerB = cornerB;
-    this.restLength = restLength;
-    this.strength = strength;
-  }
-  
-  update() {
-    let force = p5.Vector.sub(this.cornerB.pos, this.cornerA.pos);
-    let currentLength = force.mag();
-    let stretch = currentLength - this.restLength;
-    
-    force.normalize();
-    force.mult(this.strength * stretch);
-    
-    this.cornerA.applyForce(force);
-    force.mult(-1);
-    this.cornerB.applyForce(force);
-  }
-}
-
 class AlienKing extends AlienQueen {
   constructor(pos, size = 1000) {
     super(pos, size);
@@ -903,3 +860,48 @@ leavePlanet() {
     return king;
   }
 }
+
+class Corner {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.vel = createVector(0, 0);
+    this.acc = createVector(0, 0);
+    this.mass = 3;
+  }
+  
+  applyForce(force) {
+    let f = p5.Vector.div(force, this.mass);
+    this.acc.add(f);
+  }
+  
+  update() {
+    this.vel.add(this.acc);
+    this.pos.add(this.vel);
+    this.acc.mult(0);
+    this.vel.mult(0.99);
+  }
+}
+
+class Spring {
+  constructor(cornerA, cornerB, restLength, strength = 0.1) {
+    this.cornerA = cornerA;
+    this.cornerB = cornerB;
+    this.restLength = restLength;
+    this.strength = strength;
+  }
+  
+  update() {
+    let force = p5.Vector.sub(this.cornerB.pos, this.cornerA.pos);
+    let currentLength = force.mag();
+    let stretch = currentLength - this.restLength;
+    
+    force.normalize();
+    force.mult(this.strength * stretch);
+    
+    this.cornerA.applyForce(force);
+    force.mult(-1);
+    this.cornerB.applyForce(force);
+  }
+}
+
+
