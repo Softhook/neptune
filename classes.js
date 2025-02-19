@@ -852,6 +852,7 @@ class Ship extends Entity {
     this.isZapped = false;
     this.zapTimer = 0;
     this.isMainShip = false;
+    this.particleCount = 3;
   }
 
   update() {

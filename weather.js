@@ -695,6 +695,7 @@ class MethaneBlizzard {
     this.maxParticles = 1000;
     this.slowdownFactor = 0.98;
     this.recoveryFactor = 1 / this.slowdownFactor;
+
   }
   
   activate() {
@@ -862,7 +863,7 @@ class HeliumBlizzard {
     this.windStrength = 0;
     this.visibility = 1;
     this.particles = [];
-    this.maxParticles = 1000;
+    this.maxParticles = 6000;
     this.speedupFactor = 6;
     this.recoveryFactor = 1 / this.speedupFactor;
   }
@@ -875,7 +876,7 @@ class HeliumBlizzard {
     this.windStrength = random(2, 5);
     this.initializeParticles();
     soundManager.play('helium');
-    announcer.speak("Helium Storm! Acceleration and Euphoria.", 0, 2);
+    announcer.speak("Helium Storm! Acceleration and Euphoria.", 0, 2);   
   }
 
   initializeParticles() {
@@ -982,12 +983,12 @@ class HeliumBlizzard {
   }
 
   deactivate() {
-    gravity.y = -gravity.y;
     this.isActive = false;
     this.particles = [];
     this.applyRecoveryEffects();
     announcer.speak("Helium Storm dissipated.", 0, 2);
     this.duration = this.totalDuration;
+    gravity.y = -gravity.y;
   }
 
   isBlizzardActive() {
@@ -1113,7 +1114,7 @@ class Storm {
 class QuantumStorm {
   constructor() {
     this.quantumParticles = [];
-    this.numParticles = 500;
+    this.numParticles = 100;
     this.isActive = false;
     this.duration = 0;
     this.fadeDuration = 360;
@@ -1143,9 +1144,8 @@ class QuantumStorm {
   }
 
   activate() {
-    //gravity.y = -gravity.y;
     this.isActive = true;
-    this.duration = random(1000,4000);
+    this.duration = random(1000, 4000);
     this.alpha = 0;
     this.initializeParticles();
     soundManager.play('quantumRift');
@@ -1186,6 +1186,16 @@ class QuantumStorm {
         });
         
         particle.update(this.vortexPoints, this.quantumRotation);
+
+        // Check if player's ship is near a particle and teleport
+        if (this.isShipNearParticle(particle)) {
+          this.teleportPlayerShip();
+        }
+
+        if (this.isAstronautNearParticle(particle)) {
+          this.teleportAstronaut();
+        }
+
       });
 
       if (this.duration <= 0) this.deactivate();
@@ -1239,10 +1249,31 @@ class QuantumStorm {
     }
   }
 
+  isShipNearParticle(particle) {
+    // Check if the ship is near the particle
+    return dist(ship.pos.x, ship.pos.y, particle.pos.x, particle.pos.y) < 50;
+  }
+
+  isAstronautNearParticle(particle) {
+    // Check if the astronaut is near the particle
+    return dist(astronaut.pos.x, astronaut.pos.y, particle.pos.x, particle.pos.y) < 50;
+  }
+
+  teleportPlayerShip() {
+    // Teleport the ship to a random position in the upper third of the screen
+    ship.pos.y = random(0, height / 3);
+    ship.pos.x = random(worldWidth); // Random x position across the world width
+  }
+
+  teleportAstronaut() {
+    // Teleport the astronaut to a random position in the upper third of the screen
+    astronaut.pos.y = random(0, height / 3);
+    astronaut.pos.x = random(worldWidth); // Random x position across the world width
+  }
+
   deactivate() {
     this.isActive = false;
     announcer.speak("Quantum Rift stabilised", 0, 2);
-    //gravity.y = -gravity.y;
   }
 }
 
