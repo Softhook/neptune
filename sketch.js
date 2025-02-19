@@ -2,9 +2,7 @@
 Neptune
 
 Christian Nold & Sebastian Nold Boraschi 2024
-with Claude 3.5 Sonnet 
-
-Version 68 Planetary Methane, Magentic Storms and Walker Robots
+with Claude 3.5 Sonnet, DeepSeek, Chat GTP 
 
 */
 
@@ -93,6 +91,7 @@ let introMusic = true;
 let earthquakeManager;
 let magneticStorm;
 let methaneBlizzard;
+let heliumBlizzard;
 let storm;
 let quantumStorm;
 let eclipse;
@@ -113,6 +112,7 @@ function setup() {
   upgradeMenu = new UpgradeMenu(upgrades);
   earthquakeManager = new EarthquakeManager();
   methaneBlizzard = new MethaneBlizzard();
+  heliumBlizzard = new HeliumBlizzard();
   storm = new Storm();
   quantumStorm = new QuantumStorm();
   eclipse = new Eclipse();
@@ -412,6 +412,7 @@ function drawGame() {
 
   MissionControl.draw();
   methaneBlizzard.draw();
+  heliumBlizzard.draw();
   storm.draw();
   quantumStorm.draw();
   eclipse.draw();
@@ -514,6 +515,7 @@ function updateGame() {
   
   earthquakeManager.update();
   methaneBlizzard.update();
+  heliumBlizzard.update();
   storm.update();
   quantumStorm.update();
   eclipse.update();

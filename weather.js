@@ -403,7 +403,7 @@ class DiamondRain {
     } else {
       DiamondRain.cooldown--;
       if (DiamondRain.cooldown === DiamondRain.warningTime) {
-        announcer.speak("Commander, diamond rain is approaching.",0, 1);
+        announcer.speak("Diamond rain is approaching.",0, 1);
       }
       if (DiamondRain.cooldown <= 0) {
         DiamondRain.startDiamondRain();
@@ -851,6 +851,151 @@ class MethaneBlizzard {
   }
 }
 
+class HeliumBlizzard {
+  constructor() {
+    this.isActive = false;
+    this.fadeDuration = 180;
+    this.totalDuration = 3200;
+    this.duration = this.totalDuration;
+    this.alpha = 0;
+    this.blizzardProbability = 0.00002;
+    this.windStrength = 0;
+    this.visibility = 1;
+    this.particles = [];
+    this.maxParticles = 1000;
+    this.speedupFactor = 6;
+    this.recoveryFactor = 1 / this.speedupFactor;
+  }
+
+  activate() {
+    gravity.y = -gravity.y;
+    this.isActive = true;
+    this.duration = this.totalDuration;
+    this.alpha = 0;
+    this.windStrength = random(2, 5);
+    this.initializeParticles();
+    soundManager.play('helium');
+    announcer.speak("Helium Storm! Acceleration and Euphoria.", 0, 2);
+  }
+
+  initializeParticles() {
+    for (let i = 0; i < this.maxParticles; i++) {
+      this.particles.push({
+        pos: createVector(random(worldWidth), random(height)),
+        vel: createVector(random(-1, 1), -random(1, 3)), // Moves downward
+        size: random(1, 3),
+        alpha: random(100, 200)
+      });
+    }
+  }
+
+  update() {
+    if (!this.isActive && random() < this.blizzardProbability) {
+      this.activate();
+    }
+    if (this.isActive) {
+      this.duration--;
+      this.updateAlpha();
+      this.updateParticles();
+      this.applyBlizzardEffects();
+      if (this.duration <= 0) {
+        this.deactivate();
+      }
+    }
+  }
+
+  updateAlpha() {
+    if (this.duration > 3200 - this.fadeDuration) {
+      this.alpha = map(3200 - this.duration, 0, this.fadeDuration, 0, 200);
+    } else if (this.duration < this.fadeDuration) {
+      this.alpha = map(this.duration, 0, this.fadeDuration, 0, 200);
+    } else {
+      this.alpha = 200;
+    }
+    this.visibility = map(this.alpha, 0, 200, 1, 0.7);
+  }
+
+  updateParticles() {
+    for (let particle of this.particles) {
+       particle.pos.add(particle.vel);
+      this.wrapParticle(particle);
+    }
+  }
+
+  wrapParticle(particle) {
+    if (particle.pos.x > worldWidth) particle.pos.x = 0;
+    if (particle.pos.x < 0) particle.pos.x = worldWidth;
+    if (particle.pos.y > height) particle.pos.y = 0;
+    if (particle.pos.y < 0) particle.pos.y = height;
+  }
+
+  draw() {
+    if (this.isActive) {
+      this.drawBackgroundTint();
+      this.drawParticles();
+    }
+  }
+
+  drawBackgroundTint() {
+    fill(255, 255, 200, this.alpha * 0.3);
+    rect(0, 0, worldWidth, height);
+  }
+
+  drawParticles() {
+    noStroke();
+    for (let particle of this.particles) {
+      fill(255, 240, 200, particle.alpha * (this.alpha / 200));
+      ellipse(particle.pos.x, particle.pos.y, particle.size);
+    }
+  }
+
+  applyBlizzardEffects() {
+    ship.vel.limit(ship.baseSpeed * this.speedupFactor);
+    for (let alien of Alien.aliens) {
+      alien.vel.limit(alien.baseSpeed * this.speedupFactor);
+    }
+    for (let hunter of Hunter.hunters) {
+      hunter.vel.limit(hunter.baseSpeed * this.speedupFactor);
+    }
+    for (let zapper of Zapper.zappers) {
+      zapper.vel.limit(zapper.baseSpeed * this.speedupFactor);
+    }
+    for (let destroyer of Destroyer.destroyers) {
+      destroyer.vel.limit(destroyer.baseSpeed * this.speedupFactor);
+    }
+  }
+
+  applyRecoveryEffects() {
+    ship.vel.mult(this.recoveryFactor);
+    for (let alien of Alien.aliens) {
+      alien.vel.mult(this.recoveryFactor);
+    }
+    for (let hunter of Hunter.hunters) {
+      hunter.vel.mult(this.recoveryFactor);
+    }
+    for (let zapper of Zapper.zappers) {
+      zapper.vel.mult(this.recoveryFactor);
+    }
+    for (let destroyer of Destroyer.destroyers) {
+      destroyer.vel.mult(this.recoveryFactor);
+    }
+  }
+
+  deactivate() {
+    gravity.y = -gravity.y;
+    this.isActive = false;
+    this.particles = [];
+    this.applyRecoveryEffects();
+    announcer.speak("Helium Storm dissipated.", 0, 2);
+    this.duration = this.totalDuration;
+  }
+
+  isBlizzardActive() {
+    return this.isActive;
+  }
+}
+
+
 class Storm {
   constructor() {
     this.isActive = false;
@@ -998,7 +1143,7 @@ class QuantumStorm {
   }
 
   activate() {
-    gravity.y = -gravity.y;
+    //gravity.y = -gravity.y;
     this.isActive = true;
     this.duration = random(1000,4000);
     this.alpha = 0;
@@ -1097,7 +1242,7 @@ class QuantumStorm {
   deactivate() {
     this.isActive = false;
     announcer.speak("Quantum Rift stabilised", 0, 2);
-    gravity.y = -gravity.y;
+    //gravity.y = -gravity.y;
   }
 }
 
