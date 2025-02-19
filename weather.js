@@ -856,19 +856,22 @@ class Storm {
     this.isActive = false;
     this.isWarning = false;
     this.warningDuration = 180; // 3 seconds
-    this.stormDuration = 1800; // 30 seconds
-    this.fadeDuration = 180; // 3-second visual fade
-    this.windFadeOutDuration = 120; // 2-second wind fade (at 60 fps)
+    this.stormDuration = 1800; // 30 seconds total
+    this.fadeDuration = 180; // 3-second visual fade-out
+    this.windFadeInDuration = 180; // 3 seconds to reach max wind
+    this.windFadeOutDuration = 180; // 3 seconds to fade wind out
     this.alpha = 0;
     this.maxWindForce = 0.01;
     this.previousWindForce = 0;
     this.visibility = 1;
     this.stormProbability = 0.00002;
     this.warningTimer = 0;
+    this.windFadeInTimer = 0;
+    this.windFadeOutTimer = 0;
   }
 
   activate() {
-    this.previousWindForce = windForce; // store current wind force
+    this.previousWindForce = windForce;
     this.isWarning = true;
     this.warningTimer = this.warningDuration;
     this.isActive = false;
@@ -884,20 +887,30 @@ class Storm {
     if (this.isWarning) {
       this.warningTimer--;
       if (this.warningTimer <= 0) {
-        this.isWarning = false;
-        this.isActive = true;
-        this.stormTimer = this.stormDuration;
-        windForce = this.maxWindForce;
+        this.startStorm();
       }
     }
 
     if (this.isActive) {
       this.stormTimer--;
 
-      // Fade wind force in last 2 seconds
-      if (this.stormTimer < this.windFadeOutDuration) {
-        let t = map(this.stormTimer, this.windFadeOutDuration, 0, 0, 1);
-        windForce = lerp(this.maxWindForce, this.previousWindForce, t);
+      // Wind force increases in first 3 seconds
+      if (this.windFadeInTimer > 0) {
+        let t = 1 - this.windFadeInTimer / this.windFadeInDuration;
+        windForce = lerp(this.previousWindForce, this.maxWindForce, t);
+        this.windFadeInTimer--;
+      }
+
+      // Wind force decreases in last 3 seconds
+      if (this.windFadeOutTimer > 0) {
+        let t = this.windFadeOutTimer / this.windFadeOutDuration;
+        windForce = lerp(this.previousWindForce, this.maxWindForce, t);
+        this.windFadeOutTimer--;
+      }
+
+      // Start fade-out when nearing end
+      if (this.stormTimer === this.windFadeOutDuration) {
+        this.windFadeOutTimer = this.windFadeOutDuration;
       }
 
       this.updateAlpha();
@@ -908,16 +921,22 @@ class Storm {
     }
   }
 
+  startStorm() {
+    this.isWarning = false;
+    this.isActive = true;
+    this.stormTimer = this.stormDuration;
+    this.windFadeInTimer = this.windFadeInDuration;
+    this.windFadeOutTimer = 0;
+  }
+
   updateAlpha() {
     if (this.isWarning) {
       this.alpha = map(this.warningTimer, this.warningDuration, 0, 0, 255);
     } else if (this.isActive) {
-      if (this.stormTimer > this.stormDuration - this.fadeDuration) {
-        this.alpha = map(
-          this.stormDuration - this.stormTimer, 0, this.fadeDuration, 0, 255
-        );
-      } else if (this.stormTimer < this.fadeDuration) {
-        this.alpha = map(this.stormTimer, 0, this.fadeDuration, 0, 255);
+      if (this.windFadeInTimer > 0) {
+        this.alpha = map(this.windFadeInTimer, this.windFadeInDuration, 0, 0, 255);
+      } else if (this.windFadeOutTimer > 0) {
+        this.alpha = map(this.windFadeOutTimer, this.windFadeOutDuration, 0, 255, 0);
       } else {
         this.alpha = 255;
       }
@@ -938,7 +957,7 @@ class Storm {
 
   deactivate() {
     this.isActive = false;
-    windForce = this.previousWindForce; // restore original wind force
+    windForce = this.previousWindForce;
   }
 
   isStormActive() {
@@ -981,11 +1000,11 @@ class QuantumStorm {
   activate() {
     gravity.y = -gravity.y;
     this.isActive = true;
-    this.duration = 1200; // 20 seconds
+    this.duration = random(1000,4000);
     this.alpha = 0;
     this.initializeParticles();
     soundManager.play('quantumRift');
-    announcer.speak("Quantum Instability Detected!", 0, 2);
+    announcer.speak("Quantum Rift Detected!", 0, 2);
   }
 
   update() {
@@ -1077,7 +1096,7 @@ class QuantumStorm {
 
   deactivate() {
     this.isActive = false;
-    announcer.speak("Quantum field stabilised", 0, 2);
+    announcer.speak("Quantum Rift stabilised", 0, 2);
     gravity.y = -gravity.y;
   }
 }

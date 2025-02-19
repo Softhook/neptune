@@ -49,8 +49,8 @@ static updateAll() {
     if (base.health <= 0) {
       soundManager.play('moonBaseDestruction');
       RuinedBase.createFromMoonBase(base);
-      GameTimer.clear(`moonbase_heal_${base.id}`);
-      GameTimer.clear(`moonbase_balloon_${base.id}`);
+      GameTimer.clearTimer(`moonbase_heal_${base.id}`);
+      GameTimer.clearTimer(`moonbase_balloon_${base.id}`);
       MoonBase.moonBases.splice(i, 1);
     }
   }
