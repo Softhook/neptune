@@ -413,10 +413,17 @@ class EntitySerializer {
       size: ship.size,
       angle: ship.angle,
       health: ship.health,
+      thrustPower: ship.thrustPower,
+      rotationSpeed: ship.rotationSpeed,
+      bulletSpeed: ship.bulletSpeed,
       isLanded: ship.isLanded,
       hasParachute: ship.hasParachute,
       parachuteDeployed: ship.parachuteDeployed,
-      hasGrabbedPod: ship.hasGrabbedPod
+      parachuteSize: ship.parachuteSize,
+      parachuteDrag: ship.parachuteDrag,
+      hasGrabbedPod: ship.hasGrabbedPod,
+      isThrusting: ship.isThrusting,
+      isMainShip: ship.isMainShip
     };
   }
 
@@ -428,10 +435,17 @@ class EntitySerializer {
     );
     newShip.angle = shipData.angle;
     newShip.health = shipData.health;
+    newShip.thrustPower = shipData.thrustPower;
+    newShip.rotationSpeed = shipData.rotationSpeed;
+    newShip.bulletSpeed = shipData.bulletSpeed;
     newShip.isLanded = shipData.isLanded;
     newShip.hasParachute = shipData.hasParachute;
     newShip.parachuteDeployed = shipData.parachuteDeployed;
+    newShip.parachuteSize = shipData.parachuteSize;
+    newShip.parachuteDrag = shipData.parachuteDrag;
     newShip.hasGrabbedPod = shipData.hasGrabbedPod;
+    newShip.isThrusting = shipData.isThrusting || false;
+    newShip.isMainShip = shipData.isMainShip || false;
     return newShip;
   }
 
