@@ -1343,7 +1343,7 @@ class WorldSerializer {
 }
 
 class UpgradeSerializer {
-  static serialize(upgrades) {
+static serialize(upgrades) {
     return {
       availableUpgrades: Object.fromEntries(
         Object.entries(upgrades.availableUpgrades).map(([key, upgrade]) => [
@@ -1362,9 +1362,22 @@ class UpgradeSerializer {
       turretHealth: Turret.defaultHealth,
       turretRange: Turret.defaultRange,
       maxShields: Shield.MAX_SHIELDS,
-      maxBalloons: MoonBase.maxBalloons
+      maxBalloons: MoonBase.maxBalloons,
+      shipThrustPower: ship.thrustPower,
+      shipRotationSpeed: ship.rotationSpeed,
+      astronautWalkSpeed: astronaut.walkSpeed,
+      astronautBombCooldown: astronaut.bombThrowCooldownTime,
+      parachuteSize: ship.parachuteSize,
+      parachuteDrag: ship.parachuteDrag,
+      missileExplosionRadius: Missile.defaultExplosionRadius,
+      missileDamage: Missile.defaultDamage,
+      drillRigEnergyRate: DrillRig.ENERGY_GENERATION_RATE,
+      walkerShootSpeed: WalkerRobot.SHOOT_SPEED,
+      walkerMaxUnits: WalkerRobot.MAX_WALKERS,
+      maxEnergy: maxEnergy,
+      turretShootCooldown: Turret.ShootCooldown
     };
-  }
+}
 
 static deserialize(upgradeData) {
   if (!upgradeData || !upgradeData.availableUpgrades) {
@@ -1372,10 +1385,8 @@ static deserialize(upgradeData) {
     return;
   }
 
-  // Reset upgrades to initial state
   upgrades.reset();
 
-  // Apply saved upgrade levels
   for (const [upgradeName, upgradeInfo] of Object.entries(upgradeData.availableUpgrades)) {
     if (upgrades.availableUpgrades.hasOwnProperty(upgradeName)) {
       const upgrade = upgrades.availableUpgrades[upgradeName];
@@ -1384,7 +1395,6 @@ static deserialize(upgradeData) {
       upgrade.maxLevel = upgradeInfo.maxLevel;
       upgrade.description = upgradeInfo.description;
 
-      // Apply the upgrade effects for each level
       for (let i = 0; i < upgrade.level; i++) {
         upgrades.applyUpgrade(upgradeName);
       }
@@ -1393,61 +1403,35 @@ static deserialize(upgradeData) {
     }
   }
 
-  // Restore bullet damage multiplier
-  if (typeof upgradeData.bulletDamageMultiplier === 'number') {
-    Bullet.damageMultiplier = upgradeData.bulletDamageMultiplier;
-  } else {
-    console.warn('Bullet damage multiplier not found in saved data, using default');
-    Bullet.damageMultiplier = 1;
+  function restoreProperty(prop, defaultValue, target) {
+    if (typeof upgradeData[prop] === 'number') {
+      target = upgradeData[prop];
+    } else {
+      console.warn(`${prop} not found in saved data, using default`);
+      target = defaultValue;
+    }
   }
 
-  // Restore bomb explosion radius
-  if (typeof upgradeData.bombExplosionRadius === 'number') {
-    Bomb.defaultExplosionRadius = upgradeData.bombExplosionRadius;
-  } else {
-    console.warn('Bomb explosion radius not found in saved data, using default');
-    Bomb.defaultExplosionRadius = 30; // Assuming 30 is the default value
-  }
-
-  // Restore bomb damage
-  if (typeof upgradeData.bombDamage === 'number') {
-    Bomb.defaultBombDamage = upgradeData.bombDamage;
-  } else {
-    console.warn('Bomb damage not found in saved data, using default');
-    Bomb.defaultBombDamage = 3; // Assuming 3 is the default value
-  }
-
-  // Restore turret health
-  if (typeof upgradeData.turretHealth === 'number') {
-    Turret.defaultHealth = upgradeData.turretHealth;
-  } else {
-    console.warn('Turret health not found in saved data, using default');
-    Turret.defaultHealth = 4; // Assuming 4 is the default value
-  }
-
-  // Restore turret range
-  if (typeof upgradeData.turretRange === 'number') {
-    Turret.defaultRange = upgradeData.turretRange;
-  } else {
-    console.warn('Turret range not found in saved data, using default');
-    Turret.defaultRange = 200; // Assuming 200 is the default value
-  }
-
-  // Restore max shields
-  if (typeof upgradeData.maxShields === 'number') {
-    Shield.MAX_SHIELDS = upgradeData.maxShields;
-  } else {
-    console.warn('Max shields not found in saved data, using default');
-    Shield.MAX_SHIELDS = 3; // Assuming 3 is the default value
-  }
-
-  // Restore max balloons
-  if (typeof upgradeData.maxBalloons === 'number') {
-    MoonBase.maxBalloons = upgradeData.maxBalloons;
-  } else {
-    console.warn('Max balloons not found in saved data, using default');
-    MoonBase.maxBalloons = 0; // Assuming 0 is the default value
-  }
+  restoreProperty('bulletDamageMultiplier', 1, Bullet.damageMultiplier);
+  restoreProperty('bombExplosionRadius', 30, Bomb.defaultExplosionRadius);
+  restoreProperty('bombDamage', 3, Bomb.defaultBombDamage);
+  restoreProperty('turretHealth', 4, Turret.defaultHealth);
+  restoreProperty('turretRange', 200, Turret.defaultRange);
+  restoreProperty('maxShields', 3, Shield.MAX_SHIELDS);
+  restoreProperty('maxBalloons', 0, MoonBase.maxBalloons);
+  restoreProperty('shipThrustPower', 0.1, ship.thrustPower);
+  restoreProperty('shipRotationSpeed', 0.05, ship.rotationSpeed);
+  restoreProperty('astronautWalkSpeed', 2, astronaut.walkSpeed);
+  restoreProperty('astronautBombCooldown', 10, astronaut.bombThrowCooldownTime);
+  restoreProperty('parachuteSize', 0, ship.parachuteSize);
+  restoreProperty('parachuteDrag', 1, ship.parachuteDrag);
+  restoreProperty('missileExplosionRadius', 100, Missile.defaultExplosionRadius);
+  restoreProperty('missileDamage', 5, Missile.defaultDamage);
+  restoreProperty('drillRigEnergyRate', 0.1, DrillRig.ENERGY_GENERATION_RATE);
+  restoreProperty('walkerShootSpeed', 50, WalkerRobot.SHOOT_SPEED);
+  restoreProperty('walkerMaxUnits', 0, WalkerRobot.MAX_WALKERS);
+  restoreProperty('maxEnergy', 15000, maxEnergy);
+  restoreProperty('turretShootCooldown', 120, Turret.ShootCooldown);
 }
   
 static validate(upgradeData) {
@@ -1478,7 +1462,20 @@ static validate(upgradeData) {
     'turretHealth',
     'turretRange',
     'maxShields',
-    'maxBalloons'
+    'maxBalloons',
+    'shipThrustPower',
+    'shipRotationSpeed',
+    'astronautWalkSpeed',
+    'astronautBombCooldown',
+    'parachuteSize',
+    'parachuteDrag',
+    'missileExplosionRadius',
+    'missileDamage',
+    'drillRigEnergyRate',
+    'walkerShootSpeed',
+    'walkerMaxUnits',
+    'maxEnergy',
+    'turretShootCooldown'
   ];
 
   for (const prop of additionalProperties) {

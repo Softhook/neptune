@@ -5,8 +5,8 @@ class AlienPlant extends Entity {
   static maxClusters = 10;
   static spawnInterval = 5000; // ms
   static lastSpawnTime = 0;
-  static normalGrowthRate = [0.008, 0.02];
-  static enhancedGrowthRate = [0.03, 0.06]; // faster growth during diamond rain
+  static normalGrowthRate = [0.01, 0.03];
+  static enhancedGrowthRate = [0.04, 0.08]; // faster growth during diamond rain
 
   constructor(pos, size, clusterColor) {
     super(pos, createVector(0, 0), size);
@@ -19,7 +19,7 @@ class AlienPlant extends Entity {
     this.shape = this.generateShape();
     this.fullyGrown = false;
     this.isDecaying = false;
-    this.decayChance = 0.0005; // 0.05% chance to start decaying each update
+    this.decayChance = 0.0004; // 0.05% chance to start decaying each update
     this.targetPos = pos.copy();
   }
 
