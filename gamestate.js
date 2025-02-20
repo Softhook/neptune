@@ -779,7 +779,11 @@ static deserializePod(podData) {
       pos: this.serializeVector(turret.pos),
       size: turret.size,
       health: turret.health,
-      angle: turret.angle
+      angle: turret.angle,
+      shootCooldown: turret.shootCooldown,
+      maxShootCooldown: turret.maxShootCooldown,
+      range: turret.range,
+
     };
   }
 
@@ -788,6 +792,9 @@ static deserializePod(podData) {
     newTurret.size = turretData.size;
     newTurret.health = turretData.health;
     newTurret.angle = turretData.angle;
+    newTurret.shootCooldown = turretData.shootCooldown;
+    newTurret.maxShootCooldown = turretData.maxShootCooldown;
+    newTurret.range = turretData.range; 
     return newTurret;
   }
 
