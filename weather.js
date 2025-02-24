@@ -1402,24 +1402,24 @@ class RainbowRain {
     this.duration = this.totalDuration;
     this.alpha = 0;
     this.initializeThreads();
-    announcer.speak("Mirages from distant planets!", 0, 1);
+    announcer.speak("Psychotropic Exposure detected!", 0, 1);
   }
 
   initializeThreads() {
     this.threads = [];
     for (let i = 0; i < this.maxThreads; i++) {
-      let hue = (i * 360) / this.maxThreads;
+      let hue = (i * 50) / this.maxThreads;
       this.threads.push({
         pos: createVector(random(worldWidth), -random(50)),
         vel: createVector(random(-0.5, 0.5), random(0.5, 2.5)),
-        length: random(30, 80),
+        length: random(30, 200),
         hue: hue,
         saturation: random(50, 100),
-        brightness: random(20, 60),
-        alpha: random(100, 255),
+        brightness: random(20, 40),
+        alpha: random(10, 100),
         sway: random(0.2, 0.5),
         noiseOffset: random(1000),
-        thickness: random(6, 60)
+        thickness: random(30, 200)
       });
     }
   }
