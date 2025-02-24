@@ -1383,3 +1383,149 @@ class Eclipse {
     this.isActive = false;
   }
 }
+
+class RainbowRain {
+  constructor() {
+    this.isActive = false;
+    this.fadeDuration = 240;
+    this.totalDuration = 4000;
+    this.duration = this.totalDuration;
+    this.alpha = 0;
+    this.rainProbability = 0.00001;
+    this.threads = [];
+    this.maxThreads = 300;
+    this.swirlIntensity = 0.1;
+  }
+
+  activate() {
+    this.isActive = true;
+    this.duration = this.totalDuration;
+    this.alpha = 0;
+    this.initializeThreads();
+    announcer.speak("Mirages from distant planets!", 0, 1);
+  }
+
+  initializeThreads() {
+    this.threads = [];
+    for (let i = 0; i < this.maxThreads; i++) {
+      let hue = (i * 360) / this.maxThreads;
+      this.threads.push({
+        pos: createVector(random(worldWidth), -random(50)),
+        vel: createVector(random(-0.5, 0.5), random(0.5, 2.5)),
+        length: random(30, 80),
+        hue: hue,
+        saturation: random(50, 100),
+        brightness: random(20, 60),
+        alpha: random(100, 255),
+        sway: random(0.2, 0.5),
+        noiseOffset: random(1000),
+        thickness: random(6, 60)
+      });
+    }
+  }
+
+  update() {
+    if (!this.isActive && random() < this.rainProbability) {
+      this.activate();
+    }
+    if (this.isActive) {
+      this.duration--;
+      this.updateAlpha();
+      this.updateThreads();
+      if (this.duration <= 0) {
+        this.deactivate();
+      }
+    }
+  }
+
+  updateAlpha() {
+    if (this.duration > this.totalDuration - this.fadeDuration) {
+      this.alpha = map(this.totalDuration - this.duration, 0, this.fadeDuration, 0, 255);
+    } else if (this.duration < this.fadeDuration) {
+      this.alpha = map(this.duration, 0, this.fadeDuration, 0, 255);
+    } else {
+      this.alpha = 255;
+    }
+  }
+
+  updateThreads() {
+    for (let thread of this.threads) {
+      let swirl = map(noise(thread.noiseOffset + frameCount * 0.01), 0, 1, -1, 1);
+      thread.vel.x += swirl * this.swirlIntensity;
+      thread.vel.x += sin(frameCount * thread.sway) * 0.2;
+      thread.pos.add(thread.vel);
+      thread.noiseOffset += 0.01;
+
+      if (thread.pos.y > height * 0.6) {
+        thread.vel.x += random(-0.3, 0.3);
+        thread.vel.y *= 0.95;
+      }
+
+      if (thread.pos.y > height + thread.length) {
+        this.resetThread(thread);
+      }
+    }
+  }
+
+  draw() {
+    if (this.isActive) {
+      this.drawThreads();
+    }
+  }
+
+  drawThreads() {
+    blendMode(ADD);
+    noStroke();
+    for (let thread of this.threads) {
+      colorMode(HSB);
+      let alpha = thread.alpha * (this.alpha / 255);
+
+      for (let i = 0; i < 3; i++) {
+        let offset = i * 2;
+        fill(
+          (thread.hue + i * 5) % 360,
+          thread.saturation,
+          thread.brightness,
+          alpha * 0.7
+        );
+
+        beginShape();
+        for (let j = 0; j < thread.length; j += 2) {
+          let x = thread.pos.x + sin(j * 0.1 + frameCount * 0.05) * thread.thickness;
+          let y = thread.pos.y + j;
+          vertex(x, y);
+        }
+        endShape();
+      }
+
+      if (random() < 0.3) {
+        fill(
+          thread.hue,
+          thread.saturation,
+          thread.brightness,
+          alpha * 0.5
+        );
+      }
+    }
+    blendMode(BLEND);
+    colorMode(RGB);
+  }
+
+  resetThread(thread) {
+    thread.pos.y = -thread.length;
+    thread.pos.x = random(worldWidth);
+    thread.vel.set(random(-0.5, 0.5), random(1.0, 3.0));
+    thread.hue = (thread.hue + 30) % 360;
+    thread.sway = random(0.2, 0.5);
+  }
+
+  deactivate() {
+    this.isActive = false;
+    this.threads = [];
+    this.duration = this.totalDuration;
+  }
+
+  isRainActive() {
+    return this.isActive;
+  }
+}

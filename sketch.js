@@ -92,6 +92,7 @@ let earthquakeManager;
 let magneticStorm;
 let methaneBlizzard;
 let heliumBlizzard;
+let rainbowrain;
 let storm;
 let quantumStorm;
 let eclipse;
@@ -113,6 +114,7 @@ function setup() {
   earthquakeManager = new EarthquakeManager();
   methaneBlizzard = new MethaneBlizzard();
   heliumBlizzard = new HeliumBlizzard();
+  rainbowrain = new RainbowRain();
   storm = new Storm();
   quantumStorm = new QuantumStorm();
   eclipse = new Eclipse();
@@ -413,6 +415,7 @@ function drawGame() {
   MissionControl.draw();
   methaneBlizzard.draw();
   heliumBlizzard.draw();
+  rainbowrain.draw();
   storm.draw();
   quantumStorm.draw();
   eclipse.draw();
@@ -516,6 +519,7 @@ function updateGame() {
   earthquakeManager.update();
   methaneBlizzard.update();
   heliumBlizzard.update();
+  rainbowrain.update();
   storm.update();
   quantumStorm.update();
   eclipse.update();
