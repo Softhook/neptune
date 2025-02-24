@@ -1408,7 +1408,11 @@ class RainbowRain {
   initializeThreads() {
     this.threads = [];
     for (let i = 0; i < this.maxThreads; i++) {
-      let hue = (i * 50) / this.maxThreads;
+      let red = noise(i * 0.1); // Simulating red channel extraction
+      let bucketedRed = floor(red / 0.05) * 0.05;
+      let randomValue = noise(bucketedRed * 10.0);
+      let hue = (randomValue * 360 + millis() / 30) % 360;
+
       this.threads.push({
         pos: createVector(random(worldWidth), -random(50)),
         vel: createVector(random(-0.5, 0.5), random(0.5, 2.5)),
@@ -1479,16 +1483,12 @@ class RainbowRain {
     for (let thread of this.threads) {
       colorMode(HSB);
       let alpha = thread.alpha * (this.alpha / 255);
+      let hueShifted = (thread.hue + millis() / 100) % 360;
 
       for (let i = 0; i < 3; i++) {
         let offset = i * 2;
-        fill(
-          (thread.hue + i * 5) % 360,
-          thread.saturation,
-          thread.brightness,
-          alpha * 0.7
-        );
-
+        fill((hueShifted + i * 5) % 360, thread.saturation, thread.brightness, alpha * 0.7);
+        
         beginShape();
         for (let j = 0; j < thread.length; j += 2) {
           let x = thread.pos.x + sin(j * 0.1 + frameCount * 0.05) * thread.thickness;
@@ -1496,15 +1496,6 @@ class RainbowRain {
           vertex(x, y);
         }
         endShape();
-      }
-
-      if (random() < 0.3) {
-        fill(
-          thread.hue,
-          thread.saturation,
-          thread.brightness,
-          alpha * 0.5
-        );
       }
     }
     blendMode(BLEND);
