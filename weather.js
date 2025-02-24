@@ -1473,9 +1473,30 @@ class RainbowRain {
 
   draw() {
     if (this.isActive) {
+      this.drawBackgroundEffect();
       this.drawThreads();
     }
   }
+
+drawBackgroundEffect() {
+  noStroke();
+  blendMode(ADD);
+  let gridSize = 40; // Control how fine the grid is
+
+  for (let y = 0; y < height; y += gridSize) {
+    for (let x = 0; x < worldWidth; x += gridSize) {
+      let uvX = x / worldWidth;
+      let uvY = y / height;
+      let distToCenter = dist(uvX, uvY, 0.5, 0.5);
+      let curvy = sin(frameCount * 0.05 + distToCenter * 10.0);
+      let col = color(map(curvy, -1, 1, 0, 255), 100, 255, 80);
+
+      fill(col);
+      rect(x, y, gridSize, gridSize);
+    }
+  }
+  blendMode(BLEND);
+}
 
   drawThreads() {
     blendMode(ADD);
@@ -1514,6 +1535,7 @@ class RainbowRain {
     this.isActive = false;
     this.threads = [];
     this.duration = this.totalDuration;
+    announcer.speak("Psychotropics have worn off", 0, 1);
   }
 
   isRainActive() {
