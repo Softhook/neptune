@@ -27,13 +27,13 @@ Amidst the swirling chaos, whispers of a subjugated world rise, beckoning us to 
 Quantum rifts shimmer like the borders of empires, linking worlds as conquerors stretch their ambitions across the stars.|||
 The alien language flows like the tide of history, a symphony of conquest that resonates with the blood of the fallen.|||
 Echoes of a forgotten war reverberate in the winds, tales of imperial conflict that reshaped the destinies of worlds forever.|||
-Neptune’s storms roar with ancient fury, concealing the echoes of a civilization lost beneath layers of ice and gas.|||
+Neptune's storms roar with ancient fury, concealing the echoes of a civilization lost beneath layers of ice and gas.|||
 Hunters glide through the tempest, their senses sharp, tracking the fleeting shadows of those who dare to challenge the skies.|||
 Magnetic tides pull at our vessels, distorting reality, as we navigate the treacherous seas of the great blue planet.|||
-The alien queen drifts like a phantom, merging with Neptune’s core, seeking power in the depths of the world she commands.|||
+The alien queen drifts like a phantom, merging with Neptune's core, seeking power in the depths of the world she commands.|||
 Frozen relics lie entombed in the icy grasp of time, remnants of battles fought in forgotten epochs, waiting to be unearthed.|||
 Temporal anomalies flicker in the corners of perception, stretching moments into eternity, bending the very fabric of existence.|||
-In the depths of Neptune’s ocean, liquid diamonds swirl, reflecting the fractured dreams of those who dared to dream beyond the stars.|||
+In the depths of Neptune's ocean, liquid diamonds swirl, reflecting the fractured dreams of those who dared to dream beyond the stars.|||
 A sentient hive-mind weaves through the air, a tapestry of thoughts and memories, longing to connect with the souls of the brave.|||
 The Great Dark Spot pulses ominously, a harbinger of chaos cloaked in darkness, harboring weapons of unfathomable power.|||
 Amidst the swirling storms, whispers of an ancient civilization beckon, inviting us to uncover the truths hidden beneath the chaos.|||
@@ -59,7 +59,7 @@ Harvesters gather gems, crafting tools for unknown ends.|||
 Sentient storms rage, carrying the breath of the ancients.|||
 Alien whispers float through the atmosphere, a haunting lullaby.|||
 Quantum gates open, linking worlds in a tapestry of fate.|||
-Neptune’s dark mysteries stir, secrets longing to be known.|||
+Neptune's dark mysteries stir, secrets longing to be known.|||
 The hive-mind awakens, a network of thoughts intertwined.|||
 The meteor showers and diamond rain create a balance of destruction and creation that sustains Neptune's surface.|||
 The red energy pods contain compressed Hydrogen that the aliens use to feed their Nests and spawn new aliens.|||
@@ -473,7 +473,7 @@ function announceRandomLine() {
   const lineToAnnounce = unusedLines[randomIndex];
   unusedLines.splice(randomIndex, 1);
 
-  announcer.speak(lineToAnnounce, 18, 1);
+  announcer.speak(lineToAnnounce,3, 1);
 }
 
 class Announcement {
@@ -494,6 +494,18 @@ class Announcement {
     this.isInitialized = false;
     this.queueProcessorId = null;
     this.maxRetries = 3;
+    
+    // Default voice preferences by name
+    this.defaultVoiceNames = [
+      "Kate", // Index 0: Main announcer voice
+      "Microsoft David",  // Index 1: Mission Voice
+      "Google US English", // Index 2: Alternative voice
+      "Daniel",          // Index 3: British male Narrator
+      "Microsoft Zira"         // Index 4: American female voice
+    ];
+    
+    // Will store the actual voice objects that match our preferred names
+    this.defaultVoices = [];
     
     this.initialize().catch(error => 
       console.error('Failed to initialize Announcement:', error)
@@ -521,7 +533,8 @@ class Announcement {
         this.voices = this.synthesis.getVoices();
         
         if (this.voices.length > 0) {
-          this.currentVoice = this.voices[0];
+          // Set up default voices by name
+          this.setupDefaultVoices();
           console.log(`Loaded ${this.voices.length} voices`);
           resolve(this.voices);
         } else {
@@ -543,6 +556,102 @@ class Announcement {
       };
     });
   }
+  
+  // New method to set up default voices based on name preferences
+  // New method to set up default voices based on name preferences
+  setupDefaultVoices() {
+    // Log available voices for debugging
+    console.log("Available voices:");
+    this.voices.forEach((voice, index) => {
+      console.log(`${index}: ${voice.name} (${voice.lang})`);
+    });
+
+    // --- START: Improved Fallback Logic ---
+    let ultimateEnglishFallback = null;
+
+    // 1. Prioritize US English
+    ultimateEnglishFallback = this.voices.find(v => v.lang.startsWith('en-US'));
+
+    // 2. If no US, try British English
+    if (!ultimateEnglishFallback) {
+      ultimateEnglishFallback = this.voices.find(v => v.lang.startsWith('en-GB'));
+    }
+
+    // 3. If no US/GB, try *any* English
+    if (!ultimateEnglishFallback) {
+      ultimateEnglishFallback = this.voices.find(v => v.lang.startsWith('en'));
+    }
+
+    // 4. If absolutely NO English voice exists, use the very first voice available
+    if (!ultimateEnglishFallback && this.voices.length > 0) {
+      ultimateEnglishFallback = this.voices[0];
+      console.warn("No English voices found. Using the first available voice as fallback:", ultimateEnglishFallback.name, `(${ultimateEnglishFallback.lang})`);
+    } else if (!ultimateEnglishFallback) {
+        // Handle the extremely unlikely case of zero voices
+        console.error("CRITICAL: No voices available on this system!");
+        // You might want to disable speech synthesis entirely here
+        this.isInitialized = false; // Mark as not initialized
+        return; // Stop setup
+    }
+    // --- END: Improved Fallback Logic ---
+
+
+    // Initialize with the determined best English fallback
+    this.currentVoice = ultimateEnglishFallback; // Set main announcer voice
+    this.defaultVoices = new Array(this.defaultVoiceNames.length).fill(ultimateEnglishFallback); // Fill defaults
+
+    console.log("Ultimate English Fallback chosen:", ultimateEnglishFallback.name, `(${ultimateEnglishFallback.lang})`);
+
+
+    // Try to find matches for our preferred voice names
+    this.defaultVoiceNames.forEach((name, index) => {
+      let match = null;
+
+      // Look for exact match first
+      match = this.voices.find(v => v.name === name);
+
+      // If no exact match, try partial match (prioritizing English)
+      if (!match) {
+        match = this.voices.find(v =>
+          v.name.toLowerCase().includes(name.toLowerCase()) && v.lang.startsWith('en') // Prioritize English partial matches
+        );
+      }
+       if (!match) {
+           match = this.voices.find(v =>
+               v.name.toLowerCase().includes(name.toLowerCase()) // Allow non-English partial if no English partial found
+           );
+       }
+
+
+      // If still no match, try keyword match (Microsoft/Google, prioritizing English)
+      if (!match && name.includes("Microsoft")) {
+        match = this.voices.find(v => v.name.includes("Microsoft") && v.lang.startsWith('en'));
+        if (!match) match = this.voices.find(v => v.name.includes("Microsoft")); // Non-English Microsoft if needed
+      } else if (!match && name.includes("Google")) {
+        match = this.voices.find(v => v.name.includes("Google") && v.lang.startsWith('en'));
+         if (!match) match = this.voices.find(v => v.name.includes("Google")); // Non-English Google if needed
+      }
+
+      // If still no match, try to find a voice with matching language prefix
+      if (!match) {
+        const langPrefix = name.toLowerCase().includes("british") || name.toLowerCase().includes("daniel") ? "en-GB" : "en-US"; // Adjusted logic for Daniel
+        match = this.voices.find(v => v.lang.startsWith(langPrefix));
+      }
+
+      // If we found a specific match better than the ultimate fallback, use it
+      if (match) {
+        this.defaultVoices[index] = match;
+        console.log(`Voice ${index} ('${name}') set to: ${match.name} (${match.lang})`);
+      } else {
+        // If no specific match found, it keeps the ultimateEnglishFallback assigned earlier
+        console.log(`No specific match found for voice ${index} ('${name}'), using ultimate fallback: ${this.defaultVoices[index].name} (${this.defaultVoices[index].lang})`);
+      }
+    });
+
+    // Ensure the main announcer voice is the one intended for index 0
+    this.currentVoice = this.defaultVoices[0];
+    console.log(`Final main announcer voice (index 0): ${this.currentVoice.name} (${this.currentVoice.lang})`);
+  }
 
   speak(text, voiceIndex = 0, priority = 0, delay = 0) {
     if (!this.isInitialized) {
@@ -555,9 +664,26 @@ class Announcement {
       return false;
     }
 
-    // Validate voice index
-    const validVoiceIndex = Math.max(0, Math.min(voiceIndex, this.voices.length - 1));
-    const selectedVoice = this.voices[validVoiceIndex] || this.currentVoice;
+    // Get the appropriate voice based on index
+    let selectedVoice;
+    
+    // If voiceIndex is a number, use our mapped default voices
+    if (typeof voiceIndex === 'number') {
+      // Ensure index is within bounds of our default voices array
+      const safeIndex = Math.max(0, Math.min(voiceIndex, this.defaultVoices.length - 1));
+      selectedVoice = this.defaultVoices[safeIndex];
+    } 
+    // If voiceIndex is a string (voice name), try to find it
+    else if (typeof voiceIndex === 'string') {
+      const matchedVoice = this.voices.find(v => 
+        v.name.toLowerCase().includes(voiceIndex.toLowerCase())
+      );
+      selectedVoice = matchedVoice || this.currentVoice;
+    }
+    // Fallback to current voice
+    else {
+      selectedVoice = this.currentVoice;
+    }
 
     const announcement = {
       text,
@@ -738,9 +864,6 @@ class Announcement {
     //this.isInitialized = false;
   }
 }
-
-
-
 
 class GameTimer {
   static timers = {};
