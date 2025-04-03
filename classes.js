@@ -3201,6 +3201,7 @@ class Upgrades {
     });
 
     Bullet.damageMultiplier = 1;
+    Bullet.updatePlayerBulletColour();
     Bomb.defaultExplosionRadius = 50;
     Bomb.defaultBombDamage = 3;
     Wingman.MAX_WINGMEN = 0;
