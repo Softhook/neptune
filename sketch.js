@@ -1533,13 +1533,13 @@ function startNewLevel() {
   soundManager.play('nextLevel');
     ambientMusic.newLevel();
   
-  
-  if (level > 3 && !alienQueen.hasDied){ 
-    alienQueen.appearOnPlanet();   //from level 4 the queen apears from level 4
+
+  if (level > 5 && !alienQueen.hasDied){ 
+    alienQueen.appearOnPlanet();   //from level 6 the queen apears
   }
 
-  if (level > 7 && alienQueen.hasDied && !alienKing.hasDied){ 
-    alienKing.appearOnPlanet();   //if queen is dead the the King apears every level from 8
+  if (level > 9 && alienQueen.hasDied && !alienKing.hasDied){ 
+    alienKing.appearOnPlanet();   //if queen is dead the the King can apear
   }
 
   
