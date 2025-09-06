@@ -102,6 +102,8 @@ reshapeMoonSurface() {
 
   moonSurface.splice(startIndex, endIndex - startIndex, ...newSurfacePoints);
   this.smoothCraterEdges(startIndex, newSurfacePoints.length);
+  // Terrain changed by meteor impact
+  if (typeof clearTerrainCache === 'function') clearTerrainCache();
   
   RuinedShip.updatePositions();
 }
@@ -371,6 +373,8 @@ class DiamondRain {
         moonSurface[i].y -= spikeHeight;
       }
     }
+    // Surface altered; invalidate cached heights
+    if (typeof clearTerrainCache === 'function') clearTerrainCache();
   }
 
   static updateDiamonds() {

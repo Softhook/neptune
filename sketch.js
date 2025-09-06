@@ -312,7 +312,7 @@ function drawClusterOverlays() {
       beginShape();
       for (let a = 0; a < TWO_PI; a += 0.1) {
         let x = center.x + cos(a) * r;
-        let y = getSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
+  let y = getCachedSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
         vertex(x, y);
       }
       endShape(CLOSE);
@@ -1050,13 +1050,13 @@ function toggleWalkingState() {
     isWalking = true;
     astronaut.isInShip = false;
     astronaut.pos = ship.pos.copy();
-    astronaut.pos.y = getSurfaceYAtX(astronaut.pos.x) - astronaut.size / 2;
+  astronaut.pos.y = getCachedSurfaceYAtX(astronaut.pos.x) - astronaut.size / 2;
   } else if (isWalking && astronaut.isCloseToShip()) {
     // Enter ship only if close enough
     isWalking = false;
     astronaut.isInShip = true;
     ship.pos.x = astronaut.pos.x;
-    ship.pos.y = getSurfaceYAtX(ship.pos.x) - ship.size / 2;
+  ship.pos.y = getCachedSurfaceYAtX(ship.pos.x) - ship.size / 2;
     ship.vel.set(0, 0);
     ship.angle = -PI / 2;
     ship.isLanded = true;
@@ -1105,6 +1105,8 @@ function initializeWind() {
 
 function generateMoonSurface() {
   moonSurface = [];
+  // Terrain regenerated: clear cached height lookups
+  if (typeof clearTerrainCache === 'function') clearTerrainCache();
   let x = 0;
   let smoothness = 0;
   const minHeight = height; // Minimum height for the surface
@@ -1154,7 +1156,7 @@ function placePodOnSurface() {
 
   do {
     podX = random(worldWidth);
-    podY = Math.max(15, getSurfaceYAtX(podX) - 15);
+  podY = Math.max(15, getCachedSurfaceYAtX(podX) - 15);
     attempts++;
   } while (abs(podX - playerX) < minDistanceFromPlayer && attempts < maxAttempts);
 
@@ -1162,7 +1164,7 @@ function placePodOnSurface() {
     debug.warn("Couldn't find a suitable position for the pod after maximum attempts.");
     // Fallback to a random position
     podX = random(worldWidth);
-    podY = Math.max(15, getSurfaceYAtX(podX) - 15);
+  podY = Math.max(15, getCachedSurfaceYAtX(podX) - 15);
   }
   
   if (!pod) {
@@ -1614,6 +1616,46 @@ function getSurfaceYAtX(x) {
   }
   return height; 
 }
+
+// --- Terrain height caching layer ---
+// We frequently query getSurfaceYAtX(x) for many entities each frame. Most
+// queries hit nearby / identical x positions (entities move slowly). We add a
+// small-resolution cache so repeated lookups are O(1) instead of looping the
+// moonSurface array every time.
+const TERRAIN_CACHE_RESOLUTION = 10; // pixels per bucket
+const terrainCache = new Map();
+
+function getCachedSurfaceYAtX(x) {
+  if (x == null || isNaN(x)) return height;
+  // Identify surrounding cache buckets for interpolation
+  const baseBucket = Math.floor(x / TERRAIN_CACHE_RESOLUTION) * TERRAIN_CACHE_RESOLUTION;
+  const nextBucket = baseBucket + TERRAIN_CACHE_RESOLUTION;
+
+  // Fetch (or compute & cache) both bucket heights
+  let y1 = terrainCache.get(baseBucket);
+  if (y1 === undefined) {
+    y1 = getSurfaceYAtX(baseBucket);
+    terrainCache.set(baseBucket, y1);
+  }
+  let y2 = terrainCache.get(nextBucket);
+  if (y2 === undefined) {
+    y2 = getSurfaceYAtX(nextBucket);
+    terrainCache.set(nextBucket, y2);
+  }
+
+  // Interpolate smoothly between cached buckets
+  const t = (x - baseBucket) / TERRAIN_CACHE_RESOLUTION;
+  return lerp(y1, y2, constrain(t, 0, 1));
+}
+
+function clearTerrainCache() {
+  terrainCache.clear();
+}
+
+// Optional maintenance if desired in future (kept minimal now):
+// function maintainTerrainCache(maxSize = 1500) {
+//   if (terrainCache.size > maxSize) terrainCache.clear();
+// }
 
 function isOutOfBounds(pos) {
   return pos.x < 0 || pos.x > worldWidth || pos.y < 0 || pos.y > height;

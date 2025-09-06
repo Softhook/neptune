@@ -1296,6 +1296,7 @@ class WorldSerializer {
 
   static deserialize(world) {
     moonSurface = this.deserializeMoonSurface(world.moonSurface);
+    if (typeof clearTerrainCache === 'function') clearTerrainCache();
     backgroundStars = world.backgroundStars;
     wind = EntitySerializer.deserializeVector(world.wind);
     AlienPlant.clusterCenters = world.alienPlantClusters.map(center => ({

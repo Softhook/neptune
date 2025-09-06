@@ -298,7 +298,7 @@ class RuinedBase {
 
   static updatePositions() {
     for (let base of RuinedBase.ruinedBases) {
-      base.pos.y = getSurfaceYAtX(base.pos.x);
+  base.pos.y = getCachedSurfaceYAtX(base.pos.x);
     }
   }
 
@@ -511,7 +511,7 @@ class Astronaut extends Entity {
       this.vel.y += gravity.y;
     } else {
       // If not jumping, follow the moon surface
-      let surfaceY = getSurfaceYAtX(this.pos.x + this.vel.x);
+  let surfaceY = getCachedSurfaceYAtX(this.pos.x + this.vel.x);
       this.vel.y = surfaceY - (this.pos.y + this.size / 2);
     }
       
@@ -519,7 +519,7 @@ class Astronaut extends Entity {
     this.pos.x = (this.pos.x + worldWidth) % worldWidth; // Wrap around the world
     
     // Check for landing
-    let surfaceY = getSurfaceYAtX(this.pos.x);
+  let surfaceY = getCachedSurfaceYAtX(this.pos.x);
     if (this.pos.y + this.size / 2 >= surfaceY) {
       this.pos.y = surfaceY - this.size / 2;
       this.vel.y = 0;
@@ -646,7 +646,9 @@ class Astronaut extends Entity {
       this.ridingWalker.hasRider = false;
       this.ridingWalker = null;
       this.isRidingWalker = false;
-      this.pos.y = getSurfaceYAtX(this.pos.x) - this.size / 2;
+      // Smoothly settle onto surface after dismount
+      const targetY = getCachedSurfaceYAtX(this.pos.x) - this.size / 2;
+      this.pos.y = lerp(this.pos.y, targetY, 0.6);
     }
   }
 
@@ -682,7 +684,7 @@ class Astronaut extends Entity {
   
   placeDrillRig() {
   if (energy >= 100) {
-    let rigPos = createVector(this.pos.x, getSurfaceYAtX(this.pos.x) - 15);
+  let rigPos = createVector(this.pos.x, getCachedSurfaceYAtX(this.pos.x) - 15);
     if (DrillRig.placeRig(rigPos)) {
       energy -= 100;
     }
@@ -709,7 +711,7 @@ class Astronaut extends Entity {
   
     dropBase() {
       let basePos = this.pos.copy();
-      basePos.y = getSurfaceYAtX(basePos.x);
+  basePos.y = getCachedSurfaceYAtX(basePos.x);
       new MoonBase(MoonBase.BASE_WIDTH, MoonBase.BASE_HEIGHT, basePos);
       soundManager.play('shipDropOffPod');
       announcer.speak("Base deployed",0, 1,1000);
@@ -812,13 +814,13 @@ class Astronaut extends Entity {
   
   placeShield() {
     energy -= 50;
-    let shieldPos = createVector(this.pos.x, getSurfaceYAtX(this.pos.x));
+  let shieldPos = createVector(this.pos.x, getCachedSurfaceYAtX(this.pos.x));
     Shield.createShield(shieldPos);
   }
 
   placeTurret() {
     const MAX_TURRETS = 5; // Maximum number of turrets allowed
-    let turretPos = createVector(this.pos.x, getSurfaceYAtX(this.pos.x) - 15);
+  let turretPos = createVector(this.pos.x, getCachedSurfaceYAtX(this.pos.x) - 15);
     
     if (turrets.length < MAX_TURRETS) {
       turrets.push(new Turret(turretPos));
@@ -880,7 +882,7 @@ class Ship extends Entity {
     if (money > 500) {
       money -= 500;
       const basePos = this.pos.copy().sub((MoonBase.BASE_WIDTH / 2), 0);
-      basePos.y = getSurfaceYAtX(basePos.x);
+  basePos.y = getCachedSurfaceYAtX(basePos.x);
       new MoonBase(MoonBase.BASE_WIDTH, MoonBase.BASE_HEIGHT, basePos);
       soundManager.play('shipDropOffPod');
       announcer.speak("Base deployed", 0, 1, 1000);
@@ -961,7 +963,7 @@ class Ship extends Entity {
   shoot() {
     if (energy >= 1) {
       const bulletSpawnPos = this.calculateBulletSpawnPosition();
-      const surfaceY = getSurfaceYAtX(bulletSpawnPos.x);
+  const surfaceY = getCachedSurfaceYAtX(bulletSpawnPos.x);
       if (bulletSpawnPos.y <= surfaceY) {
         const bulletVel = p5.Vector.fromAngle(this.angle, this.bulletSpeed);
         Bullet.addBullet(bulletSpawnPos, bulletVel, 5, true);
@@ -979,7 +981,7 @@ class Ship extends Entity {
   shootBomb() {
     if (energy >= 50 && !this.isLanded) {
       const bombSpawnPos = this.calculateBombSpawnPosition();
-      const surfaceY = getSurfaceYAtX(bombSpawnPos.x);
+  const surfaceY = getCachedSurfaceYAtX(bombSpawnPos.x);
       if (bombSpawnPos.y <= surfaceY) {
         const bombVel = this.vel.copy().add(p5.Vector.fromAngle(this.angle + PI, this.bombSpeed));
         bombs.push(new Bomb(bombSpawnPos, bombVel, 10));
@@ -1064,7 +1066,7 @@ class Ship extends Entity {
 
   getSurfaceY() {
     const base = this.findBaseUnder();
-    return base ? base.pos.y : getSurfaceYAtX(this.pos.x);
+  return base ? base.pos.y : getCachedSurfaceYAtX(this.pos.x);
   }
 
   placeOnMoonBase() {
@@ -1806,6 +1808,8 @@ reshapeMoonSurface() {
 
   // Ensure the crater edges blend smoothly with existing terrain
   this.smoothCraterEdges(startIndex, newSurfacePoints.length);
+  // Terrain changed by explosion; clear cached heights
+  if (typeof clearTerrainCache === 'function') clearTerrainCache();
 }
 
   smoothCraterEdges(startIndex, newPointsCount) {
@@ -3011,7 +3015,7 @@ class BarrageBalloon extends Bomb {
   }
 
   update() {
-    let surfaceY = getSurfaceYAtX(this.anchorX);
+  let surfaceY = getCachedSurfaceYAtX(this.anchorX);
 
     if (this.isRising) {
       this.pos.y -= this.riseSpeed;
@@ -3062,7 +3066,7 @@ class BarrageBalloon extends Bomb {
     // Draw tether
     strokeWeight(0.3);
     stroke(150);
-    let surfaceY = getSurfaceYAtX(this.anchorX);
+  let surfaceY = getCachedSurfaceYAtX(this.anchorX);
     line(this.anchorX, surfaceY, this.pos.x, this.pos.y);
 
     // Draw balloon
@@ -3997,7 +4001,7 @@ applyBehaviors() {
 avoidTerrain() {
   const lookAhead = this.vel.copy().setMag(100); // Increased look-ahead distance
   const futurePos = p5.Vector.add(this.pos, lookAhead);
-  const surfaceY = getSurfaceYAtX(futurePos.x);
+  const surfaceY = getCachedSurfaceYAtX(futurePos.x);
   
   if (futurePos.y > surfaceY - this.minAltitude * 2) { // Increased safety margin
     let avoidForce = createVector(0, -1).setMag(this.maxSpeed);
@@ -4153,7 +4157,7 @@ canShootTarget() {
 
 
   checkIfStuck() {
-    const nearSurface = this.pos.y + this.size / 2 > getSurfaceYAtX(this.pos.x) - 10;
+  const nearSurface = this.pos.y + this.size / 2 > getCachedSurfaceYAtX(this.pos.x) - 10;
     const movingSlowly = this.vel.mag() < 0.2;
     const velocityStagnant = this.vel.mag() < 0.2 && this.stuckTimer > 20;
 
@@ -4257,7 +4261,7 @@ applyThrust() {
   }
 
   getSurfaceY() {
-    return getSurfaceYAtX(this.pos.x);
+  return getCachedSurfaceYAtX(this.pos.x);
   }
 
   aCrashOrAlanding() {
@@ -4279,7 +4283,7 @@ applyThrust() {
   }
 
 ensureAboveSurface() {
-  const surfaceY = getSurfaceYAtX(this.pos.x);
+  const surfaceY = getCachedSurfaceYAtX(this.pos.x);
   const minHeight = surfaceY - this.minAltitude;
   
   if (this.pos.y > minHeight) {
@@ -4577,8 +4581,9 @@ move() {
     }
 
     // Update position
-    this.pos.x = newX;
-    this.pos.y = newY;
+  this.pos.x = newX;
+  // Smooth vertical motion to avoid small bucket-induced steps
+  this.pos.y = lerp(this.pos.y, newY, 0.5);
 
     // Update rotation angle
     this.updateRotationAngle();
@@ -4595,7 +4600,7 @@ move() {
     this.surfacePoints = [];
     for (let i = -30; i <= 30; i += 10) {
       let x = (centerX + i + worldWidth) % worldWidth;
-      this.surfacePoints.push({x: x, y: getSurfaceYAtX(x)});
+  this.surfacePoints.push({x: x, y: getCachedSurfaceYAtX(x)});
     }
   }
 

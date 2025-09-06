@@ -65,7 +65,8 @@ class AlienPlant extends Entity {
   }
 
   updatePosition() {
-    this.targetPos.y = getSurfaceYAtX(this.pos.x) - this.currentSize / 2;
+  // Use cached terrain lookup for performance
+  this.targetPos.y = getCachedSurfaceYAtX(this.pos.x) - this.currentSize / 2;
     // Smoothly interpolate towards the target position
     this.pos.y = lerp(this.pos.y, this.targetPos.y, 0.1);
   }
@@ -90,7 +91,7 @@ class AlienPlant extends Entity {
 
   createNest() {
     let nestPos = this.pos.copy();
-    nestPos.y = getSurfaceYAtX(nestPos.x) - 30; // Place nest on surface
+  nestPos.y = getCachedSurfaceYAtX(nestPos.x) - 30; // Place nest on surface
     Nest.nests.push(new Nest(nestPos, 40, this.color)); // Pass the plant's color
     
     // Destroy the plant after creating a nest
@@ -143,13 +144,13 @@ static isInCluster(pos) {
       0
     );
     let size = random(40, 130);
-    pos.y = getSurfaceYAtX(pos.x) - size; // Position the bottom of the plant on the surface
+  pos.y = getCachedSurfaceYAtX(pos.x) - size; // Position the bottom of the plant on the surface
 
     // Prefer lower areas
     let attempts = 0;
     while (attempts < 5 && pos.y < clusterCenter.y - size) {
       pos.x = clusterCenter.x + random(-100, 100);
-      pos.y = getSurfaceYAtX(pos.x) - size;
+  pos.y = getCachedSurfaceYAtX(pos.x) - size;
       attempts++;
     }
 
@@ -160,7 +161,7 @@ static isInCluster(pos) {
     if (AlienPlant.clusterCenters.length >= AlienPlant.maxClusters) return;
 
     let pos = createVector(random(worldWidth), 0);
-    pos.y = getSurfaceYAtX(pos.x);
+  pos.y = getCachedSurfaceYAtX(pos.x);
 
     // Find a low point
     let attempts = 0;
@@ -168,7 +169,7 @@ static isInCluster(pos) {
     let lowestPos = pos.copy();
     while (attempts < 10) {
       pos.x = random(worldWidth);
-      pos.y = getSurfaceYAtX(pos.x);
+  pos.y = getCachedSurfaceYAtX(pos.x);
       if (pos.y > lowestY) {
         lowestY = pos.y;
         lowestPos = pos.copy();
@@ -403,7 +404,7 @@ static createNests(count) {
 
     do {
       nestPos = createVector(random(worldWidth), 0);
-      nestPos.y = getSurfaceYAtX(nestPos.x) - 30; // Place nest on surface
+  nestPos.y = getCachedSurfaceYAtX(nestPos.x) - 30; // Place nest on surface
       attempts++;
 
       // Only check distance for the first nest
@@ -598,7 +599,7 @@ class Alien extends Entity {
   }
 
   isAboveSurface() {
-    return this.pos.y < getSurfaceYAtX(this.pos.x);
+  return this.pos.y < getCachedSurfaceYAtX(this.pos.x);
   }
 
   findNearestNest() {
@@ -1338,7 +1339,7 @@ class AlienWorm {
     }
 
     // Move the head
-    let surfaceY = getSurfaceYAtX(this.segments[0].pos.x + this.speed * this.direction);
+  let surfaceY = getCachedSurfaceYAtX(this.segments[0].pos.x + this.speed * this.direction);
     this.segments[0].pos.x += this.speed * this.direction;
     this.segments[0].pos.y = surfaceY - this.segments[0].size / 2;
 
@@ -1537,7 +1538,7 @@ if (isWalking && !astronaut.ridingWalker) {
   static spawnWorm(nest) {
     if (AlienWorm.worms.length < AlienWorm.MAX_WORMS && AlienWorm.spawnCooldown <= 0) {
       let wormPos = nest.pos.copy();
-      wormPos.y = getSurfaceYAtX(wormPos.x) - 10;
+  wormPos.y = getCachedSurfaceYAtX(wormPos.x) - 10;
 
       // Determine player position
       let playerPos;
