@@ -2110,6 +2110,12 @@ activateBurstDefense() {
         }
       }
     };
+
+    // Prioritize nests: check them first
+    for (let nest of Nest.nests) {
+      checkEntity(nest);
+    }
+    if (closestTarget) return closestTarget; // Return nest if found
     
     Alien.aliens.forEach(checkEntity);
     Destroyer.destroyers.forEach(checkEntity);

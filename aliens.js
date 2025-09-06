@@ -753,7 +753,7 @@ class Alien extends Entity {
   static organizeGroupAttack() {
     const currentTime = millis();
     if (currentTime - this.lastAttackAnnouncementTime >= this.ATTACK_ANNOUNCEMENT_COOLDOWN) {
-      announcer.speak(`Coordinated Attack Detected.`, 0, 1, 0);
+      announcer.speak(`Coordinated Attack.`, 0, 1, 0);
       this.lastAttackAnnouncementTime = currentTime;
     }
 
