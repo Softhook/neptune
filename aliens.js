@@ -550,6 +550,11 @@ class Alien extends Entity {
       return false;
     }
 
+    // Throttle expensive bullet checking to every 3rd frame for better performance
+    if (frameCount % 3 !== 0) {
+      return false;
+    }
+
     for (const bullet of Bullet.activeObjects) {
       if (bullet.isPlayerBullet && this.pos.dist(bullet.pos) < 100 && random() < this.dodgeChance) {
         const timeToImpact = this.pos.dist(bullet.pos) / bullet.vel.mag();

@@ -283,17 +283,21 @@ function updateViewBoundaries() {
 
 
 function drawSurface(){
-
   
-  // Draw moon surface
+  // Draw moon surface - only draw points within view for performance
   const surfaceColor = getMoonSurfaceColor();
   fill(surfaceColor);
   beginShape();
-  vertex(0, height); //enclose shape bottom left
+  vertex(max(0, viewLeft), height); // Clamp to visible area
+  
   for (let point of moonSurface) {
-    vertex(point.x, point.y);
+    // Only include points within the view boundaries (plus small buffer)
+    if (point.x >= viewLeft - 50 && point.x <= viewRight + 50) {
+      vertex(point.x, point.y);
+    }
   }
-  vertex(worldWidth, height); //enclose shape bottom right
+  
+  vertex(min(worldWidth, viewRight), height); // Clamp to visible area
   endShape();
 
 }
@@ -302,6 +306,12 @@ function drawClusterOverlays() {
   noStroke();
   for (let center of AlienPlant.clusterCenters) {
     let clusterRadius = 100; // Adjust this value based on your desired cluster size
+    
+    // Skip clusters outside view (with buffer for partial visibility)
+    if (center.x + clusterRadius < viewLeft || center.x - clusterRadius > viewRight) {
+      continue;
+    }
+    
     let alpha = map(sin(dayNightCycle * TWO_PI), -1, 1, 100, 100); // Vary transparency with day/night cycle
     
     // Create a gradient effect
@@ -312,7 +322,7 @@ function drawClusterOverlays() {
       beginShape();
       for (let a = 0; a < TWO_PI; a += 0.1) {
         let x = center.x + cos(a) * r;
-  let y = getCachedSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
+        let y = getCachedSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
         vertex(x, y);
       }
       endShape(CLOSE);
@@ -404,11 +414,15 @@ function drawGame() {
   Drone.drawDrone();
 
   for (let bomb of bombs) {
+    if (isInView(bomb.pos, bomb.size)) {
       bomb.draw();
+    }
   }
   
   for (let explosion of explosions) {
+    if (isInView(explosion.pos, explosion.size)) {
       explosion.draw();
+    }
   }
   
 
@@ -517,16 +531,21 @@ function updateGame() {
   }
   
   earthquakeManager.update();
-  methaneBlizzard.update();
-  heliumBlizzard.update();
-  rainbowrain.update();
-  storm.update();
-  quantumStorm.update();
+  
+  // Throttle some weather effects to every 2nd frame for performance
+  if (frameCount % 2 === 0) {
+    methaneBlizzard.update();
+    heliumBlizzard.update();
+    rainbowrain.update();
+    storm.update();
+    quantumStorm.update();
+  }
+  
   eclipse.update();
   
   if (frameCount % 60 === 0) {
     updateEnergyFactorBasedOnAliens();
-}
+  }
 
 }
 
@@ -1306,7 +1325,10 @@ function drawBackground() {
   if (starBrightness > 10) { // Small threshold to avoid drawing very faint stars
     fill(255, starBrightness);
     for (const star of backgroundStars) {
-      ellipse(star.x, star.y, star.size);
+      // Only draw stars within view bounds for performance
+      if (star.x >= viewLeft && star.x <= viewRight) {
+        ellipse(star.x, star.y, star.size);
+      }
     }
   }
 

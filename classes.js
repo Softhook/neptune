@@ -3977,9 +3977,17 @@ applyBehaviors() {
     let sum = createVector();
     let count = 0;
     
+    // Pre-calculate squared separation distance to avoid sqrt in distance checks
+    let separationSq = desiredSeparation * desiredSeparation;
+    
     for (let other of [...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers]) {
-      let d = p5.Vector.dist(this.pos, other.pos);
-      if (d > 0 && d < desiredSeparation) {
+      // Use squared distance for performance (avoids expensive sqrt)
+      let dx = this.pos.x - other.pos.x;
+      let dy = this.pos.y - other.pos.y;
+      let distSq = dx * dx + dy * dy;
+      
+      if (distSq > 0 && distSq < separationSq) {
+        let d = Math.sqrt(distSq); // Only calculate sqrt when needed
         let diff = p5.Vector.sub(this.pos, other.pos);
         diff.normalize();
         diff.div(d);
