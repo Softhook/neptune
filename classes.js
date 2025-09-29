@@ -3130,7 +3130,7 @@ checkAlienCollision() {
 
   
   explode() {
-      //explosions.push(new Explosion(this.pos, this.explosionRadius * 2, color(200, 200, 0), color(150, 150, 0)));
+      explosions.push(new Explosion(this.pos, this.explosionRadius * 2, color(200, 200, 0), color(150, 150, 0)));
     
 
   }

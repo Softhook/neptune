@@ -420,7 +420,7 @@ function drawGame() {
   }
   
   for (let explosion of explosions) {
-    if (isInView(explosion.pos, explosion.size)) {
+    if (isInView(explosion.pos, explosion.currentSize)) {
       explosion.draw();
     }
   }
