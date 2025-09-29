@@ -600,7 +600,7 @@ class Astronaut extends Entity {
 
   constrainToWorld() {
     this.pos.x = constrain(this.pos.x, 0, worldWidth);
-    this.pos.y = constrain(this.pos.y, 20, height);
+    this.pos.y = constrain(this.pos.y, this.size / 2, height - this.size / 2);
   }
 
   checkWalkerInteraction() {
