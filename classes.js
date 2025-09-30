@@ -3069,15 +3069,18 @@ class BaseDrone extends Drone {
   }
 
   update() {
-    // Don't call parent update() as we have different control logic
+    // AI behavior first
+    this.updateAI();
+    
+    // Apply wind
     this.applyWind();
-    super.update(); // Call Entity.update() for position updates
+    
+    // Update position (Entity.update() without Drone input handling)
+    this.pos.add(this.vel);
+    this.pos.x = (this.pos.x + worldWidth) % worldWidth;
 
     // Handle bomb timer
     this.bombTimer = max(0, this.bombTimer - 1);
-
-    // AI behavior
-    this.updateAI();
 
     // Check collision with surfaces or enemies
     if (this.checkCollision()) {
@@ -3192,6 +3195,17 @@ class BaseDrone extends Drone {
       direction.setMag(this.speed);
       this.vel = direction;
     }
+  }
+  
+  checkCollision() {
+    // Base drones only check surface collisions, not enemy collisions
+    for (let i = 0; i < moonSurface.length - 1; i++) {
+      let start = moonSurface[i];
+      let end = moonSurface[i + 1];
+      let d = distToSegment(this.pos, start, end);
+      if (d < this.size / 2) return true;
+    }
+    return false;
   }
 
   destroy() {
