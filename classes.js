@@ -1122,18 +1122,30 @@ class Ship extends Entity {
     this.vel.add(dragForce);
   }
 
-
   drawParachute() {
     push();
     translate(0, -this.size * 1.5);
+
+    // Fill the arc shape with 10% opacity
+    noStroke();
+    fill(200, 200, 255, 50); // 10% opacity (50/255)
+    arc(0, 0, this.parachuteSize, this.parachuteSize, PI, TWO_PI, PIE);
+    
+    // Draw the arc outline and lines
     noFill();
     stroke(200, 200, 255);
     strokeWeight(1);
     arc(0, 0, this.parachuteSize, this.parachuteSize, PI, TWO_PI);
+
+    // Parachute lines
     line(-this.parachuteSize / 2, 0, 0, this.size * 1.5);
     line(this.parachuteSize / 2, 0, 0, this.size * 1.5);
     line(-this.parachuteSize / 4, 0, 0, this.size * 1.5);
     line(this.parachuteSize / 4, 0, 0, this.size * 1.5);
+
+    // Draw a straight line at the bottom of the parachute to connect the two sides
+    line(-this.parachuteSize / 2, 0, this.parachuteSize / 2, 0);
+
     pop();
   }
 
