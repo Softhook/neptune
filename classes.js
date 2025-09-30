@@ -36,9 +36,9 @@ class MoonBase {
     this.balloons = [];
     
     // Drone defense properties
-    this.drone = null;
-    this.droneRespawnCooldown = 0;
-    this.droneRespawnTime = 600; // 10 seconds at 60fps
+  this.drone = null;
+  this.droneRespawnTime = 1200; // 20 seconds at 60fps
+  this.droneRespawnCooldown = this.droneRespawnTime; // New bases wait for first drone
     this.dronePatrolRadius = 300; // How far drone can move from base
 
     MoonBase.moonBases.push(this);
@@ -3060,7 +3060,7 @@ class BaseDrone extends Drone {
     this.homeBase = homeBase;
     this.patrolRadius = homeBase.dronePatrolRadius;
     this.speed = 1.5;
-    this.bombCooldown = 120; // 2 seconds between bombs
+    this.bombCooldown = 240; // 4 seconds between bombs
     this.bombTimer = 0;
     this.targetAcquisitionRange = 250;
     this.currentTarget = null;
@@ -3198,14 +3198,7 @@ class BaseDrone extends Drone {
   }
   
   checkCollision() {
-    // Base drones only check surface collisions, not enemy collisions
-    for (let i = 0; i < moonSurface.length - 1; i++) {
-      let start = moonSurface[i];
-      let end = moonSurface[i + 1];
-      let d = distToSegment(this.pos, start, end);
-      if (d < this.size / 2) return true;
-    }
-    return false;
+    return super.checkCollision();
   }
 
   destroy() {
