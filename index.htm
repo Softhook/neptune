@@ -6,33 +6,11 @@
     <script src="p5.speech.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
+
   </head>
   <body>
     <main>
     </main>
-    
-    <!-- Refactored Core Systems (ES6 modules) -->
-    <script type="module">
-      // Initialize core systems first
-      import { initializeNeptuneCore, setupGlobalAccess, MigrationHelpers } from './src/index.js';
-      
-      window.addEventListener('DOMContentLoaded', async () => {
-        try {
-          // Initialize new core systems
-          const coreSystems = await initializeNeptuneCore();
-          setupGlobalAccess(coreSystems);
-          
-          console.log('Neptune refactored systems loaded successfully');
-          
-          // Migration will happen after legacy scripts load
-          window.Neptune.migrationReady = true;
-        } catch (error) {
-          console.error('Failed to initialize Neptune core systems:', error);
-        }
-      });
-    </script>
-    
-    <!-- Legacy Scripts (will be gradually refactored) -->
     <script src="sketch.js"></script>
     <script src="classes.js"></script>
     <script src="aliens.js"></script>
@@ -41,26 +19,5 @@
     <script src="weather.js"></script>
     <script src="narrative.js"></script>
     <script src="boss.js"></script>
-    
-    <!-- Migration Script -->
-    <script>
-      // Wait for both legacy and new systems to load
-      window.addEventListener('load', () => {
-        if (window.Neptune && window.Neptune.migrationReady) {
-          console.log('Starting migration of legacy systems...');
-          
-          // Apply migration helpers after all scripts load
-          setTimeout(() => {
-            try {
-              const { MigrationHelpers } = window.Neptune;
-              // Migration will be gradual to avoid breaking existing functionality
-              console.log('Migration helpers ready for gradual integration');
-            } catch (error) {
-              console.error('Migration error:', error);
-            }
-          }, 100);
-        }
-      });
-    </script>
   </body>
 </html>
