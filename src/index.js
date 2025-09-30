@@ -13,6 +13,12 @@ export { default as ConfigManager } from './core/ConfigManager.js';
 export { default as BaseEntity } from './entities/BaseEntity.js';
 export { default as BaseMission } from './missions/BaseMission.js';
 
+// Entity classes
+export * from './entities/index.js';
+
+// Mission classes
+export * from './missions/index.js';
+
 // System managers (to be created)
 // export { default as AudioManager } from './systems/AudioManager.js';
 // export { default as InputManager } from './systems/InputManager.js';
@@ -21,7 +27,7 @@ export { default as BaseMission } from './missions/BaseMission.js';
 /**
  * Initialize all core systems
  */
-export function initializeNeptuneCore() {
+export async function initializeNeptuneCore() {
   console.log('Initializing Neptune Core Systems...');
   
   // Load saved configurations
@@ -49,6 +55,12 @@ export function initializeNeptuneCore() {
   entityManager.registerCollection('explosions', 20, 10);
   entityManager.registerCollection('meteors', 15);
   entityManager.registerCollection('diamonds', 30, 10);
+  entityManager.registerCollection('drillRigs', 10);
+  entityManager.registerCollection('balloons', 20, 5);
+  
+  // Initialize mission system
+  const { default: MissionManager } = await import('./missions/MissionManager.js');
+  const missionManager = new MissionManager();
   
   // Set up event system listeners for integration
   const { default: eventSystem, GameEvents } = await import('./core/EventSystem.js');
@@ -78,7 +90,8 @@ export function initializeNeptuneCore() {
     stateManager,
     entityManager,
     eventSystem,
-    configManager
+    configManager,
+    missionManager
   };
 }
 
@@ -100,6 +113,7 @@ export function setupGlobalAccess(systems) {
   globalThis.entityManager = systems.entityManager;
   globalThis.eventSystem = systems.eventSystem;
   globalThis.configManager = systems.configManager;
+  globalThis.missionManager = systems.missionManager;
 }
 
 /**
