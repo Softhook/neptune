@@ -475,26 +475,28 @@ class Alien extends Entity {
     this.attackDuration = 0;
     this.lastDodgeTime = 0;
     this.dodgeCooldown = 60;
+
+    // Freeze burst slow effect tracking
+    this.isFrozen = false; // Represents an active slow debuff
+    this.freezeTimer = 0;
+    this.slowMovementFactor = 1;
+    this.slowFireRecoveryFactor = 1;
+    this.baseShootCooldownRecovery = 1;
   }
 
   freeze(duration) {
     this.isFrozen = true;
-    this.freezeTimer = duration;
+    this.freezeTimer = Math.max(this.freezeTimer, duration);
+    this.slowMovementFactor = 0.45;
+    this.slowFireRecoveryFactor = 0.5;
   }
 
   update() {
-    if (this.isFrozen) {
-      this.freezeTimer--;
-      if (this.freezeTimer <= 0) {
-        this.isFrozen = false;
-      }
-      return; // Stop movement while frozen
-    }
-    
+    const moveFactor = this.preUpdateMovement();
+
     super.update();
     this.vel.mult(0.98);
     this.pos.y = constrain(this.pos.y, 0, height);
-    this.shootCooldown = Math.max(0, this.shootCooldown - 1);
 
     if (this.attackMode) {
       if (--this.attackDuration <= 0) {
@@ -502,7 +504,7 @@ class Alien extends Entity {
       }
     }
 
-    if (!this.dodgeBullets()) {
+    if (!this.dodgeBullets(moveFactor)) {
       this.updateBehavior();
     }
 
@@ -519,6 +521,7 @@ class Alien extends Entity {
   }
 
   updateBehavior() {
+    const moveFactor = this.getMovementSlowFactor();
     const targetPos = this.determineTargetPosition();
     if (!targetPos) return;
 
@@ -527,7 +530,7 @@ class Alien extends Entity {
     if (this.attackMode) {
       const distanceToTarget = this.pos.dist(targetPos);
       const desiredDistance = random(150, 220);
-      const speedFactor = 0.5 * this.speed;
+      const speedFactor = 0.5 * this.speed * moveFactor;
 
       if (distanceToTarget > desiredDistance + 50) {
         direction.mult(speedFactor);
@@ -537,14 +540,55 @@ class Alien extends Entity {
         direction.rotate(HALF_PI).mult(speedFactor);
       }
     } else {
-      direction.mult(0.5 * this.speed);
+      direction.mult(0.5 * this.speed * moveFactor);
     }
 
-    this.vel.add(direction).limit(this.speed + 3 * Math.tanh(0.2 * (level - 1)));
+    this.vel.add(direction).limit((this.speed + 3 * Math.tanh(0.2 * (level - 1))) * moveFactor);
   }
 
+  preUpdateMovement() {
+    this.updateFreezeState();
+    const moveFactor = this.getMovementSlowFactor();
+    if (moveFactor < 1) {
+      this.vel.mult(moveFactor);
+    }
+    return moveFactor;
+  }
 
-  dodgeBullets() {
+  updateFreezeState() {
+    if (!this.isFrozen) {
+      return;
+    }
+    this.freezeTimer--;
+    if (this.freezeTimer <= 0) {
+      this.resetSlow();
+    }
+  }
+
+  resetSlow() {
+    this.isFrozen = false;
+    this.freezeTimer = 0;
+    this.slowMovementFactor = 1;
+    this.slowFireRecoveryFactor = 1;
+  }
+
+  getMovementSlowFactor() {
+    return this.slowMovementFactor;
+  }
+
+  getShootCooldownRecovery() {
+    return this.baseShootCooldownRecovery * this.slowFireRecoveryFactor;
+  }
+
+  updateShootCooldown() {
+    const recovery = this.getShootCooldownRecovery();
+    if (recovery <= 0) {
+      return;
+    }
+    this.shootCooldown = Math.max(0, this.shootCooldown - recovery);
+  }
+
+  dodgeBullets(moveFactor = 1) {
     const currentTime = frameCount;
     if (currentTime - this.lastDodgeTime < this.dodgeCooldown) {
       return false;
@@ -559,7 +603,7 @@ class Alien extends Entity {
       if (bullet.isPlayerBullet && this.pos.dist(bullet.pos) < 100 && random() < this.dodgeChance) {
         const timeToImpact = this.pos.dist(bullet.pos) / bullet.vel.mag();
         const futurePos = p5.Vector.add(bullet.pos, p5.Vector.mult(bullet.vel, timeToImpact));
-        this.vel.add(p5.Vector.sub(this.pos, futurePos).normalize().mult(3)).limit(this.speed * 2);
+        this.vel.add(p5.Vector.sub(this.pos, futurePos).normalize().mult(3 * moveFactor)).limit(this.speed * 2 * moveFactor);
         this.lastDodgeTime = currentTime;
         return true;
       }
@@ -677,6 +721,7 @@ class Alien extends Entity {
       const target = this.findNearestTarget();
       target && this.shoot(target);
     }
+    this.updateShootCooldown();
   }
 
 
@@ -842,32 +887,22 @@ class Hunter extends Alien {
     this.pulseSpeed = 0.05;
     this.maxPulseSize = 1.4;
     this.maxSpeed = 3;
-
-    this.isFrozen = false;
-    this.freezeTimer = 0;
   }
 
   freeze(duration) {
-    this.isFrozen = true;
-    this.freezeTimer = duration;
+    super.freeze(duration);
   }
 
 update() {
-    if (this.isFrozen) {
-      this.freezeTimer--;
-      if (this.freezeTimer <= 0) {
-        this.isFrozen = false;
-      }
-      return;
-    }
+    const moveFactor = this.preUpdateMovement();
 
   this.updateTarget();
   let distanceToTarget = p5.Vector.dist(this.pos, this.target.pos);
 
   if (distanceToTarget > this.circlingRadius * 1.2) {
     this.state = 'chase';
-    let direction = p5.Vector.sub(this.target.pos, this.pos).normalize().mult(0.7);
-    this.vel.add(direction).limit(this.maxSpeed);
+    let direction = p5.Vector.sub(this.target.pos, this.pos).normalize().mult(0.7 * moveFactor);
+    this.vel.add(direction).limit(this.maxSpeed * moveFactor);
   } else {
     this.state = 'circle';
     this.circlingAngle += this.circlingSpeed;
@@ -877,11 +912,13 @@ update() {
       p5.Vector.fromAngle(this.circlingAngle).mult(this.circlingRadius)
     );
     
-    let direction = p5.Vector.sub(targetPos, this.pos).normalize().mult(0.7);
-    this.vel.add(direction).limit(this.maxSpeed * 0.8);
+    let direction = p5.Vector.sub(targetPos, this.pos).normalize().mult(0.7 * moveFactor);
+    this.vel.add(direction).limit(this.maxSpeed * 0.8 * moveFactor);
   }
 
     this.pos.add(this.vel);
+    this.pos.x = (this.pos.x + worldWidth) % worldWidth;
+    this.pos.y = constrain(this.pos.y, 0, height);
     this.checkShootingOpportunity();
   }
 
@@ -914,9 +951,7 @@ checkShootingOpportunity() {
   if (this.shootCooldown <= 0 && p5.Vector.dist(this.pos, this.target.pos) < this.shootingRange) {
     this.shoot(this.target);
   }
-  if (this.shootCooldown > 0) {
-    this.shootCooldown--;
-  }
+  this.updateShootCooldown();
 }
 
   shoot(target) {
@@ -984,37 +1019,27 @@ class Zapper extends Hunter {
     this.zapExplosionDuration = 50; // Duration of zap explosion effect
     this.zapExplosionTimer = 0;
     this.runAwaySpeed = 3; // Speed at which the Zapper runs away
-
-    this.isFrozen = false;
-    this.freezeTimer = 0;
   }
 
 
   freeze(duration) {
-    this.isFrozen = true;
-    this.freezeTimer = duration;
+    super.freeze(duration);
   }
 
   update() {
-    if (this.isFrozen) {
-      this.freezeTimer--;
-      if (this.freezeTimer <= 0) {
-        this.isFrozen = false;
-      }
-      return;
-    }
-
     super.update();
+
+    const moveFactor = this.getMovementSlowFactor();
 
     if (this.zapCooldown > 0) {
       this.zapCooldown--;
       // Run away from the ship
-      let awayFromShip = p5.Vector.sub(this.pos, ship.pos).normalize().mult(this.runAwaySpeed);
+      let awayFromShip = p5.Vector.sub(this.pos, ship.pos).normalize().mult(this.runAwaySpeed * moveFactor);
       this.vel = awayFromShip;
     } else {
       // Move towards the ship when not on cooldown
-      let direction = p5.Vector.sub(ship.pos, this.pos).normalize().mult(0.5);
-      this.vel.add(direction).limit(2);
+      let direction = p5.Vector.sub(ship.pos, this.pos).normalize().mult(0.5 * moveFactor);
+      this.vel.add(direction).limit(2 * moveFactor);
 
       // Check if close enough to zap
       if (p5.Vector.dist(this.pos, ship.pos) < this.zapRadius) {
@@ -1121,27 +1146,16 @@ class Destroyer extends Hunter {
     this.shiftingSpeed = 1; // Speed of the shifting movement
     this.shiftPhase = 0; // Phase of the shifting motion
     this.isOverTarget = false; // Flag to check if destroyer is over the target
-
-    this.isFrozen = false;
-    this.freezeTimer = 0;
   }
 
     freeze(duration) {
-    this.isFrozen = true;
-    this.freezeTimer = duration;
+    super.freeze(duration);
   }
 
   update() {
-    if (this.isFrozen) {
-      this.freezeTimer--;
-      if (this.freezeTimer <= 0) {
-        this.isFrozen = false;
-      }
-      return;
-    }
-
+    const moveFactor = this.preUpdateMovement();
     this.updatePulse();
-    this.updateMovement();
+    this.updateMovement(moveFactor);
     this.checkShootingOpportunity();
   }
 
@@ -1152,7 +1166,7 @@ class Destroyer extends Hunter {
     }
   }
 
-  updateMovement() {
+  updateMovement(moveFactor = 1) {
     if (!this.target || !this.isValidTarget(this.target)) {
       this.target = this.findNewTarget();
       this.isOverTarget = false;
@@ -1166,9 +1180,9 @@ class Destroyer extends Hunter {
       if (distance > 50) { // Not yet over target
         this.isOverTarget = false;
         direction.normalize();
-        direction.mult(this.acceleration);
+        direction.mult(this.acceleration * moveFactor);
         this.vel.add(direction);
-        this.vel.limit(this.maxSpeed);
+        this.vel.limit(this.maxSpeed * moveFactor);
         this.pos.add(this.vel);
       } else { // Over target, start shifting
         this.isOverTarget = true;
@@ -1176,7 +1190,7 @@ class Destroyer extends Hunter {
         this.pos.y = targetPos.y; // Maintain hover height
 
         // Smooth left-right movement using sine function
-        this.shiftPhase += this.shiftingSpeed * 0.05;
+        this.shiftPhase += this.shiftingSpeed * 0.05 * moveFactor;
         let shiftX = sin(this.shiftPhase) * this.shiftingDistance / 2;
         this.pos.x = targetPos.x + shiftX;
       }
@@ -1231,9 +1245,7 @@ class Destroyer extends Hunter {
     if (this.target && this.shootCooldown <= 0 && this.isOverTarget) {
       this.shoot(this.target);
     }
-    if (this.shootCooldown > 0) {
-      this.shootCooldown--;
-    }
+    this.updateShootCooldown();
   }
 
   shoot(target) {
@@ -1329,6 +1341,7 @@ class AlienWorm {
 
     this.isFrozen = false;
     this.freezeTimer = 0;
+    this.slowMovementFactor = 1;
   }
 
 
@@ -1339,13 +1352,16 @@ class AlienWorm {
       this.freezeTimer--;
       if (this.freezeTimer <= 0) {
         this.isFrozen = false;
+        this.slowMovementFactor = 1;
+        this.freezeTimer = 0;
       }
-      return;
     }
 
+    const speedFactor = this.isFrozen ? this.slowMovementFactor : 1;
+
     // Move the head
-  let surfaceY = getCachedSurfaceYAtX(this.segments[0].pos.x + this.speed * this.direction);
-    this.segments[0].pos.x += this.speed * this.direction;
+  let surfaceY = getCachedSurfaceYAtX(this.segments[0].pos.x + this.speed * this.direction * speedFactor);
+    this.segments[0].pos.x += this.speed * this.direction * speedFactor;
     this.segments[0].pos.y = surfaceY - this.segments[0].size / 2;
 
     // Update the rest of the body
@@ -1355,8 +1371,8 @@ class AlienWorm {
       let distance = sqrt(dx*dx + dy*dy);
       if (distance > this.segments[i].size) {
         let angle = atan2(dy, dx);
-        this.segments[i].pos.x += cos(angle) * (distance - this.segments[i].size);
-        this.segments[i].pos.y += sin(angle) * (distance - this.segments[i].size);
+  this.segments[i].pos.x += cos(angle) * (distance - this.segments[i].size) * speedFactor;
+  this.segments[i].pos.y += sin(angle) * (distance - this.segments[i].size) * speedFactor;
       }
     }
 
@@ -1368,7 +1384,7 @@ class AlienWorm {
     // Update segment angles
     for (let i = 0; i < this.segments.length; i++) {
       if (i === 0) {
-        this.segments[i].angle = atan2(this.speed * this.direction, 0);
+  this.segments[i].angle = atan2(this.speed * this.direction * speedFactor, 0);
       } else {
         let dx = this.segments[i].pos.x - this.segments[i-1].pos.x;
         let dy = this.segments[i].pos.y - this.segments[i-1].pos.y;
@@ -1386,7 +1402,8 @@ class AlienWorm {
 
   freeze(duration) {
     this.isFrozen = true;
-    this.freezeTimer = duration;
+    this.freezeTimer = Math.max(this.freezeTimer, duration);
+    this.slowMovementFactor = 0.4;
   }
 
   draw() {
