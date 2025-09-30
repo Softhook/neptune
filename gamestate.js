@@ -717,7 +717,9 @@ static deserializePod(podData) {
       healInterval: base.healInterval,
       healTimer: base.healTimer,
       balloonLaunchCooldown: base.balloonLaunchCooldown,
-      balloons: base.balloons.map(balloon => EntitySerializer.serializeBarrageBalloon(balloon))
+      balloons: base.balloons.map(balloon => EntitySerializer.serializeBarrageBalloon(balloon)),
+      droneRespawnCooldown: base.droneRespawnCooldown,
+      drone: base.drone && base.drone.active ? EntitySerializer.serializeBaseDrone(base.drone) : null
     };
   }
 
@@ -730,6 +732,10 @@ static deserializePod(podData) {
     base.healTimer = data.healTimer;
     base.balloonLaunchCooldown = data.balloonLaunchCooldown;
     base.balloons = data.balloons.map(balloonData => EntitySerializer.deserializeBarrageBalloon(balloonData));
+    base.droneRespawnCooldown = data.droneRespawnCooldown || 0;
+    if (data.drone) {
+      base.drone = EntitySerializer.deserializeBaseDrone(data.drone, base);
+    }
     return base;
   }
 
@@ -772,6 +778,32 @@ static deserializePod(podData) {
     balloon.health = data.health;
     balloon.explosionRadius = data.explosionRadius;
     return balloon;
+  }
+  
+  static serializeBaseDrone(drone) {
+    return {
+      pos: this.serializeVector(drone.pos),
+      vel: this.serializeVector(drone.vel),
+      size: drone.size,
+      active: drone.active,
+      bombTimer: drone.bombTimer,
+      patrolAngle: drone.patrolAngle,
+      burstDefenseCooldown: drone.burstDefenseCooldown
+    };
+  }
+  
+  static deserializeBaseDrone(data, homeBase) {
+    let drone = new BaseDrone(
+      this.deserializeVector(data.pos),
+      this.deserializeVector(data.vel),
+      data.size,
+      homeBase
+    );
+    drone.active = data.active;
+    drone.bombTimer = data.bombTimer || 0;
+    drone.patrolAngle = data.patrolAngle || 0;
+    drone.burstDefenseCooldown = data.burstDefenseCooldown || 0;
+    return drone;
   }
   
   static serializeTurret(turret) {

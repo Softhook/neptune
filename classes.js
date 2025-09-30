@@ -34,6 +34,12 @@ class MoonBase {
     this.maxHealth = 100;
     this.healRate = 1;
     this.balloons = [];
+    
+    // Drone defense properties
+    this.drone = null;
+    this.droneRespawnCooldown = 0;
+    this.droneRespawnTime = 600; // 10 seconds at 60fps
+    this.dronePatrolRadius = 300; // How far drone can move from base
 
     MoonBase.moonBases.push(this);
     this.id = MoonBase.moonBases.length;
@@ -51,6 +57,9 @@ static updateAll() {
       RuinedBase.createFromMoonBase(base);
       GameTimer.clearTimer(`moonbase_heal_${base.id}`);
       GameTimer.clearTimer(`moonbase_balloon_${base.id}`);
+      if (base.drone) {
+        base.drone.destroy();
+      }
       MoonBase.moonBases.splice(i, 1);
     }
   }
@@ -61,6 +70,9 @@ static updateAll() {
       if (isInView(base.pos, Math.max(base.width, base.height))) {
         for (const balloon of base.balloons) {
           isInView(balloon.pos, balloon.size) && balloon.draw();
+        }
+        if (base.drone && base.drone.active) {
+          base.drone.draw();
         }
         base.draw();
       }
@@ -153,6 +165,22 @@ findSuitableLocation() {
     // Launch balloons only if needed
     this.balloons.length < MoonBase.maxBalloons && this.launchBarrageBalloon();
 
+    // Manage drone
+    if (this.drone && !this.drone.active) {
+      this.drone = null;
+    }
+    
+    if (!this.drone && this.droneRespawnCooldown <= 0) {
+      this.launchDrone();
+    }
+    
+    if (this.droneRespawnCooldown > 0) {
+      this.droneRespawnCooldown--;
+    }
+    
+    if (this.drone) {
+      this.drone.update();
+    }
   }
 
   heal() {
@@ -164,6 +192,22 @@ findSuitableLocation() {
         const launchPos = createVector(this.pos.x + random(-this.width / 2, this.width / 2), this.pos.y);
         this.balloons.push(new BarrageBalloon(launchPos));
       }
+  }
+  
+  launchDrone() {
+    if (this.drone) return; // Already has a drone
+    
+    const dronePos = createVector(
+      this.pos.x + this.width / 2,
+      this.pos.y - this.towerHeight - 20
+    );
+    this.drone = new BaseDrone(dronePos, createVector(0, 0), 12, this);
+    this.drone.active = true;
+  }
+  
+  onDroneDestroyed() {
+    this.drone = null;
+    this.droneRespawnCooldown = this.droneRespawnTime;
   }
 }
 
@@ -3007,6 +3051,176 @@ if (isWalking) {
     if (activeDrone && activeDrone.active) {
       activeDrone.draw();
     }
+  }
+}
+
+class BaseDrone extends Drone {
+  constructor(pos, vel, size, homeBase) {
+    super(pos, vel, size);
+    this.homeBase = homeBase;
+    this.patrolRadius = homeBase.dronePatrolRadius;
+    this.speed = 1.5;
+    this.bombCooldown = 120; // 2 seconds between bombs
+    this.bombTimer = 0;
+    this.targetAcquisitionRange = 250;
+    this.currentTarget = null;
+    this.patrolAngle = random(TWO_PI);
+    this.patrolSpeed = 0.01;
+  }
+
+  update() {
+    // AI behavior first
+    this.updateAI();
+    
+    // Apply wind
+    this.applyWind();
+    
+    // Update position (Entity.update() without Drone input handling)
+    this.pos.add(this.vel);
+    this.pos.x = (this.pos.x + worldWidth) % worldWidth;
+
+    // Handle bomb timer
+    this.bombTimer = max(0, this.bombTimer - 1);
+
+    // Check collision with surfaces or enemies
+    if (this.checkCollision()) {
+      this.destroy();
+    }
+
+    // Freeze burst defense
+    if (this.burstDefenseCooldown > 0) {
+      this.burstDefenseCooldown--;
+    }
+    if (this.currentBurstFrame > 0) {
+      this.currentBurstFrame--;
+    }
+    this.updateFreezeBurstDefense();
+  }
+
+  updateAI() {
+    // Find closest target
+    this.currentTarget = this.findClosestTarget();
+
+    if (this.currentTarget) {
+      // Move toward target
+      this.moveTowardTarget();
+      
+      // Try to drop bomb if above target
+      if (this.bombTimer === 0 && this.isAboveTarget()) {
+        this.dropBomb();
+        this.bombTimer = this.bombCooldown;
+      }
+    } else {
+      // Patrol around home base
+      this.patrol();
+    }
+
+    // Constrain to patrol area
+    this.constrainToPatrolArea();
+  }
+
+  findClosestTarget() {
+    let closestTarget = null;
+    let closestDist = Infinity;
+
+    const checkEntity = (entity) => {
+      if (entity && entity.pos) {
+        let d = dist(this.pos.x, this.pos.y, entity.pos.x, entity.pos.y);
+        if (d < closestDist && d < this.targetAcquisitionRange) {
+          closestTarget = entity;
+          closestDist = d;
+        }
+      }
+    };
+
+    // Check all hostile entities
+    Alien.aliens.forEach(checkEntity);
+    Destroyer.destroyers.forEach(checkEntity);
+    Zapper.zappers.forEach(checkEntity);
+    Hunter.hunters.forEach(checkEntity);
+    Nest.nests.forEach(checkEntity);
+
+    return closestTarget;
+  }
+
+  moveTowardTarget() {
+    if (!this.currentTarget || !this.currentTarget.pos) return;
+
+    let targetPos = this.currentTarget.pos.copy();
+    // Hover above target
+    targetPos.y -= 50;
+
+    let direction = p5.Vector.sub(targetPos, this.pos);
+    direction.limit(this.speed);
+    this.vel.add(direction).limit(this.speed);
+  }
+
+  isAboveTarget() {
+    if (!this.currentTarget || !this.currentTarget.pos) return false;
+    
+    let horizontalDist = abs(this.pos.x - this.currentTarget.pos.x);
+    let verticalDist = this.currentTarget.pos.y - this.pos.y;
+    
+    return horizontalDist < 30 && verticalDist > 0 && verticalDist < 200;
+  }
+
+  patrol() {
+    // Patrol in a circle around the base
+    this.patrolAngle += this.patrolSpeed;
+    
+    let baseCenter = createVector(
+      this.homeBase.pos.x + this.homeBase.width / 2,
+      this.homeBase.pos.y - 100
+    );
+    
+    let targetPatrolPos = createVector(
+      baseCenter.x + cos(this.patrolAngle) * (this.patrolRadius * 0.5),
+      baseCenter.y + sin(this.patrolAngle) * (this.patrolRadius * 0.3)
+    );
+    
+    let direction = p5.Vector.sub(targetPatrolPos, this.pos);
+    direction.limit(this.speed * 0.5);
+    this.vel.add(direction).limit(this.speed * 0.5);
+  }
+
+  constrainToPatrolArea() {
+    let baseCenter = createVector(
+      this.homeBase.pos.x + this.homeBase.width / 2,
+      this.homeBase.pos.y
+    );
+    
+    let distFromBase = this.pos.dist(baseCenter);
+    if (distFromBase > this.patrolRadius) {
+      let direction = p5.Vector.sub(baseCenter, this.pos);
+      direction.setMag(this.speed);
+      this.vel = direction;
+    }
+  }
+  
+  checkCollision() {
+    // Base drones only check surface collisions, not enemy collisions
+    for (let i = 0; i < moonSurface.length - 1; i++) {
+      let start = moonSurface[i];
+      let end = moonSurface[i + 1];
+      let d = distToSegment(this.pos, start, end);
+      if (d < this.size / 2) return true;
+    }
+    return false;
+  }
+
+  destroy() {
+    this.active = false;
+    explosions.push(new Explosion(this.pos, 20));
+    soundManager.play('shipBomb');
+    
+    // Notify home base
+    if (this.homeBase) {
+      this.homeBase.onDroneDestroyed();
+    }
+  }
+
+  handleInput() {
+    // BaseDrone is AI-controlled, no input handling
   }
 }
 
