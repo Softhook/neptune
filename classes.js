@@ -570,6 +570,9 @@ class Astronaut extends Entity {
       this.isJumping = false;
     }
 
+    // Constrain to world bounds after position updates to prevent drifting out of bounds
+    this.constrainToWorld();
+
     if (cameraFollowsMissile || cameraFollowsDrone) return; // Disable controls if missile or drone active
     
     if (this.ridingWalker) {
@@ -643,8 +646,18 @@ class Astronaut extends Entity {
   }
 
   constrainToWorld() {
+    // Constrain horizontal position (wrapping is handled elsewhere)
     this.pos.x = constrain(this.pos.x, 0, worldWidth);
-    this.pos.y = constrain(this.pos.y, this.size / 2, height - this.size / 2);
+    
+    // Constrain vertical position and reset velocity when hitting boundaries
+    if (this.pos.y < this.size / 2) {
+      this.pos.y = this.size / 2;
+      this.vel.y = 0; // Stop upward movement when hitting top boundary
+    }
+    if (this.pos.y > height - this.size / 2) {
+      this.pos.y = height - this.size / 2;
+      this.vel.y = 0; // Stop downward movement when hitting bottom boundary
+    }
   }
 
   checkWalkerInteraction() {
