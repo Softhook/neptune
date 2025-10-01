@@ -1074,6 +1074,14 @@ function toggleWalkingState() {
     // Enter ship only if close enough
     isWalking = false;
     astronaut.isInShip = true;
+    
+    // Transfer pod from astronaut to ship if astronaut is carrying it
+    if (astronaut.hasGrabbedPod) {
+      astronaut.hasGrabbedPod = false;
+      ship.hasGrabbedPod = true;
+      pod.updatePickupState('ship');
+    }
+    
     ship.pos.x = astronaut.pos.x;
   ship.pos.y = getCachedSurfaceYAtX(ship.pos.x) - ship.size / 2;
     ship.vel.set(0, 0);
