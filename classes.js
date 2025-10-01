@@ -1515,7 +1515,8 @@ class Bullet extends Entity {
            this.checkCollisionWithMoonBases() ||
            this.checkCollisionWithTurrets() ||
            this.checkCollisionWithAstronaut() ||
-           this.checkCollisionWithBarrageBalloons();
+           this.checkCollisionWithBarrageBalloons() ||
+           this.checkCollisionWithDrones();
   }
 
 checkCollisionWithEntities(entities) {
@@ -1535,6 +1536,27 @@ checkCollisionWithEntities(entities) {
       for (let balloon of base.balloons) {
         if (this.pos.dist(balloon.pos) < (balloon.size + this.size) / 2) {
           balloon.takeDamage(1);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  checkCollisionWithDrones() {
+    // Check collision with player's active drone
+    if (activeDrone && activeDrone.active) {
+      if (this.pos.dist(activeDrone.pos) < (activeDrone.size + this.size) / 2) {
+        activeDrone.destroy();
+        return true;
+      }
+    }
+
+    // Check collision with base drones
+    for (let base of MoonBase.moonBases) {
+      if (base.drone && base.drone.active) {
+        if (this.pos.dist(base.drone.pos) < (base.drone.size + this.size) / 2) {
+          base.drone.destroy();
           return true;
         }
       }
