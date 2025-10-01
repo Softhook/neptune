@@ -473,6 +473,18 @@ fireLaser() {
   findLaserTarget() {
     let targets = [ship, ...MoonBase.moonBases, ...Wingman.wingmen, ...turrets, ...DrillRig.rigs];
     if (isWalking && !astronaut.isInShip) targets.push(astronaut);
+    
+    // Add active player drone
+    if (activeDrone && activeDrone.active) {
+      targets.push(activeDrone);
+    }
+    
+    // Add base defense drones
+    for (const base of MoonBase.moonBases) {
+      if (base.drone && base.drone.active) {
+        targets.push(base.drone);
+      }
+    }
   
     return targets.reduce((closest, current) => {
       if (!current || !current.pos) return closest;

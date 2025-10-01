@@ -747,11 +747,20 @@ class Alien extends Entity {
 
     isWalking && !astronaut.isInShip && checkTarget(astronaut);
 
+    // Check active player drone
+    if (activeDrone && activeDrone.active) {
+      checkTarget(activeDrone);
+    }
+
     for (const base of MoonBase.moonBases) {
       if (base) {
         checkTarget(base);
         for (const balloon of base.balloons) {
           checkTarget(balloon);
+        }
+        // Check base's defense drone
+        if (base.drone && base.drone.active) {
+          checkTarget(base.drone);
         }
       }
     }
@@ -1212,6 +1221,19 @@ class Destroyer extends Hunter {
 
   findNewTarget() {
     let possibleTargets = [...MoonBase.moonBases, ...turrets, ...Shield.shields, ...DrillRig.rigs];
+    
+    // Add active player drone
+    if (activeDrone && activeDrone.active) {
+      possibleTargets.push(activeDrone);
+    }
+    
+    // Add base defense drones
+    for (const base of MoonBase.moonBases) {
+      if (base.drone && base.drone.active) {
+        possibleTargets.push(base.drone);
+      }
+    }
+    
     return possibleTargets.reduce((closest, current) => {
       let d = p5.Vector.dist(this.pos, current.pos);
       return d < closest.dist ? { target: current, dist: d } : closest;
@@ -1222,7 +1244,8 @@ class Destroyer extends Hunter {
     return (target instanceof MoonBase && MoonBase.moonBases.includes(target)) ||
            (target instanceof Turret && turrets.includes(target)) ||
            (target instanceof Shield && Shield.shields.includes(target)) ||
-           (target instanceof DrillRig && DrillRig.rigs.includes(target));
+           (target instanceof DrillRig && DrillRig.rigs.includes(target)) ||
+           (target instanceof Drone && target.active);
   }
 
   getTargetPosition() {
