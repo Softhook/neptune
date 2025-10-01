@@ -2981,43 +2981,76 @@ applyWind() {
   }
 
   activateFreezeBurstDefense() {
-    if (this.burstDefenseCooldown <= 0) {
-      this.burstDefenseCooldown = this.burstDefenseMaxCooldown;
-      this.currentBurstFrame = this.burstDefenseAnimationFrames;
-
-      // Create an array of all alien types
-      let allAliens = [
-        ...Alien.aliens,
-        ...Hunter.hunters,
-        ...Zapper.zappers,
-        ...Destroyer.destroyers
-      ];
-
-      // Apply freeze effect to all aliens within range
-      for (let alien of allAliens) {
-        let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
-        if (d < this.burstDefenseRadius) {
-          alien.freeze(this.freezeDuration);
-        }
-      }
-
-      // Freeze AlienWorms (check head segment)
-      for (let worm of AlienWorm.worms) {
-        let head = worm.segments[0]; // Head segment
-        let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-        if (d < this.burstDefenseRadius) {
-          worm.freeze(this.freezeDuration);
-        }
-      }
-
-      soundManager.play('turretFreezeBurst');
+    if (this.burstDefenseCooldown > 0) {
+      return;
     }
+
+    if (!this.hasTargetsInBurstRange()) {
+      return;
+    }
+
+    this.burstDefenseCooldown = this.burstDefenseMaxCooldown;
+    this.currentBurstFrame = this.burstDefenseAnimationFrames;
+
+    // Create an array of all alien types
+    let allAliens = [
+      ...Alien.aliens,
+      ...Hunter.hunters,
+      ...Zapper.zappers,
+      ...Destroyer.destroyers
+    ];
+
+    // Apply freeze effect to all aliens within range
+    for (let alien of allAliens) {
+      let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
+      if (d < this.burstDefenseRadius) {
+        alien.freeze(this.freezeDuration);
+      }
+    }
+
+    // Freeze AlienWorms (check head segment)
+    for (let worm of AlienWorm.worms) {
+      let head = worm.segments[0]; // Head segment
+      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+      if (d < this.burstDefenseRadius) {
+        worm.freeze(this.freezeDuration);
+      }
+    }
+
+    soundManager.play('turretFreezeBurst');
   }
 
   updateFreezeBurstDefense() {
     if (this.burstDefenseCooldown <= 0) {
       this.activateFreezeBurstDefense();
     }
+  }
+
+  hasTargetsInBurstRange() {
+    const radius = this.burstDefenseRadius;
+    const checkEntity = (entity) => {
+      if (!entity || !entity.pos) {
+        return false;
+      }
+      return dist(this.pos.x, this.pos.y, entity.pos.x, entity.pos.y) < radius;
+    };
+
+    if (
+      Alien.aliens.some(checkEntity) ||
+      Hunter.hunters.some(checkEntity) ||
+      Zapper.zappers.some(checkEntity) ||
+      Destroyer.destroyers.some(checkEntity)
+    ) {
+      return true;
+    }
+
+    for (const worm of AlienWorm.worms) {
+      if (worm && worm.segments && worm.segments[0] && checkEntity({ pos: worm.segments[0].pos })) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
 static launchDrone() {
