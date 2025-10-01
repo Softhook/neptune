@@ -1931,6 +1931,10 @@ reshapeMoonSurface() {
     if (ship.isLanded){
       let newY = min(this.getNewSurfaceY(ship.pos.x), height);
       ship.pos.y = newY - ship.size / 2;
+      // Update pod position if ship is carrying it
+      if (ship.hasGrabbedPod) {
+        ship.updatePodPosition();
+      }
    }
   }
   
