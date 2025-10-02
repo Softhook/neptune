@@ -1140,7 +1140,7 @@ function generateMoonSurface() {
 
   while (x < worldWidth) {
     if (x % 800 === 0) {
-      smoothness = random(0.3, 0.7);
+      smoothness = random(0.3, 3.7);
     }
     
     let y;
@@ -1154,7 +1154,8 @@ function generateMoonSurface() {
     y = min(y, minHeight);
     
     moonSurface.push(createVector(x, y));
-    x += random(20, 50);
+    // Halve the step size to double the number of points
+    x += 10;
   }
   moonSurface.push(createVector(worldWidth, min(random(height / 2, height - 50), minHeight)));
 }
