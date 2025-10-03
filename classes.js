@@ -4875,7 +4875,8 @@ move() {
 
     // Check if the new position is valid (not too steep)
     let currentY = this.calculateNewYPosition(this.pos.x);
-    let slope = Math.abs(newY - currentY) / Math.abs(newX - this.pos.x);
+    let dx = Math.abs(newX - this.pos.x);
+    let slope = dx > 0 ? Math.abs(newY - currentY) / dx : 0;
 
     if (slope > 12) { // If slope is too steep
         this.direction *= -1;
@@ -5085,7 +5086,7 @@ move() {
   drawLegs() {
     this.drawLeg(-10, 0, this.legPhase);
     this.drawLeg(10, 0, this.legPhase - Math.PI);
-    this.drawLeg(10, 0, this.legPhase- - Math.PI/2);
+    this.drawLeg(10, 0, this.legPhase - Math.PI/2);
     this.drawLeg(-10, 0, this.legPhase - Math.PI/2);
   }
 
