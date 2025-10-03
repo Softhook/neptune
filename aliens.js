@@ -832,12 +832,65 @@ class Alien extends Entity {
   }
 
   static updateAliens() {
+    // Group attack trigger (unchanged cadence)
     if (frameCount % this.calculateAttackInterval() === 0) {
       this.organizeGroupAttack();
     }
 
-    if (frameCount % this.calculateDefensiveInterval() === 0) {
+    // Improved defensive trigger logic
+    // Replace single-frame modulus window with elapsed-time + fallback probability + threat trigger.
+    if (typeof Alien.lastDefensiveTriggerFrame === 'undefined') {
+      Alien.lastDefensiveTriggerFrame = 0;
+    }
+    const defensiveInterval = this.calculateDefensiveInterval();
+    const framesSinceDefense = frameCount - Alien.lastDefensiveTriggerFrame;
+
+    let defenseTriggered = false;
+
+    // Threat reactive trigger: if player (ship/astronaut) near any nest and enough cooldown passed.
+    if (Nest.nests.length) {
+      const playerEntity = (isWalking && astronaut) ? astronaut : ship;
+      if (playerEntity && playerEntity.pos) {
+        const THREAT_RADIUS = 260; // proximity that provokes defense early
+        const underThreat = Nest.nests.some(n => n?.pos && n.pos.dist(playerEntity.pos) < THREAT_RADIUS);
+        if (underThreat && framesSinceDefense > defensiveInterval * 0.35) {
+          this.organizeDefensiveBehavior();
+          Alien.lastDefensiveTriggerFrame = frameCount;
+          defenseTriggered = true;
+          if (debug?.isEnabled) debug.log(`[DEFENSE] Threat trigger at frame ${frameCount}`);
+        }
+      }
+    }
+
+    // Scheduled trigger (elapsed time >= interval)
+    if (!defenseTriggered && Nest.nests.length && framesSinceDefense >= defensiveInterval) {
       this.organizeDefensiveBehavior();
+      Alien.lastDefensiveTriggerFrame = frameCount;
+      defenseTriggered = true;
+      if (debug?.isEnabled) debug.log(`[DEFENSE] Interval trigger at frame ${frameCount}`);
+    }
+
+    // Fallback probabilistic trigger if we are midway to interval and nothing happened yet
+    if (!defenseTriggered && Nest.nests.length && framesSinceDefense > defensiveInterval * 0.55) {
+      // Probability scales up the closer we get to full interval (soft ramp)
+      const progress = framesSinceDefense / defensiveInterval; // 0.55 .. 1+
+      const baseProb = 0.0004; // baseline
+      const scaledProb = baseProb * (1 + (progress - 0.55) * 2.5); // gentle ramp
+      if (random() < scaledProb) {
+        this.organizeDefensiveBehavior();
+        Alien.lastDefensiveTriggerFrame = frameCount;
+        defenseTriggered = true;
+        if (debug?.isEnabled) debug.log(`[DEFENSE] Probabilistic trigger at frame ${frameCount} (p=${scaledProb.toFixed(5)})`);
+      }
+    }
+
+    // Debug instrumentation for skipped cases every ~5 seconds
+    if (debug?.isEnabled && frameCount % 300 === 0) {
+      if (!Nest.nests.length) {
+        debug.log('[DEFENSE] Skipped: no nests present');
+      } else if (!defenseTriggered) {
+        debug.log(`[DEFENSE] Waiting: ${framesSinceDefense}/${defensiveInterval}`);
+      }
     }
 
     for (let i = Alien.aliens.length - 1; i >= 0; i--) {
@@ -884,7 +937,7 @@ class Alien extends Entity {
 
     const currentTime = millis();
     if (currentTime - this.lastDefensiveAnnouncementTime >= this.DEFENSIVE_ANNOUNCEMENT_COOLDOWN) {
-      announcer.speak(`Defensive positions.`, 0, 1, 0);
+      announcer.speak(`Coordinated Defensive.`, 0, 1, 0);
       this.lastDefensiveAnnouncementTime = currentTime;
     }
 
