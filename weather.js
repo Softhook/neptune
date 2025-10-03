@@ -548,7 +548,8 @@ class EarthquakeManager {
   smoothMoonSurface() {
     // Smooth the moon surface to reduce spikiness
     // The intensity of the earthquake determines how much smoothing occurs
-    let smoothingPasses = floor(this.earthquakeIntensity / 2); // More intense earthquakes = more smoothing
+    // Softer smoothing: fewer passes overall
+    let smoothingPasses = floor(this.earthquakeIntensity / 3); // dialed back from /2
     smoothingPasses = max(1, smoothingPasses); // At least one pass
     
     for (let pass = 0; pass < smoothingPasses; pass++) {
@@ -565,8 +566,8 @@ class EarthquakeManager {
           let currY = moonSurface[i].y;
           let nextY = moonSurface[i + 1].y;
           
-          // Weighted average: more weight on current point to preserve some terrain features
-          smoothedHeights[i] = (prevY * 0.25 + currY * 0.5 + nextY * 0.25);
+          // Gentler weighting: preserve more current detail
+          smoothedHeights[i] = (prevY * 0.15 + currY * 0.70 + nextY * 0.15);
         }
       }
       
@@ -737,7 +738,8 @@ class TectonicShiftManager {
   spikeMoonSurface() {
     // Spike the moon surface to increase jaggedness (opposite of smoothing)
     // The intensity of the tectonic shift determines how much spiking occurs
-    let spikingPasses = floor(this.tectonicShiftIntensity / 2); // More intense shifts = more spiking
+    // Softer spiking: fewer passes overall
+    let spikingPasses = floor(this.tectonicShiftIntensity / 3); // dialed back from /2
     spikingPasses = max(1, spikingPasses); // At least one pass
     
     for (let pass = 0; pass < spikingPasses; pass++) {
@@ -758,9 +760,8 @@ class TectonicShiftManager {
           let avgNeighbors = (prevY + nextY) / 2;
           let difference = currY - avgNeighbors;
           
-          // Amplify the difference to create spikes (opposite of smoothing)
-          // Use a factor that creates noticeable spikes but doesn't break the terrain
-          spikedHeights[i] = currY + difference * 0.5;
+          // Gentler amplification for spikes to reduce jaggedness
+          spikedHeights[i] = currY + difference * 0.2;
         }
       }
       
