@@ -38,7 +38,7 @@ class AlienArtifactMission {
     let attempts = 0;
     do {
       x = random(100, worldWidth - 100);
-      y = getSurfaceYAtX(x) - 25; // Slightly above the surface
+  y = getCachedSurfaceYAtX(x) - 25; // Slightly above the surface
       attempts++;
       if (attempts > 100) break; // Prevent infinite loop
     } while (this.isInvalidPosition(x, y));
@@ -299,7 +299,7 @@ class SupplyRunMission {
 
   static generateRandomSupplyPosition() {
     let x = random(100, worldWidth - 100); // Avoid spawning too close to edges
-    let y = getSurfaceYAtX(x) - 30; // Slightly above the surface
+  let y = getCachedSurfaceYAtX(x) - 30; // Slightly above the surface
     return createVector(x, y);
   }
 
@@ -940,7 +940,7 @@ class ArtifactRecoveryMission {
   static spawnArtifacts() {
     for (let i = 0; i < this.requiredArtifacts; i++) {
       let artifactX = random(worldWidth);
-      let surfaceY = getSurfaceYAtX(artifactX);
+  let surfaceY = getCachedSurfaceYAtX(artifactX);
       let artifactSize = random(30, 50);
       
       // Position the artifact slightly below the surface
@@ -1075,7 +1075,7 @@ class RescueMission {
     crashPos.x += random(-50, 50);
     crashPos.x = (crashPos.x + worldWidth) % worldWidth;  // Ensure it's within world bounds
 
-    crashPos.y = getSurfaceYAtX(crashPos.x) - 20;
+  crashPos.y = getCachedSurfaceYAtX(crashPos.x) - 20;
     this.crashedShip = new RuinedShip(crashPos, 20);
     if (!RuinedShip.ruinedShips.includes(this.crashedShip)) {
       RuinedShip.ruinedShips.push(this.crashedShip);
@@ -1086,7 +1086,7 @@ class RescueMission {
     if (!this.crashedShip) return;
     let astronautPos = this.crashedShip.pos.copy();
     astronautPos.x += random(-100, 100);
-    astronautPos.y = getSurfaceYAtX(astronautPos.x) - 15;
+  astronautPos.y = getCachedSurfaceYAtX(astronautPos.x) - 15;
     this.strandedAstronaut = new StrandedAstronaut(astronautPos, 20);
   }
 
@@ -1179,7 +1179,7 @@ class StrandedAstronaut extends Astronaut {
     }
 
     this.facing = this.vel.x > 0 ? 1 : (this.vel.x < 0 ? -1 : this.facing);
-    this.pos.y = getSurfaceYAtX(this.pos.x) - this.size / 2;
+  this.pos.y = getCachedSurfaceYAtX(this.pos.x) - this.size / 2;
   }
 
   findClosestRescuer() {

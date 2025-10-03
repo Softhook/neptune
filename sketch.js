@@ -1140,7 +1140,7 @@ function generateMoonSurface() {
 
   while (x < worldWidth) {
     if (x % 800 === 0) {
-      smoothness = random(0.3, 3.7);
+      smoothness = random(0.4, 1.7);
     }
     
     let y;

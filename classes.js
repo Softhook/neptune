@@ -442,18 +442,8 @@ class RuinedShip {
 
 
   dropOntoSurface() {
-    let surfaceY = this.getSurfaceYAtX(this.pos.x);
+    const surfaceY = getCachedSurfaceYAtX(this.pos.x);
     this.pos.y = surfaceY - this.size / 2;
-  }
-
-  getSurfaceYAtX(x) {
-    for (let i = 0; i < moonSurface.length - 1; i++) {
-      if (x >= moonSurface[i].x && x < moonSurface[i + 1].x) {
-        let t = (x - moonSurface[i].x) / (moonSurface[i + 1].x - moonSurface[i].x);
-        return lerp(moonSurface[i].y, moonSurface[i + 1].y, t);
-      }
-    }
-    return height; // Default to bottom of screen if not found
   }
 
   static createFromShip(ship) {

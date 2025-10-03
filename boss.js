@@ -78,13 +78,13 @@ updateShape() {
     corner.applyForce(windForce);
     corner.update();
     
-    let surfaceY = getSurfaceYAtX(corner.pos.x);
+  let surfaceY = getCachedSurfaceYAtX(corner.pos.x);
     if (corner.pos.y > surfaceY - 2) {
       corner.pos.y = surfaceY - 2;
       corner.vel.y *= -0.5;
       
       let nextX = corner.pos.x + this.direction;
-      let nextY = getSurfaceYAtX(nextX);
+  let nextY = getCachedSurfaceYAtX(nextX);
       let surfaceAngle = atan2(nextY - surfaceY, this.direction);
       
       let rollForce = createVector(cos(surfaceAngle), sin(surfaceAngle));
@@ -151,7 +151,7 @@ updateShape() {
   spawnMinion() {
     let spawnX = this.pos.x + random(-300, 300);
     let size = 100;
-    let spawnY = getSurfaceYAtX(spawnX) - size / 2;
+  let spawnY = getCachedSurfaceYAtX(spawnX) - size / 2;
     let spawnPos = createVector(spawnX, spawnY);
     
     AlienPlant.plants.push(new AlienPlant(spawnPos, size, this.getColor()));
@@ -554,7 +554,7 @@ fireLaser() {
   spawnMinion() {
     let spawnX = this.pos.x + random(-300, 300);
     let size = 80;
-    let spawnY = getSurfaceYAtX(spawnX) - size / 2;
+  let spawnY = getCachedSurfaceYAtX(spawnX) - size / 2;
     let spawnPos = createVector(spawnX, spawnY);
     
     
