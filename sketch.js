@@ -89,6 +89,7 @@ let debug;
 let ambientMusic;
 let introMusic = true;
 let earthquakeManager;
+let tectonicShiftManager;
 let magneticStorm;
 let methaneBlizzard;
 let heliumBlizzard;
@@ -112,6 +113,7 @@ function setup() {
   upgrades = new Upgrades();
   upgradeMenu = new UpgradeMenu(upgrades);
   earthquakeManager = new EarthquakeManager();
+  tectonicShiftManager = new TectonicShiftManager();
   methaneBlizzard = new MethaneBlizzard();
   heliumBlizzard = new HeliumBlizzard();
   rainbowrain = new RainbowRain();
@@ -335,7 +337,12 @@ function drawGame() {
   
   push();
   
-  let cameraShake = earthquakeManager.getCameraShake();
+  let earthquakeShake = earthquakeManager.getCameraShake();
+  let tectonicShake = tectonicShiftManager.getCameraShake();
+  let cameraShake = createVector(
+    earthquakeShake.x + tectonicShake.x,
+    earthquakeShake.y + tectonicShake.y
+  );
   translate(-cameraOffset + cameraShake.x, cameraShake.y);
   
   drawBackground();
@@ -531,6 +538,7 @@ function updateGame() {
   }
   
   earthquakeManager.update();
+  tectonicShiftManager.update();
   
   // Throttle some weather effects to every 2nd frame for performance
   if (frameCount % 2 === 0) {
@@ -703,6 +711,7 @@ function resetGame() {
   MissionControl.resetAllMissions();
 
   earthquakeManager = new EarthquakeManager();
+  tectonicShiftManager = new TectonicShiftManager();
 
   // Reset upgrades
   upgrades.reset();

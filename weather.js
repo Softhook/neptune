@@ -671,6 +671,200 @@ class EarthquakeManager {
   }
 }
 
+class TectonicShiftManager {
+  constructor() {
+    this.cameraShake = createVector(0, 0);
+    this.isTectonicShift = false;
+    this.tectonicShiftIntensity = 0;
+    this.tectonicShiftWarningTimer = 0;
+    this.tectonicShiftDuration = 0;
+    this.maxTectonicShiftIntensity = 10;
+    this.tectonicShiftProbability = 0.00005; // Same as earthquake probability
+  }
+
+  update() {
+    if (this.tectonicShiftWarningTimer > 0) {
+      this.tectonicShiftWarningTimer--;
+      if (this.tectonicShiftWarningTimer === 0) {
+        this.startTectonicShift();
+      }
+    }
+
+    if (this.isTectonicShift) {
+      this.tectonicShiftDuration--;
+      if (this.tectonicShiftDuration <= 0) {
+        this.isTectonicShift = false;
+      }
+      this.updateCameraShake();
+    } else {
+      this.cameraShake.set(0, 0);
+    }
+
+    this.checkForRandomTectonicShift();
+  }
+
+  startTectonicShiftWarning() {
+    this.tectonicShiftWarningTimer = 600; // 10 seconds at 60 fps
+    announcer.speak("Tectonic shift imminent!", 0, 2);
+  }
+
+  startTectonicShift() {
+    this.isTectonicShift = true;
+    this.tectonicShiftDuration = random(100, 400);
+    this.tectonicShiftIntensity = random(1, this.maxTectonicShiftIntensity); // Random intensity
+    soundManager.play('earthquake'); // Reuse earthquake sound
+    this.damageSurfaceEntities();
+    this.spikeMoonSurface();
+  }
+
+  damageSurfaceEntities() {
+    let damageFactor = this.tectonicShiftIntensity / this.maxTectonicShiftIntensity;
+    for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
+      let base = MoonBase.moonBases[i];
+      base.health -= 50 * damageFactor;
+    }
+    for (let nest of Nest.nests) {
+      nest.health -= 2 * damageFactor;
+    }
+    for (let rig of DrillRig.rigs) {
+      rig.health -= 50 * damageFactor;
+    }
+    if (RescueMission.strandedAstronaut) {
+      RescueMission.strandedAstronaut.takeDamage(50 * damageFactor);
+    }
+  }
+
+  spikeMoonSurface() {
+    // Spike the moon surface to increase jaggedness (opposite of smoothing)
+    // The intensity of the tectonic shift determines how much spiking occurs
+    let spikingPasses = floor(this.tectonicShiftIntensity / 2); // More intense shifts = more spiking
+    spikingPasses = max(1, spikingPasses); // At least one pass
+    
+    for (let pass = 0; pass < spikingPasses; pass++) {
+      // Create a copy of surface heights to avoid feedback during spiking
+      let spikedHeights = [];
+      
+      for (let i = 0; i < moonSurface.length; i++) {
+        if (i === 0 || i === moonSurface.length - 1) {
+          // Keep endpoints unchanged
+          spikedHeights[i] = moonSurface[i].y;
+        } else {
+          // Amplify differences with neighbors to create spikes
+          let prevY = moonSurface[i - 1].y;
+          let currY = moonSurface[i].y;
+          let nextY = moonSurface[i + 1].y;
+          
+          // Calculate the difference from the average to amplify terrain features
+          let avgNeighbors = (prevY + nextY) / 2;
+          let difference = currY - avgNeighbors;
+          
+          // Amplify the difference to create spikes (opposite of smoothing)
+          // Use a factor that creates noticeable spikes but doesn't break the terrain
+          spikedHeights[i] = currY + difference * 0.5;
+        }
+      }
+      
+      // Apply spiked heights
+      for (let i = 0; i < moonSurface.length; i++) {
+        moonSurface[i].y = spikedHeights[i];
+      }
+    }
+    
+    // Terrain changed by tectonic shift
+    if (typeof clearTerrainCache === 'function') clearTerrainCache();
+    
+    // Update positions of game objects on the surface
+    this.adjustGameObjectPositions();
+  }
+
+  adjustGameObjectPositions() {
+    // Update moon bases
+    for (let base of MoonBase.moonBases) {
+      let newY = this.getNewSurfaceY(base.pos.x);
+      base.pos.y = newY - base.height;
+    }
+    
+    // Update nests
+    for (let nest of Nest.nests) {
+      let newY = this.getNewSurfaceY(nest.pos.x);
+      nest.pos.y = newY - nest.size / 2;
+    }
+    
+    // Update turrets
+    for (let turret of turrets) {
+      let newY = this.getNewSurfaceY(turret.pos.x);
+      turret.pos.y = newY - turret.size / 2;
+    }
+    
+    // Update alien plants
+    for (let plant of AlienPlant.plants) {
+      let newY = min(this.getNewSurfaceY(plant.pos.x), height);
+      plant.targetPos.y = newY - plant.size / 2;
+    }
+    
+    // Update drill rigs
+    for (let rig of DrillRig.rigs) {
+      let newY = this.getNewSurfaceY(rig.pos.x);
+      rig.pos.y = newY - rig.size / 2;
+    }
+    
+    // Update ship if landed
+    if (ship.isLanded) {
+      let newY = this.getNewSurfaceY(ship.pos.x);
+      ship.pos.y = newY - ship.size / 2;
+      // Update pod position if ship is carrying it
+      if (ship.hasGrabbedPod) {
+        ship.updatePodPosition();
+      }
+    }
+    
+    // Update ruined ships
+    RuinedShip.updatePositions();
+  }
+
+  getNewSurfaceY(x) {
+    for (let i = 0; i < moonSurface.length - 1; i++) {
+      if (x >= moonSurface[i].x && x < moonSurface[i + 1].x) {
+        let t = (x - moonSurface[i].x) / (moonSurface[i + 1].x - moonSurface[i].x);
+        return lerp(moonSurface[i].y, moonSurface[i + 1].y, t);
+      }
+    }
+    return height;
+  }
+
+  updateCameraShake() {
+    let currentIntensity = this.calculateShakeIntensity();
+    this.cameraShake.set(
+      random(-currentIntensity, currentIntensity),
+      random(-currentIntensity, currentIntensity)
+    );
+  }
+
+  calculateShakeIntensity() {
+    let progress = 1 - (this.tectonicShiftDuration / 300); // Assuming 300 is the total duration
+    if (progress < 0.2) {
+      // Ramp up
+      return this.tectonicShiftIntensity * (progress / 0.2);
+    } else if (progress > 0.8) {
+      // Ramp down
+      return this.tectonicShiftIntensity * (1 - (progress - 0.8) / 0.2);
+    } else {
+      // Peak intensity
+      return this.tectonicShiftIntensity;
+    }
+  }
+
+  checkForRandomTectonicShift() {
+    if (!this.isTectonicShift && this.tectonicShiftWarningTimer === 0 && random() < this.tectonicShiftProbability) {
+      this.startTectonicShiftWarning();
+    }
+  }
+
+  getCameraShake() {
+    return this.cameraShake;
+  }
+}
+
 class MagneticStorm {
   constructor() {
     this.particles = [];
