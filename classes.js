@@ -1484,6 +1484,13 @@ class Bullet extends Entity {
       return;
     }
 
+    // Check if bullet is below the surface
+    const surfaceY = getCachedSurfaceYAtX(this.pos.x);
+    if (this.pos.y > surfaceY) {
+      this.active = false;
+      return;
+    }
+
     // Check collision with moon surface
     if (this.checkCollisionWithSurface()) {
       this.active = false;
@@ -1738,6 +1745,13 @@ class Bomb extends Entity {
     super.update();
     this.vel.y += 0.05; // Gravity effect for slow fall
     this.vel.add(wind); // Apply wind effect to the bomb
+    
+    // Check if bomb is below the surface
+    const surfaceY = getCachedSurfaceYAtX(this.pos.x);
+    if (this.pos.y > surfaceY) {
+      return true; // Trigger collision if below surface
+    }
+    
     return this.checkCollision() || this.checkAlienCollision();
   }
 
