@@ -594,7 +594,14 @@ static deserializePod(podData) {
       hasGrabbedPod: alien.hasGrabbedPod,
       shootingRange: alien.shootingRange,
       speed: alien.speed,
-      color: { r: red(alien.color), g: green(alien.color), b: blue(alien.color) }
+      color: { r: red(alien.color), g: green(alien.color), b: blue(alien.color) },
+      attackMode: alien.attackMode,
+      attackDuration: alien.attackDuration,
+      defensiveMode: alien.defensiveMode,
+      defensiveDuration: alien.defensiveDuration,
+      defensiveOrbitAngle: alien.defensiveOrbitAngle,
+      defensiveOrbitRadius: alien.defensiveOrbitRadius,
+      assignedNestIndex: alien.assignedNest ? Nest.nests.indexOf(alien.assignedNest) : -1
     };
   }
 
@@ -609,6 +616,23 @@ static deserializePod(podData) {
     newAlien.hasGrabbedPod = alienData.hasGrabbedPod;
     newAlien.speed = alienData.speed;
     newAlien.color = color(alienData.color.r, alienData.color.g, alienData.color.b);
+    
+    // Restore behavioral states
+    if (alienData.attackMode !== undefined) {
+      newAlien.attackMode = alienData.attackMode;
+      newAlien.attackDuration = alienData.attackDuration || 0;
+    }
+    if (alienData.defensiveMode !== undefined) {
+      newAlien.defensiveMode = alienData.defensiveMode;
+      newAlien.defensiveDuration = alienData.defensiveDuration || 0;
+      newAlien.defensiveOrbitAngle = alienData.defensiveOrbitAngle || 0;
+      newAlien.defensiveOrbitRadius = alienData.defensiveOrbitRadius || 100;
+      // Restore nest assignment after all nests are loaded
+      if (alienData.assignedNestIndex !== undefined && alienData.assignedNestIndex >= 0 && alienData.assignedNestIndex < Nest.nests.length) {
+        newAlien.assignedNest = Nest.nests[alienData.assignedNestIndex];
+      }
+    }
+    
     return newAlien;
   }
 
