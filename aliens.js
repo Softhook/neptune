@@ -454,6 +454,9 @@ class Alien extends Entity {
   static defaultAttackFrequency = 8200;
   static lastAttackAnnouncementTime = 0;
   static ATTACK_ANNOUNCEMENT_COOLDOWN = 3600;
+  static defaultDefensiveFrequency = 12000;
+  static lastDefensiveAnnouncementTime = 0;
+  static DEFENSIVE_ANNOUNCEMENT_COOLDOWN = 3600;
 
   constructor(pos, vel, size, shootingRange = 300, colory) {
     super(pos, vel, size);
@@ -475,6 +478,13 @@ class Alien extends Entity {
     this.attackDuration = 0;
     this.lastDodgeTime = 0;
     this.dodgeCooldown = 60;
+
+    // Defensive behavior properties
+    this.defensiveMode = false;
+    this.defensiveDuration = 0;
+    this.assignedNest = null;
+    this.defensiveOrbitAngle = random(TWO_PI);
+    this.defensiveOrbitRadius = random(80, 150);
 
     // Freeze burst slow effect tracking
     this.isFrozen = false; // Represents an active slow debuff
@@ -504,6 +514,13 @@ class Alien extends Entity {
       }
     }
 
+    if (this.defensiveMode) {
+      if (--this.defensiveDuration <= 0) {
+        this.defensiveMode = false;
+        this.assignedNest = null;
+      }
+    }
+
     if (!this.dodgeBullets(moveFactor)) {
       this.updateBehavior();
     }
@@ -515,6 +532,7 @@ class Alien extends Entity {
 
   getStateString() {
     if (this.attackMode) return "Attacking";
+    if (this.defensiveMode) return "Defending Nest";
     if (this.hasGrabbedPod) return "Carrying Pod";
     if (this.isClosestToPod()) return "Pursuing Pod";
     return "Roaming";
@@ -537,6 +555,22 @@ class Alien extends Entity {
       } else if (distanceToTarget < desiredDistance - 50) {
         direction.mult(-speedFactor);
       } else {
+        direction.rotate(HALF_PI).mult(speedFactor);
+      }
+    } else if (this.defensiveMode) {
+      // Defensive behavior: orbit around assigned nest
+      const distanceToNest = this.pos.dist(targetPos);
+      const speedFactor = 0.4 * this.speed * moveFactor;
+
+      if (distanceToNest > this.defensiveOrbitRadius + 30) {
+        // Too far, move closer
+        direction.mult(speedFactor);
+      } else if (distanceToNest < this.defensiveOrbitRadius - 30) {
+        // Too close, move away
+        direction.mult(-speedFactor);
+      } else {
+        // Orbit around the nest
+        this.defensiveOrbitAngle += 0.02;
         direction.rotate(HALF_PI).mult(speedFactor);
       }
     } else {
@@ -615,6 +649,12 @@ class Alien extends Entity {
   determineTargetPosition() {
     if (this.attackMode) {
       return (isWalking && astronaut) ? astronaut.pos : (ship ? ship.pos : null);
+    }
+    if (this.defensiveMode && this.assignedNest && this.assignedNest.pos) {
+      // Calculate orbital position around the nest
+      const nestPos = this.assignedNest.pos.copy();
+      const orbitOffset = p5.Vector.fromAngle(this.defensiveOrbitAngle).mult(this.defensiveOrbitRadius);
+      return nestPos.add(orbitOffset);
     }
     if (this.hasGrabbedPod) {
       return this.findNearestNest();
@@ -787,9 +827,17 @@ class Alien extends Entity {
     return Math.max(Alien.defaultAttackFrequency - level * 500, 1200);
   }
 
+  static calculateDefensiveInterval() {
+    return Math.max(Alien.defaultDefensiveFrequency - level * 600, 2000);
+  }
+
   static updateAliens() {
     if (frameCount % this.calculateAttackInterval() === 0) {
       this.organizeGroupAttack();
+    }
+
+    if (frameCount % this.calculateDefensiveInterval() === 0) {
+      this.organizeDefensiveBehavior();
     }
 
     for (let i = Alien.aliens.length - 1; i >= 0; i--) {
@@ -826,6 +874,31 @@ class Alien extends Entity {
       if (random() < 0.5) {
         alien.attackMode = true;
         alien.attackDuration = random(500, 1200);
+      }
+    }
+  }
+
+  static organizeDefensiveBehavior() {
+    // Only organize defensive behavior if there are nests to defend
+    if (Nest.nests.length === 0) return;
+
+    const currentTime = millis();
+    if (currentTime - this.lastDefensiveAnnouncementTime >= this.DEFENSIVE_ANNOUNCEMENT_COOLDOWN) {
+      announcer.speak(`Defensive positions.`, 0, 1, 0);
+      this.lastDefensiveAnnouncementTime = currentTime;
+    }
+
+    const availableAliens = Alien.aliens.filter(alien => !alien.hasGrabbedPod && alien !== Alien.getClosestAlienToPod());
+
+    for (const alien of availableAliens) {
+      if (random() < 0.4) { // 40% chance to adopt defensive behavior
+        alien.defensiveMode = true;
+        alien.defensiveDuration = random(600, 1500); // Longer duration for defensive behavior
+        // Assign a random nest to defend
+        alien.assignedNest = Nest.nests[floor(random(Nest.nests.length))];
+        // Randomize orbit parameters for variety
+        alien.defensiveOrbitAngle = random(TWO_PI);
+        alien.defensiveOrbitRadius = random(80, 150);
       }
     }
   }
