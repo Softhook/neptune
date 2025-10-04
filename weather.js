@@ -161,6 +161,13 @@ damageEntities() { //ground impact
       }
     }
 
+    // Damage fortresses
+    for (let fortress of AlienFortress.fortresses) {
+      if (dist(this.pos.x, this.pos.y, fortress.pos.x, fortress.pos.y) < this.explosionRadius) {
+        fortress.health -= this.damage;
+      }
+    }
+
     // Damage turrets
     for (let i = turrets.length - 1; i >= 0; i--) {
       let turret = turrets[i];
@@ -211,6 +218,10 @@ damageEntities() { //ground impact
     for (let nest of Nest.nests) {
       let newY = min(this.getNewSurfaceY(nest.pos.x), height);
       nest.pos.y = newY - nest.size / 2;
+    }
+    for (let fortress of AlienFortress.fortresses) {
+      let newY = min(this.getNewSurfaceY(fortress.pos.x), height);
+      fortress.pos.y = newY - fortress.size / 2;
     }
     for (let turret of turrets) {
       let newY = min(this.getNewSurfaceY(turret.pos.x), height);
@@ -450,6 +461,10 @@ class DiamondRain {
     for (let nest of Nest.nests) {
       let newY = DiamondRain.getNewSurfaceY(nest.pos.x);
       nest.pos.y = newY - nest.size / 2;
+    }
+    for (let fortress of AlienFortress.fortresses) {
+      let newY = DiamondRain.getNewSurfaceY(fortress.pos.x);
+      fortress.pos.y = newY - fortress.size / 2;
     }
     for (let turret of turrets) {
       let newY = DiamondRain.getNewSurfaceY(turret.pos.x);
@@ -727,6 +742,9 @@ class TectonicShiftManager {
     for (let nest of Nest.nests) {
       nest.health -= 2 * damageFactor;
     }
+    for (let fortress of AlienFortress.fortresses) {
+      fortress.health -= 2 * damageFactor;
+    }
     for (let rig of DrillRig.rigs) {
       rig.health -= 50 * damageFactor;
     }
@@ -795,6 +813,12 @@ class TectonicShiftManager {
     for (let turret of turrets) {
       let newY = this.getNewSurfaceY(turret.pos.x);
       turret.pos.y = newY - turret.size / 2;
+    }
+    
+    // Update fortresses
+    for (let fortress of AlienFortress.fortresses) {
+      let newY = this.getNewSurfaceY(fortress.pos.x);
+      fortress.pos.y = newY - fortress.size / 2;
     }
     
     // Update alien plants
