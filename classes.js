@@ -1952,6 +1952,7 @@ reshapeMoonSurface() {
   adjustGameObjectPositions() {
     this.adjustMoonBases();
     this.adjustNests();
+    this.adjustFortresses();
     this.adjustTurrets();
     this.adjustAlienPlants();
     this.adjustShip();
@@ -1982,6 +1983,13 @@ reshapeMoonSurface() {
     for (let nest of Nest.nests) {
       let newY = min(this.getNewSurfaceY(nest.pos.x), height);
       nest.pos.y = newY - nest.size / 2;
+    }
+  }
+
+  adjustFortresses() {
+    for (let fortress of AlienFortress.fortresses) {
+      let newY = min(this.getNewSurfaceY(fortress.pos.x), height);
+      fortress.pos.y = newY - fortress.size / 2;
     }
   }
 
@@ -3256,6 +3264,7 @@ class BaseDrone extends Drone {
     Zapper.zappers.forEach(checkEntity);
     Hunter.hunters.forEach(checkEntity);
     Nest.nests.forEach(checkEntity);
+    AlienFortress.fortresses.forEach(checkEntity);
 
     return closestTarget;
   }
