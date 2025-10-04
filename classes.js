@@ -1806,6 +1806,13 @@ checkAlienCollision() {
       return true;
     }
   }
+
+  // Check collision with fortresses
+  for (let fortress of AlienFortress.fortresses) {
+    if (this.pos.dist(fortress.pos) < (this.size + fortress.size) / 2) {
+      return true;
+    }
+  }
   
   // Check collision with regular aliens
   for (let alien of Alien.aliens) {
@@ -1945,6 +1952,7 @@ reshapeMoonSurface() {
   adjustGameObjectPositions() {
     this.adjustMoonBases();
     this.adjustNests();
+    this.adjustFortresses();
     this.adjustTurrets();
     this.adjustAlienPlants();
     this.adjustShip();
@@ -1975,6 +1983,13 @@ reshapeMoonSurface() {
     for (let nest of Nest.nests) {
       let newY = min(this.getNewSurfaceY(nest.pos.x), height);
       nest.pos.y = newY - nest.size / 2;
+    }
+  }
+
+  adjustFortresses() {
+    for (let fortress of AlienFortress.fortresses) {
+      let newY = min(this.getNewSurfaceY(fortress.pos.x), height);
+      fortress.pos.y = newY - fortress.size / 2;
     }
   }
 
@@ -2832,7 +2847,7 @@ class Missile extends Entity {
       }
     }
     // Check collision with aliens, nests, etc.
-    let targets = [...(alienKing ? [alienKing] : []),...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers];
+    let targets = [...(alienKing ? [alienKing] : []),...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...AlienFortress.fortresses, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers];
     for (let target of targets) {
       if (this.pos.dist(target.pos) < (this.size + target.size) / 2) {
         return true;
@@ -2853,7 +2868,7 @@ class Missile extends Entity {
   }
 
 damageNearbyEntities() {
-  let targets = [...(alienKing ? [alienKing] : []), ...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers, ...MoonBase.moonBases];
+  let targets = [...(alienKing ? [alienKing] : []), ...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...AlienFortress.fortresses, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers, ...MoonBase.moonBases];
   
   for (let target of targets) {
     // Adjust distance check to include the target's size
@@ -3015,7 +3030,7 @@ applyWind() {
       if (d < this.size / 2) return true;
     }
 
-    let entities = [...Nest.nests, ...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers];
+    let entities = [...Nest.nests, ...AlienFortress.fortresses, ...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers];
     for (let entity of entities) {
       if (this.pos.dist(entity.pos) < (this.size + entity.size) / 2) {
         return true;
@@ -3249,6 +3264,7 @@ class BaseDrone extends Drone {
     Zapper.zappers.forEach(checkEntity);
     Hunter.hunters.forEach(checkEntity);
     Nest.nests.forEach(checkEntity);
+    AlienFortress.fortresses.forEach(checkEntity);
 
     return closestTarget;
   }
@@ -3413,7 +3429,7 @@ class BarrageBalloon extends Bomb {
   }
   
 checkAlienCollision() {
-  let alienTypes = [Alien.aliens, Hunter.hunters, Zapper.zappers, Destroyer.destroyers];
+  let alienTypes = [Alien.aliens, Hunter.hunters, Zapper.zappers, Destroyer.destroyers, AlienFortress.fortresses];
   for (let alienGroup of alienTypes) {
     for (let i = alienGroup.length - 1; i >= 0; i--) {
       let alien = alienGroup[i];
@@ -4527,7 +4543,7 @@ canShootTarget() {
   findNearestEnemy() {
     let nearest = null;
     let minDist = Infinity;
-    const enemies = [...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers];
+    const enemies = [...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers, ...AlienFortress.fortresses];
     
     for (let enemy of enemies) {
       const dist = this.pos.dist(enemy.pos);
@@ -4541,7 +4557,7 @@ canShootTarget() {
   }
 
   findBombTarget() {
-    let targets = [...Nest.nests, ...AlienWorm.worms];
+    let targets = [...Nest.nests, ...AlienFortress.fortresses, ...AlienWorm.worms];
     let nearestTarget = null;
     let minDist = Infinity;
 
@@ -5035,7 +5051,8 @@ move() {
   findTarget() {
     let targets = [
       ...(Alien.aliens || []),
-      ...(Nest.nests || [])
+      ...(Nest.nests || []),
+      ...(AlienFortress.fortresses || [])
     ];
     
     // Include worm segments as individual targets
