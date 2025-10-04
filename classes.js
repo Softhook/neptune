@@ -3429,7 +3429,7 @@ class BarrageBalloon extends Bomb {
   }
   
 checkAlienCollision() {
-  let alienTypes = [Alien.aliens, Hunter.hunters, Zapper.zappers, Destroyer.destroyers];
+  let alienTypes = [Alien.aliens, Hunter.hunters, Zapper.zappers, Destroyer.destroyers, AlienFortress.fortresses];
   for (let alienGroup of alienTypes) {
     for (let i = alienGroup.length - 1; i >= 0; i--) {
       let alien = alienGroup[i];
