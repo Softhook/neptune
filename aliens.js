@@ -455,7 +455,7 @@ static createNests(count) {
 
 class AlienFortress extends Nest {
   static fortresses = [];
-  static FORTRESS_SPAWN_CHANCE = 0.00001; // Small chance per frame per nest
+  static FORTRESS_SPAWN_CHANCE = 0.000001; // Small chance per frame per nest
 
   constructor(pos, size, colory) {
     super(pos, size * 2, colory); // 2x larger than nest
@@ -560,7 +560,6 @@ class AlienFortress extends Nest {
     AlienFortress.fortresses.push(fortress);
     
     // Announce the transformation
-    announcer.speak("A nest evolved into a fortress", 1, 1.2, 1000);
     soundManager.play('nestBurstDefense'); // Reuse sound effect
     
     return fortress;
