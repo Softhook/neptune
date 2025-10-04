@@ -458,7 +458,7 @@ class AlienFortress extends Nest {
   static FORTRESS_SPAWN_CHANCE = 0.0001; // Small chance per frame per nest
 
   constructor(pos, size, colory) {
-    super(pos, size * 4, colory); // 4x larger than nest
+    super(pos, size * 2, colory); // 2x larger than nest
     
     // Much higher health
     this.health = 40; // 8x nest health
