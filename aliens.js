@@ -937,7 +937,7 @@ class Alien extends Entity {
 
     const currentTime = millis();
     if (currentTime - this.lastDefensiveAnnouncementTime >= this.DEFENSIVE_ANNOUNCEMENT_COOLDOWN) {
-      announcer.speak(`Coordinated Defensive.`, 0, 1, 0);
+      announcer.speak(`Coordinated Defence.`, 0, 1, 0);
       this.lastDefensiveAnnouncementTime = currentTime;
     }
 
