@@ -455,7 +455,7 @@ static createNests(count) {
 
 class AlienFortress extends Nest {
   static fortresses = [];
-  static FORTRESS_SPAWN_CHANCE = 0.0001; // Small chance per frame per nest
+  static FORTRESS_SPAWN_CHANCE = 0.00001; // Small chance per frame per nest
 
   constructor(pos, size, colory) {
     super(pos, size * 2, colory); // 2x larger than nest
@@ -472,7 +472,7 @@ class AlienFortress extends Nest {
     
     // Larger and more damaging bullets
     this.bulletVelocity = 8; // Faster bullets
-    this.bulletSize = 16; // 2x nest bullet size
+    this.bulletSize = 12; // bigger bullet size
     this.bulletDamage = 3; // More damage
     this.maxShootCooldown = 45; // Shoots more frequently
     
@@ -560,7 +560,7 @@ class AlienFortress extends Nest {
     AlienFortress.fortresses.push(fortress);
     
     // Announce the transformation
-    announcer.speak("Warning Commander! An alien nest has evolved into a fortress!", 1, 1.2, 1000);
+    announcer.speak("A nest evolved into a fortress", 1, 1.2, 1000);
     soundManager.play('nestBurstDefense'); // Reuse sound effect
     
     return fortress;
