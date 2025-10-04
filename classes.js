@@ -1518,7 +1518,8 @@ class Bullet extends Entity {
            this.checkCollisionWithWorms() ||
            this.checkCollisionWithQueen() ||
            this.checkCollisionWithKing() ||
-           this.checkCollisionWithNests();
+           this.checkCollisionWithNests() ||
+           this.checkCollisionWithFortresses();
   }
 
   checkEnemyBulletCollisions() {
@@ -1618,6 +1619,17 @@ checkCollisionWithNests() {
     if (this.pos.dist(nest.pos) < (nest.size + this.size) / 2) {
       const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
       nest.health -= damage;
+      return true;
+    }
+  }
+  return false;
+}
+
+checkCollisionWithFortresses() {
+  for (let fortress of AlienFortress.fortresses) {
+    if (this.pos.dist(fortress.pos) < (fortress.size + this.size) / 2) {
+      const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
+      fortress.health -= damage;
       return true;
     }
   }
@@ -1868,6 +1880,7 @@ checkAlienCollision() {
     this.damageDestroyers();
     this.damageWorms();
     this.damageNests();
+    this.damageFortresses();
     this.damageQueen();
     this.damageKing();
     AlienPlant.checkCollisionWithBomb(this);
@@ -2015,6 +2028,16 @@ adjustAlienPlants() {
       let d = dist(this.pos.x, this.pos.y, nest.pos.x, nest.pos.y);
       if (d < this.explosionRadius) {
         nest.health -= this.bombDamage;
+      }
+    }
+  }
+
+  damageFortresses() {
+    for (let i = AlienFortress.fortresses.length - 1; i >= 0; i--) {
+      let fortress = AlienFortress.fortresses[i];
+      let d = dist(this.pos.x, this.pos.y, fortress.pos.x, fortress.pos.y);
+      if (d < this.explosionRadius) {
+        fortress.health -= this.bombDamage;
       }
     }
   }
@@ -2217,7 +2240,13 @@ activateBurstDefense() {
       }
     };
 
-    // Prioritize nests: check them first
+    // Prioritize fortresses first (highest threat)
+    for (let fortress of AlienFortress.fortresses) {
+      checkEntity(fortress);
+    }
+    if (closestTarget) return closestTarget; // Return fortress if found
+
+    // Then prioritize nests
     for (let nest of Nest.nests) {
       checkEntity(nest);
     }
@@ -2241,6 +2270,8 @@ activateBurstDefense() {
 getTargetPosition(target) {
   if (target instanceof AlienWorm) {
     return target.segments[0].pos;
+  } else if (target instanceof AlienFortress) {
+    return createVector(target.pos.x + target.size / 2, target.pos.y + target.size / 2);
   } else if (target instanceof Nest) {
     return createVector(target.pos.x + target.size / 2, target.pos.y + target.size / 2);
   } else if (target && target.pos) {
