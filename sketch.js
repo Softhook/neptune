@@ -390,6 +390,7 @@ function drawGame() {
   
   AlienPlant.drawPlants();
   Nest.drawNests();
+  AlienFortress.drawFortresses();
   
   alienQueen.draw();
   
@@ -496,6 +497,7 @@ function updateGame() {
   AlienPlant.update();
   
   Nest.updateNests();
+  AlienFortress.updateFortresses();
   MoonBase.updateAll();
   Turret.updateTurrets();
   Bullet.updateBullets();
@@ -662,6 +664,7 @@ function resetGame() {
   Zapper.zappers = [];
   Destroyer.destroyers = [];
   Nest.nests = [];
+  AlienFortress.fortresses = [];
   MoonBase.moonBases = [];
   turrets = [];
   //Shield.shields = [];

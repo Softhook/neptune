@@ -389,6 +389,12 @@ shoot() {
         soundManager.play('nestDestruction');
         Nest.nests.splice(i, 1);
         money += 300;
+      } else {
+        // Small chance for nest to evolve into fortress
+        if (random() < AlienFortress.FORTRESS_SPAWN_CHANCE) {
+          AlienFortress.createFromNest(nest);
+          Nest.nests.splice(i, 1); // Remove the nest
+        }
       }
     }
   }
@@ -444,6 +450,120 @@ static createNests(count) {
         nest.draw();
       }
     }
+  }
+}
+
+class AlienFortress extends Nest {
+  static fortresses = [];
+  static FORTRESS_SPAWN_CHANCE = 0.0001; // Small chance per frame per nest
+
+  constructor(pos, size, colory) {
+    super(pos, size * 4, colory); // 4x larger than nest
+    
+    // Much higher health
+    this.health = 40; // 8x nest health
+    this.maxHealth = 40;
+    
+    // Stronger burst response
+    this.burstDefenseRadius = 400; // 2x nest radius
+    this.burstDefenseMaxCooldown = 180; // Faster cooldown
+    this.burstDefenseForce = 6; // 2x nest force
+    this.burstDefenseAnimationFrames = 40;
+    
+    // Larger and more damaging bullets
+    this.bulletVelocity = 8; // Faster bullets
+    this.bulletSize = 16; // 2x nest bullet size
+    this.bulletDamage = 3; // More damage
+    this.maxShootCooldown = 45; // Shoots more frequently
+    
+    // Higher worm spawn chance
+    this.wormSpawnChance = 0.005; // 5x nest chance
+    
+    // Visual distinction
+    this.color = colory || color(200, 0, 0); // Red color
+    this.color.setAlpha(255);
+  }
+
+  draw() {
+    push();
+    translate(this.pos.x, this.pos.y + 10);
+    fill(this.color);
+
+    // Draw the blobby shape (similar to nest but larger)
+    beginShape();
+    for (let i = 0; i < this.blobPoints.length; i++) {
+      let p = this.blobPoints[i];
+      curveVertex(p.x, p.y);
+    }
+    curveVertex(this.blobPoints[0].x, this.blobPoints[0].y);
+    curveVertex(this.blobPoints[1].x, this.blobPoints[1].y);
+    endShape(CLOSE);
+
+    // Draw health bar (adjusted for higher max health)
+    fill(255, 0, 0);
+    rect(-this.size / 2, -this.size / 2 - 15, this.size * (this.health / this.maxHealth), 8);
+
+    pop();
+
+    // Draw burst defense animation
+    if (this.currentBurstFrame > 0) {
+      let progress = this.currentBurstFrame / this.burstDefenseAnimationFrames;
+      let radius = this.burstDefenseRadius * (1 - progress);
+      noFill();
+      stroke(255, 50, 50, 255 * progress); // Red burst
+      strokeWeight(5 * progress);
+      ellipse(this.pos.x, this.pos.y, radius * 2);
+      noStroke();
+    }
+  }
+
+  shoot() {
+    if (this.shootCooldown <= 0) {
+      let target;
+      if (isWalking && !astronaut.isInShip && dist(this.pos.x, this.pos.y, astronaut.pos.x, astronaut.pos.y) < 700) {
+        target = astronaut;
+      } else {
+        target = ship;
+      }
+      
+      let bulletVel = p5.Vector.sub(target.pos, this.pos).normalize().mult(this.bulletVelocity);
+      // Create larger, more damaging bullet
+      let bullet = Bullet.addBullet(this.pos.copy(), bulletVel, this.bulletSize, false);
+      this.shootCooldown = random(90, this.maxShootCooldown);
+    }
+  }
+
+  static updateFortresses() {
+    for (let i = AlienFortress.fortresses.length - 1; i >= 0; i--) {
+      let fortress = AlienFortress.fortresses[i];
+      fortress.update();
+      
+      if (fortress.health <= 0) {
+        soundManager.play('nestDestruction');
+        AlienFortress.fortresses.splice(i, 1);
+        money += 1200; // 4x nest reward
+      }
+    }
+  }
+
+  static drawFortresses() {
+    for (let fortress of AlienFortress.fortresses) {
+      if (isInView(fortress.pos, fortress.size)) {
+        fortress.draw();
+      }
+    }
+  }
+
+  static createFromNest(nest) {
+    // Create fortress at nest position
+    let fortress = new AlienFortress(nest.pos.copy(), 40, nest.color);
+    AlienFortress.fortresses.push(fortress);
+    
+    // Announce the transformation
+    announcer.speak("Warning Commander! An alien nest has evolved into a fortress!", 1, 1.2, 1000);
+    soundManager.play('nestBurstDefense'); // Reuse sound effect
+    
+    return fortress;
   }
 }
 

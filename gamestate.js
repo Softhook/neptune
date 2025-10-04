@@ -173,6 +173,13 @@ static setupEntityReferences() {
       console.log('Nests state valid, count:', Nest.nests.length);
     }
 
+    if (!Array.isArray(AlienFortress.fortresses)) {
+      console.warn('Invalid fortresses state after loading, resetting fortresses');
+      AlienFortress.fortresses = [];
+    } else {
+      console.log('Fortresses state valid, count:', AlienFortress.fortresses.length);
+    }
+
     if (typeof energy !== 'number' || isNaN(energy)) {
       console.warn('Invalid energy state after loading, resetting energy');
       energy = baseEnergy;
@@ -279,6 +286,7 @@ class EntitySerializer {
       zappers: Array.isArray(Zapper.zappers) ? Zapper.zappers.map(zapper => this.serializeZapper(zapper)) : [],
       destroyers: Array.isArray(Destroyer.destroyers) ? Destroyer.destroyers.map(destroyer => this.serializeDestroyer(destroyer)) : [],
       nests: Array.isArray(Nest.nests) ? Nest.nests.map(nest => this.serializeNest(nest)) : [],
+      fortresses: Array.isArray(AlienFortress.fortresses) ? AlienFortress.fortresses.map(fortress => this.serializeFortress(fortress)) : [],
       moonBases: Array.isArray(MoonBase.moonBases) ? MoonBase.moonBases.map(base => this.serializeMoonBase(base)) : [],
       turrets: Array.isArray(turrets) ? turrets.map(turret => this.serializeTurret(turret)) : [],
       shields: Array.isArray(Shield.shields) ? Shield.shields.map(shield => this.serializeShield(shield)) : [],
@@ -312,6 +320,7 @@ class EntitySerializer {
     Zapper.zappers = entities.zappers ? entities.zappers.map(zapper => this.deserializeZapper(zapper)) : [];
     Destroyer.destroyers = entities.destroyers ? entities.destroyers.map(destroyer => this.deserializeDestroyer(destroyer)) : [];
     Nest.nests = entities.nests ? entities.nests.map(nest => this.deserializeNest(nest)) : [];
+    AlienFortress.fortresses = entities.fortresses ? entities.fortresses.map(fortress => this.deserializeFortress(fortress)) : [];
     MoonBase.moonBases = entities.moonBases ? entities.moonBases.map(base => this.deserializeMoonBase(base)) : [];
     turrets = entities.turrets ? entities.turrets.map(turret => this.deserializeTurret(turret)) : [];
     Shield.shields = entities.shields ? entities.shields.map(shield => this.deserializeShield(shield)) : [];
@@ -728,6 +737,27 @@ static deserializePod(podData) {
     newNest.health = nestData.health;
     newNest.podsCollected = nestData.podsCollected;
     return newNest;
+  }
+
+  static serializeFortress(fortress) {
+    return {
+      pos: this.serializeVector(fortress.pos),
+      size: fortress.size,
+      health: fortress.health,
+      podsCollected: fortress.podsCollected,
+      color: fortress.color.toString()
+    };
+  }
+
+  static deserializeFortress(fortressData) {
+    const newFortress = new AlienFortress(
+      this.deserializeVector(fortressData.pos),
+      fortressData.size / 4, // Divide by 4 since constructor multiplies by 4
+      color(fortressData.color)
+    );
+    newFortress.health = fortressData.health;
+    newFortress.podsCollected = fortressData.podsCollected;
+    return newFortress;
   }
 
   static serializeMoonBase(base) {
