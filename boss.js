@@ -698,6 +698,17 @@ die() {
     explosionPromises.push(explosionPromise);
   }
 
+  // Destroy all fortresses with explosions
+  for (let fortress of AlienFortress.fortresses) {
+    let explosionPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        explosions.push(new Explosion(fortress.pos, fortress.size * 2, fortress.color, color(100, 100, 100)));
+        resolve();
+      }, random(0, 2000));
+    });
+    explosionPromises.push(explosionPromise);
+  }
+
   // Destroy all alien worms with explosions
   for (let worm of AlienWorm.worms) {
     if (!worm.segments || worm.segments.length < 1) continue; 
@@ -729,6 +740,7 @@ die() {
     Zapper.zappers = [];
     Destroyer.destroyers = [];
     Nest.nests = [];
+    AlienFortress.fortresses = [];
     AlienWorm.worms = [];
     AlienPlant.plants = [];
     
