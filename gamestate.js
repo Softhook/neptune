@@ -752,7 +752,7 @@ static deserializePod(podData) {
   static deserializeFortress(fortressData) {
     const newFortress = new AlienFortress(
       this.deserializeVector(fortressData.pos),
-      fortressData.size / 4, // Divide by 4 since constructor multiplies by 4
+      fortressData.size / 2, // Divide by 2 since constructor multiplies by 2
       color(fortressData.color)
     );
     newFortress.health = fortressData.health;
