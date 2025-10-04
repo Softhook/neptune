@@ -544,7 +544,7 @@ class EarthDefenseMission {
 
   static startMission() {
     // Check if the nests array is empty or mission already active
-    if (this.isActive || this.hasMissionOccurred || Nest.nests.length === 0) return;
+    if (this.isActive || this.hasMissionOccurred || (Nest.nests.length === 0 && AlienFortress.fortresses.length === 0)) return;
 
     this.isActive = true;
     this.teleportationInProgress = true;
@@ -596,7 +596,7 @@ class EarthDefenseMission {
 
   static update() {
     if (!this.isActive) return;
-    if (Nest.nests.length === 0) {
+    if (Nest.nests.length === 0 && AlienFortress.fortresses.length === 0) {
       this.completeMission(true);
     }
   }
