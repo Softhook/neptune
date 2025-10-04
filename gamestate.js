@@ -216,7 +216,6 @@ class GameVariableSerializer {
       money: money,
       level: level,
       gameState: gameState,
-      gameMode: gameMode,
       isWalking: isWalking,
       windAngle: windAngle,
       windForce: windForce,
@@ -226,9 +225,10 @@ class GameVariableSerializer {
       gameOverSoundPlayed: gameOverSoundPlayed,
       dayNightCycle: dayNightCycle,
       cameraFollowsMissile: cameraFollowsMissile,
-      cameraFollowsDrone: cameraFollowsDrone,
       atEarth: atEarth,
-      currentMission: MissionControl.currentMission
+      currentMission: MissionControl.currentMission,
+      showLevelTransition: showLevelTransition,
+      levelTransitionTimer: levelTransitionTimer,
     };
   }
 

@@ -675,7 +675,6 @@ function resetGame() {
   bombs = [];
   explosions = [];
   alienQueen.reset();
-  alienKing = null;
   
   // Reset object pools
   Bullet.pool = [];
