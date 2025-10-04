@@ -852,12 +852,13 @@ class Alien extends Entity {
       const playerEntity = (isWalking && astronaut) ? astronaut : ship;
       if (playerEntity && playerEntity.pos) {
         const THREAT_RADIUS = 260; // proximity that provokes defense early
-        const underThreat = Nest.nests.some(n => n?.pos && n.pos.dist(playerEntity.pos) < THREAT_RADIUS);
-        if (underThreat && framesSinceDefense > defensiveInterval * 0.35) {
-          this.organizeDefensiveBehavior();
+        // Find the nest that is being threatened
+        const threatenedNest = Nest.nests.find(n => n?.pos && n.pos.dist(playerEntity.pos) < THREAT_RADIUS);
+        if (threatenedNest && framesSinceDefense > defensiveInterval * 0.35) {
+          this.organizeDefensiveBehavior(threatenedNest);
           Alien.lastDefensiveTriggerFrame = frameCount;
           defenseTriggered = true;
-          if (debug?.isEnabled) debug.log(`[DEFENSE] Threat trigger at frame ${frameCount}`);
+          if (debug?.isEnabled) debug.log(`[DEFENSE] Threat trigger at frame ${frameCount} for nest at x=${threatenedNest.pos.x.toFixed(0)}`);
         }
       }
     }
@@ -931,7 +932,7 @@ class Alien extends Entity {
     }
   }
 
-  static organizeDefensiveBehavior() {
+  static organizeDefensiveBehavior(targetNest = null) {
     // Only organize defensive behavior if there are nests to defend
     if (Nest.nests.length === 0) return;
 
@@ -941,14 +942,26 @@ class Alien extends Entity {
       this.lastDefensiveAnnouncementTime = currentTime;
     }
 
-    const availableAliens = Alien.aliens.filter(alien => !alien.hasGrabbedPod && alien !== Alien.getClosestAlienToPod());
+    let availableAliens = Alien.aliens.filter(alien => !alien.hasGrabbedPod && alien !== Alien.getClosestAlienToPod());
+
+    // If a specific nest is threatened, only summon nearby aliens
+    if (targetNest && targetNest.pos) {
+      const SUMMON_RADIUS = 800; // Only summon aliens within this radius of the threatened nest
+      availableAliens = availableAliens.filter(alien => {
+        return alien.pos.dist(targetNest.pos) < SUMMON_RADIUS;
+      });
+      
+      if (debug?.isEnabled) {
+        debug.log(`[DEFENSE] Summoning ${availableAliens.length} nearby aliens to defend nest at x=${targetNest.pos.x.toFixed(0)}`);
+      }
+    }
 
     for (const alien of availableAliens) {
       if (random() < 0.4) { // 40% chance to adopt defensive behavior
         alien.defensiveMode = true;
         alien.defensiveDuration = random(600, 1500); // Longer duration for defensive behavior
-        // Assign a random nest to defend
-        alien.assignedNest = Nest.nests[floor(random(Nest.nests.length))];
+        // Assign the target nest if specified, otherwise random nest
+        alien.assignedNest = targetNest || Nest.nests[floor(random(Nest.nests.length))];
         // Randomize orbit parameters for variety
         alien.defensiveOrbitAngle = random(TWO_PI);
         alien.defensiveOrbitRadius = random(80, 150);
