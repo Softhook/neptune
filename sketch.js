@@ -363,11 +363,11 @@ function drawGame() {
   
 
     switch (true) {
-      case cameraFollowsMissile:
+      case cameraFollowsMissile && activeMissile && activeMissile.active:
         cameraOffset = constrain(activeMissile.pos.x - width / 2, 0, worldWidth - width);
         break;
       
-      case cameraFollowsDrone:
+      case cameraFollowsDrone && activeDrone && activeDrone.active:
         cameraOffset = constrain(activeDrone.pos.x - width / 2, 0, worldWidth - width);
         break;
       

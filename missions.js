@@ -464,7 +464,7 @@ class BaseDefenseMission {
       money += 20000;
     } else {
       announcer.speak("Mission failed. One or more bases were destroyed. Half your funds have been confiscated.", 1, 2, 0);
-      money = money/2;
+      money = Math.floor(money / 2);
     }
 
     MissionControl.endCurrentMission();
@@ -520,7 +520,7 @@ class DrillMission {
       money += 10000;
     } else {
       announcer.speak("Mission failed. Drill Rigs destroyed before extracting enough Hydrogen.", 1, 2, 0);
-      money = money/2;
+      money = Math.floor(money / 2);
     }
 
     MissionControl.endCurrentMission();
@@ -615,7 +615,7 @@ class EarthDefenseMission {
         money += 10000;
       } else {
         announcer.speak("Mission failed. Prepare for the consequences.", 1, 2, 0);
-        money -= money / 2;
+        money = Math.floor(money / 2);
       }
 
       MissionControl.endCurrentMission();
@@ -843,7 +843,7 @@ class BuildBaseMission {
       money += this.reward;
     } else {
       announcer.speak("Mission failed. You didn't build the required bases in time. Half your funds have been confiscated.", 1, 2, 0);
-      money -= money/2;
+      money = Math.floor(money / 2);
     }
 
     MissionControl.endCurrentMission();

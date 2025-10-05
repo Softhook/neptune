@@ -188,8 +188,10 @@ damageEntities() { //ground impact
 
     // Damage alien worms
     for (let worm of AlienWorm.worms) {
-      if (dist(this.pos.x, this.pos.y, worm.segments[0].pos.x, worm.segments[0].pos.y) < this.explosionRadius) {
-        worm.takeDamage(this.damage);
+      if (worm && worm.segments && worm.segments.length > 0) {
+        if (dist(this.pos.x, this.pos.y, worm.segments[0].pos.x, worm.segments[0].pos.y) < this.explosionRadius) {
+          worm.takeDamage(this.damage);
+        }
       }
     }
 

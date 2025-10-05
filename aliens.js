@@ -232,6 +232,8 @@ static isInCluster(pos) {
   }
 
   static checkCollisionWithWorm(worm) {
+    if (!worm || !worm.segments || worm.segments.length === 0) return;
+    
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
       let plant = AlienPlant.plants[i];
       if (plant.pos.dist(worm.segments[0].pos) < worm.segments[0].size / 2 + plant.currentSize / 2) {

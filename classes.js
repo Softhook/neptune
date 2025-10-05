@@ -477,6 +477,7 @@ class Astronaut extends Entity {
 
   constructor(pos, size) {
     super(pos, createVector(0, 0), size);
+    this.uniqueId = 'astronaut-main'; // Unique identifier for serialization
     this.walkSpeed = 2;
     this.sprite = this.createSprite(color(255));
     this.hasGrabbedPod = false;
@@ -2233,10 +2234,12 @@ activateBurstDefense() {
 
     // Freeze AlienWorms (check head segment)
   for (let worm of AlienWorm.worms) {
-    let head = worm.segments[0]; // Head segment
-    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-    if (d < this.burstDefenseRadius) {
-      worm.freeze(this.freezeDuration);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      let head = worm.segments[0]; // Head segment
+      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+      if (d < this.burstDefenseRadius) {
+        worm.freeze(this.freezeDuration);
+      }
     }
   }
 
@@ -2893,8 +2896,10 @@ damageNearbyEntities() {
 
   // Damage AlienWorms
   for (let worm of AlienWorm.worms) {
-    if (this.pos.dist(worm.segments[0].pos) < this.explosionRadius) {
-      worm.takeDamage(this.damage);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      if (this.pos.dist(worm.segments[0].pos) < this.explosionRadius) {
+        worm.takeDamage(this.damage);
+      }
     }
   }
 
@@ -3104,10 +3109,12 @@ applyWind() {
 
     // Freeze AlienWorms (check head segment)
     for (let worm of AlienWorm.worms) {
-      let head = worm.segments[0]; // Head segment
-      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-      if (d < this.burstDefenseRadius) {
-        worm.freeze(this.freezeDuration);
+      if (worm && worm.segments && worm.segments.length > 0) {
+        let head = worm.segments[0]; // Head segment
+        let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+        if (d < this.burstDefenseRadius) {
+          worm.freeze(this.freezeDuration);
+        }
       }
     }
 
@@ -4965,7 +4972,12 @@ move() {
     let rightPoint = this.surfacePoints[3];
     
     // Interpolate Y position
-    let t = (newX - leftPoint.x) / (rightPoint.x - leftPoint.x);
+    let xDiff = rightPoint.x - leftPoint.x;
+    if (xDiff === 0) {
+      // If points are at same x position, just use leftPoint y
+      return leftPoint.y - this.size / 2;
+    }
+    let t = (newX - leftPoint.x) / xDiff;
     return lerp(leftPoint.y, rightPoint.y, t) - this.size / 2;
   }
 
@@ -5020,10 +5032,12 @@ move() {
   
   // Freeze AlienWorms (check head segment)
   for (let worm of AlienWorm.worms) {
-    let head = worm.segments[0]; // Head segment
-    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-    if (d < this.burstDefenseRadius) {
-      worm.freeze(this.freezeDuration);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      let head = worm.segments[0]; // Head segment
+      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+      if (d < this.burstDefenseRadius) {
+        worm.freeze(this.freezeDuration);
+      }
     }
   }
 
