@@ -104,6 +104,7 @@ let alienKing = null;
 
 function setup() {
   createCanvas(1200, 800);
+  pixelDensity(1); // Force 1:1 pixel density for better performance on high-DPI displays
   windSound = new WindSoundGenerator();
   createBackgroundGraphics();
   debug  = Debug.getInstance();
@@ -1382,6 +1383,7 @@ function drawBackground() {
 
   // Draw stars
   if (starBrightness > 10) { // Small threshold to avoid drawing very faint stars
+    noStroke();
     fill(255, starBrightness);
     for (const star of backgroundStars) {
       // Only draw stars within view bounds for performance
@@ -1441,23 +1443,29 @@ function createShootingStar() {
 function updateShootingStars() {
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     const star = shootingStars[i];
-    star.x += cos(star.angle) * star.speed;
-    star.y += sin(star.angle) * star.speed;
+    const cosAngle = cos(star.angle);
+    const sinAngle = sin(star.angle);
+    star.x += cosAngle * star.speed;
+    star.y += sinAngle * star.speed;
     star.length = max(0, star.length - star.speed * 0.1);
 
     if (isInView({ x: star.x, y: star.y }, 2)) {
       push();
-      // Draw the fading trail
+      // Pre-calculate values outside loop
+      const segmentLength = star.length / 6;
+      const cosSegment = cosAngle * segmentLength;
+      const sinSegment = sinAngle * segmentLength;
+      
+      // Draw the fading trail with batched graphics state
       for (let j = 0; j < 6; j++) {
-        const alpha = map(j, 0, 9, 255, 0);
-        const segmentLength = star.length / 6;
-        const segmentStartX = star.x - cos(star.angle) * (j * segmentLength);
-        const segmentStartY = star.y - sin(star.angle) * (j * segmentLength);
-        const segmentEndX = star.x - cos(star.angle) * ((j + 1) * segmentLength);
-        const segmentEndY = star.y - sin(star.angle) * ((j + 1) * segmentLength);
+        const alpha = 255 - (j * 28.33); // Optimized: avoid map() call
+        const segmentStartX = star.x - cosSegment * j;
+        const segmentStartY = star.y - sinSegment * j;
+        const segmentEndX = star.x - cosSegment * (j + 1);
+        const segmentEndY = star.y - sinSegment * (j + 1);
         
         stroke(200, alpha);
-        strokeWeight(2 - j * 0.2); // Gradually thinner trail
+        strokeWeight(2 - j * 0.2);
         line(segmentStartX, segmentStartY, segmentEndX, segmentEndY);
       }
       pop();
@@ -1483,9 +1491,9 @@ function drawWindLinesOptimized() {
   const amplitude = 100 * windMagnitude; // Pre-calculate amplitude
   const phaseIncrement = 0.02; // Phase increment
 
-  // Define step sizes
+  // Define step sizes - scale with screen width for performance
   const stepY = 30;
-  const stepX = 10;
+  const stepX = max(10, width / 120); // Adaptive step: larger screens use bigger steps
 
   // Define buffer to extend beyond the view boundaries horizontally
   const buffer = amplitude; // Adjust buffer as needed
