@@ -1725,6 +1725,7 @@ class MissionSerializer {
     return {
       isActive: BuildBaseMission.isActive,
       initialBaseCount: BuildBaseMission.initialBaseCount,
+      missionStartBaseIds: BuildBaseMission.missionStartBaseIds,
       missionTimer: GameTimer.getTimerState(BuildBaseMission.missionTimerKey)
     };
   }
@@ -1732,6 +1733,7 @@ class MissionSerializer {
   static deserializeBuildBaseMission(data) {
     BuildBaseMission.isActive = data.isActive;
     BuildBaseMission.initialBaseCount = data.initialBaseCount;
+    BuildBaseMission.missionStartBaseIds = data.missionStartBaseIds || [];
     if (data.isActive && data.missionTimer) {
       GameTimer.create(
         BuildBaseMission.missionTimerKey,

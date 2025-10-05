@@ -788,11 +788,13 @@ class BuildBaseMission {
   static missionTimerKey = 'buildBaseMission';
   static initialBaseCount = 0;
   static reward = 10000;
+  static missionStartBaseIds = []; // Track base IDs at mission start
 
   static startMission() {
     if (this.isActive) return;
     this.isActive = true;
     this.initialBaseCount = MoonBase.moonBases.length;
+    this.missionStartBaseIds = MoonBase.moonBases.map(base => base.id);
     this.requiredBases = random(this.baseArray);
     
     announcer.speak(`Commander, you need to prepare for our invasion force. Build ${this.requiredBases} new bases in the next ${this.missionTimeMin} minutes. We have indicated where we would like them built`, 1, 2, 0);
@@ -814,7 +816,7 @@ class BuildBaseMission {
   }
 
   static checkBaseDistribution() {
-    const newBases = MoonBase.moonBases.slice(this.initialBaseCount);
+    const newBases = MoonBase.moonBases.filter(base => !this.missionStartBaseIds.includes(base.id));
     if (newBases.length < this.requiredBases) return false;
 
     newBases.sort((a, b) => a.pos.x - b.pos.x);
@@ -851,6 +853,7 @@ class BuildBaseMission {
     this.isActive = false;
     GameTimer.clearTimer(this.missionTimerKey);
     this.initialBaseCount = 0;
+    this.missionStartBaseIds = [];
   }
 
   static draw() {

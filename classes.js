@@ -606,11 +606,13 @@ class Astronaut extends Entity {
       
     }
 
-    // Adjust target angle
-    if (keyIsDown(UP_ARROW)) {
-      this.targetAngle = max(this.targetAngle - 0.05, -PI / 2);
-    } else if (keyIsDown(DOWN_ARROW)) {
-      this.targetAngle = min(this.targetAngle + 0.05, PI / 2);
+    // Adjust target angle - only if camera is not following missile/drone
+    if (!cameraFollowsMissile && !cameraFollowsDrone) {
+      if (keyIsDown(UP_ARROW)) {
+        this.targetAngle = max(this.targetAngle - 0.05, -PI / 2);
+      } else if (keyIsDown(DOWN_ARROW)) {
+        this.targetAngle = min(this.targetAngle + 0.05, PI / 2);
+      }
     }
     
 
@@ -1594,24 +1596,24 @@ checkCollisionWithEntities(entities) {
 
   checkCollisionWithQueen() {
     if (alienQueen) {
-        if (this.pos.dist(alienQueen.pos) < (alienQueen.size + this.size) / 2) {
-          const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
-          alienQueen.takeDamage(damage);
-          return true;
+      if (this.pos.dist(alienQueen.pos) < (alienQueen.size + this.size) / 2) {
+        const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
+        alienQueen.takeDamage(damage);
+        return true;
+      }
     }
     return false;
-    }
   }
 
   checkCollisionWithKing() {
     if (alienKing) {
-        if (this.pos.dist(alienKing.pos) < (alienKing.size + this.size) / 2) {
-          const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
-          alienKing.takeDamage(damage);
-          return true;
+      if (this.pos.dist(alienKing.pos) < (alienKing.size + this.size) / 2) {
+        const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
+        alienKing.takeDamage(damage);
+        return true;
+      }
     }
     return false;
-    }
   }
 
 checkCollisionWithNests() {
@@ -3155,7 +3157,7 @@ let dronePos;
 if (isWalking) {
   dronePos = astronaut.pos.copy().add(0, -astronaut.size);
 } else {
-  dronePos = ship.pos.copy().add(0, -astronaut.size);
+  dronePos = ship.pos.copy().add(0, -ship.size);
 }
 
     let startVelocity = createVector(0, 0);
@@ -5133,7 +5135,7 @@ move() {
   drawLegs() {
     this.drawLeg(-10, 0, this.legPhase);
     this.drawLeg(10, 0, this.legPhase - Math.PI);
-    this.drawLeg(10, 0, this.legPhase- - Math.PI/2);
+    this.drawLeg(10, 0, this.legPhase - Math.PI/2);
     this.drawLeg(-10, 0, this.legPhase - Math.PI/2);
   }
 
@@ -5261,5 +5263,6 @@ move() {
   static resetWalkers() {
     WalkerRobot.walkers = [];
     WalkerRobot.spawnCooldown = 0;
+    WalkerRobot.walkerCounter = 0;
   }
 }

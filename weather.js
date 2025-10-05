@@ -1639,8 +1639,12 @@ class QuantumParticle {
     this.pos.add(this.velocity);
     this.rotation += 0.1 + noise(this.pos.x * 0.01, this.pos.y * 0.01) * 0.3;
 
-    // Bounce off edges
-    if (this.pos.x < 0 || this.pos.x > worldWidth) this.velocity.x *= -1;
+    // Bounce off edges or wrap around world
+    if (this.pos.x < 0) {
+      this.pos.x += worldWidth;
+    } else if (this.pos.x > worldWidth) {
+      this.pos.x -= worldWidth;
+    }
     if (this.pos.y < 0 || this.pos.y > height) this.velocity.y *= -1;
   }
 }

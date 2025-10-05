@@ -1649,6 +1649,9 @@ function distToSegment(p, v, w) {
 }
 
 function getSurfaceYAtX(x) {
+  // Ensure x is within world bounds
+  x = ((x % worldWidth) + worldWidth) % worldWidth;
+  
   for (let i = 0; i < moonSurface.length - 1; i++) {
     let start = moonSurface[i];
     let end = moonSurface[i + 1];
@@ -1670,6 +1673,10 @@ const terrainCache = new Map();
 
 function getCachedSurfaceYAtX(x) {
   if (x == null || isNaN(x)) return height;
+  
+  // Ensure x is within world bounds
+  x = ((x % worldWidth) + worldWidth) % worldWidth;
+  
   // Identify surrounding cache buckets for interpolation
   const baseBucket = Math.floor(x / TERRAIN_CACHE_RESOLUTION) * TERRAIN_CACHE_RESOLUTION;
   const nextBucket = baseBucket + TERRAIN_CACHE_RESOLUTION;
