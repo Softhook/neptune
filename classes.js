@@ -1740,10 +1740,32 @@ static updatePlayerBulletColour() {
   }
 
 static drawBullets() {
+  // Batch bullets by type to minimize fill() calls
+  let playerBullets = [];
+  let enemyBullets = [];
+  
   for (let bullet of Bullet.activeObjects) {
     if (isInView(bullet.pos, bullet.size)) {
-      const colour = bullet.isPlayerBullet ? Bullet.playerBulletColour : [0, 255, 0]; // Enemy bullets are green
-      fill(...colour);
+      if (bullet.isPlayerBullet) {
+        playerBullets.push(bullet);
+      } else {
+        enemyBullets.push(bullet);
+      }
+    }
+  }
+  
+  // Draw all player bullets with one fill call
+  if (playerBullets.length > 0) {
+    fill(...Bullet.playerBulletColour);
+    for (let bullet of playerBullets) {
+      ellipse(bullet.pos.x, bullet.pos.y, bullet.size, bullet.size);
+    }
+  }
+  
+  // Draw all enemy bullets with one fill call
+  if (enemyBullets.length > 0) {
+    fill(0, 255, 0); // Enemy bullets are green
+    for (let bullet of enemyBullets) {
       ellipse(bullet.pos.x, bullet.pos.y, bullet.size, bullet.size);
     }
   }

@@ -1541,13 +1541,16 @@ class QuantumStorm {
       noFill();
       strokeWeight(1.5);
       
+      // Pre-calculate triangle stroke color
+      const triangleStrokeAlpha = this.alpha * 0.8;
+      
       this.quantumParticles.forEach(particle => {
         if (isInView(particle.pos, particle.size)) {
           // Draw glowing triangle with rotation
           push();
           translate(particle.pos.x, particle.pos.y);
           rotate(particle.rotation);
-          stroke(190, 100, 100, this.alpha * 0.8);
+          stroke(190, 100, 100, triangleStrokeAlpha);
           triangle(
             -particle.size, -particle.size,
             particle.size, -particle.size,
@@ -1556,26 +1559,34 @@ class QuantumStorm {
           pop();
           
           // Draw connection lines to vortices
-          this.vortexPoints.forEach(vortex => {
-            if (particle.pos.dist(vortex) < 150) {
+          const maxDistSq = 150 * 150; // Pre-calculate squared distance for comparison
+          for (let i = 0; i < this.vortexPoints.length; i++) {
+            const vortex = this.vortexPoints[i];
+            const dx = vortex.x - particle.pos.x;
+            const dy = vortex.y - particle.pos.y;
+            const distSq = dx * dx + dy * dy;
+            
+            if (distSq < maxDistSq) {
+              const dist = Math.sqrt(distSq);
               stroke(
                 280, 
                 100, 
-                map(particle.pos.dist(vortex), 0, 150, 100, 30), 
+                map(dist, 0, 150, 100, 30), 
                 this.alpha * 0.3
               );
               line(particle.pos.x, particle.pos.y, vortex.x, vortex.y);
             }
-          });
+          }
         }
       });
       
-      // Draw vortex effects
-      this.vortexPoints.forEach(vortex => {
-        fill(280, 100, 100, this.alpha * 0.2);
-        noStroke();
+      // Draw vortex effects - batch fill/noStroke outside loop
+      fill(280, 100, 100, this.alpha * 0.2);
+      noStroke();
+      for (let i = 0; i < this.vortexPoints.length; i++) {
+        const vortex = this.vortexPoints[i];
         ellipse(vortex.x, vortex.y, 30, 30);
-      });
+      }
       
       pop();
     }
@@ -1627,15 +1638,21 @@ class QuantumParticle {
     this.trail.push(this.pos.copy());
     if (this.trail.length > 10) this.trail.shift();
 
-    // Apply multiple vortex influences
-    vortexPoints.forEach(vortex => {
-      let force = p5.Vector.sub(vortex, this.pos);
-      let distance = force.mag();
-      if (distance < 200) {
+    // Apply multiple vortex influences - optimize with squared distance check first
+    const maxDistSq = 200 * 200;
+    for (let i = 0; i < vortexPoints.length; i++) {
+      const vortex = vortexPoints[i];
+      const dx = vortex.x - this.pos.x;
+      const dy = vortex.y - this.pos.y;
+      const distSq = dx * dx + dy * dy;
+      
+      if (distSq < maxDistSq) {
+        const distance = Math.sqrt(distSq);
+        let force = p5.Vector.sub(vortex, this.pos);
         force.setMag(map(distance, 0, 200, 2, 0.1));
         this.velocity.add(force);
       }
-    });
+    }
 
     this.velocity.limit(3);
     this.pos.add(this.velocity);
@@ -1836,9 +1853,9 @@ drawBackgroundEffect() {
 
   drawThreads() {
     blendMode(ADD);
+    colorMode(HSB);
     noStroke();
     for (let thread of this.threads) {
-      colorMode(HSB);
       let alpha = thread.alpha * (this.alpha / 255);
       let hueShifted = (thread.hue + millis() / 100) % 360;
 
