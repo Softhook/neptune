@@ -844,7 +844,11 @@ function displayTitleScreen() {
     textSize(25);
   text("CHRISTIAN NOLD + SEBASTIAN NOLD BORASCHI", width / 2, height / 2 + 120);
   textSize(12);
-  text("Version 68 - Storms and Bug Fixes", width / 2, height / 2 + 160);
+  // Display version from git commit info
+  let versionText = typeof VERSION_INFO !== 'undefined' 
+    ? `Version ${VERSION_INFO.commitHash} - ${VERSION_INFO.commitMessage}`
+    : "Version - Unknown";
+  text(versionText, width / 2, height / 2 + 160);
   
   let pulseOpacity = sin(frameCount * 0.05) * 127 + 128; // Value between 1 and 255 
   textSize(20);
