@@ -1678,16 +1678,21 @@ class AlienWorm {
 
   draw() {
     push();
-    //noStroke();
     
+    // Draw all segment bodies first (no stroke)
+    fill(this.color);
+    noStroke();
     for (let i = 0; i < this.segments.length; i++) {
       let segment = this.segments[i];
-      
-      // Draw main body
-      fill(this.color);
       ellipse(segment.pos.x, segment.pos.y, segment.size, segment.size * 0.8);
+    }
+    
+    // Draw all tentacles with stroked lines
+    stroke(this.color);
+    for (let i = 0; i < this.segments.length; i++) {
+      let segment = this.segments[i];
+      strokeWeight(segment.size * 0.1);
       
-      // Draw tentacles
       for (let tentacle of segment.tentacles) {
         let tentacleAngle = segment.angle + tentacle.angle;
         let x1 = segment.pos.x + cos(tentacleAngle) * segment.size * 0.5;
@@ -1695,11 +1700,24 @@ class AlienWorm {
         let x2 = x1 + cos(tentacleAngle) * tentacle.length;
         let y2 = y1 + sin(tentacleAngle) * tentacle.length;
         
-        stroke(this.color);
-        strokeWeight(segment.size * 0.1);
         line(x1, y1, x2, y2);
-        noStroke();
-        ellipse(x2, y2, segment.size * 0.2); // Adjusted circle size
+      }
+    }
+    
+    // Draw all tentacle tips (no stroke)
+    noStroke();
+    fill(this.color);
+    for (let i = 0; i < this.segments.length; i++) {
+      let segment = this.segments[i];
+      
+      for (let tentacle of segment.tentacles) {
+        let tentacleAngle = segment.angle + tentacle.angle;
+        let x1 = segment.pos.x + cos(tentacleAngle) * segment.size * 0.5;
+        let y1 = segment.pos.y + sin(tentacleAngle) * segment.size * 0.5;
+        let x2 = x1 + cos(tentacleAngle) * tentacle.length;
+        let y2 = y1 + sin(tentacleAngle) * tentacle.length;
+        
+        ellipse(x2, y2, segment.size * 0.2);
       }
     }
     
