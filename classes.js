@@ -625,7 +625,7 @@ class Astronaut extends Entity {
     
    
     
-    if (this.hasGrabbedPod) {
+    if (this.hasGrabbedPod && pod) {
       pod.pos = this.pos.copy();
       pod.pos.y -= this.size / 2 + 5; // Position pod above astronaut's head
     }
@@ -726,7 +726,7 @@ class Astronaut extends Entity {
       noStroke();
 
       // Draw pod if astronaut is carrying it
-      if (this.hasGrabbedPod) {
+      if (this.hasGrabbedPod && pod) {
         fill(255, 0, 0);
         ellipse(this.pos.x, this.pos.y - this.size / 2 - 5, pod.size / 2, pod.size / 2);
       }
@@ -813,16 +813,18 @@ class Astronaut extends Entity {
   }
 
   checkPodInteraction() {
-    if (!this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
+    if (!pod || !this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
       this.grabPod();
     }
   }
 
   isNearPod() {
+    if (!pod) return false;
     return dist(this.pos.x, this.pos.y, pod.pos.x, pod.pos.y) < this.size / 2 + pod.size / 2;
   }
 
   grabPod() {
+    if (!pod) return;
     this.hasGrabbedPod = true;
     pod.updatePickupState('astronaut');
     money += 50;
@@ -846,7 +848,7 @@ class Astronaut extends Entity {
   }
 
   dropOffPod(base) {
-    if (!this.hasGrabbedPod) return; // Safety check
+    if (!pod || !this.hasGrabbedPod) return; // Safety check
     
     this.hasGrabbedPod = false;
     pod.updatePickupState(null); // Reset the pod's pickup state
@@ -1046,7 +1048,7 @@ class Ship extends Entity {
 
 
   handlePodInteraction() {
-    if (!this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
+    if (!pod || !this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
       this.grabPod();
     }
 
@@ -1057,10 +1059,12 @@ class Ship extends Entity {
   }
 
   isNearPod() {
+    if (!pod) return false;
     return dist(this.pos.x, this.pos.y, pod.pos.x, pod.pos.y) < this.size / 2 + pod.size / 2;
   }
 
   grabPod() {
+    if (!pod) return;
     this.hasGrabbedPod = true;
     pod.updatePickupState('ship');
     money += 100;
@@ -1084,6 +1088,7 @@ class Ship extends Entity {
   }
 
   dropOffPod() {
+    if (!pod) return;
     money += 500;
     energy = Math.min(energy + 10000, maxEnergy);
     this.hasGrabbedPod = false;
@@ -1092,7 +1097,9 @@ class Ship extends Entity {
   }
 
   updatePodPosition() {
-    pod.pos = p5.Vector.add(this.pos, p5.Vector.fromAngle(this.angle + PI, this.size));
+    if (pod) {
+      pod.pos = p5.Vector.add(this.pos, p5.Vector.fromAngle(this.angle + PI, this.size));
+    }
   }
 
 
