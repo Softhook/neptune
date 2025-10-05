@@ -28,15 +28,22 @@ class Meteor extends Entity {
 
   checkCollision() {  // Check collision wile inflight
     
-    if (!ship.isLanded && this.pos.dist(ship.pos) < (this.size + ship.size) / 2) {
-      energy -= 2000; // High damage to flying ship
-      soundManager.play('shipHit');
-      return true;
+    if (!ship.isLanded) {
+      const dx = this.pos.x - ship.pos.x;
+      const dy = this.pos.y - ship.pos.y;
+      const minDist = (this.size + ship.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
+        energy -= 2000; // High damage to flying ship
+        soundManager.play('shipHit');
+        return true;
+      }
     }
 
     // Check collision with shields
     for (let shield of Shield.shields) {
-      if (this.pos.dist(shield.pos) < shield.radius) {
+      const dx = this.pos.x - shield.pos.x;
+      const dy = this.pos.y - shield.pos.y;
+      if (dx * dx + dy * dy < shield.radius * shield.radius) {
         shield.takeDamage(this.damage);
         return true; // Meteor disappears without exploding
       }
@@ -47,7 +54,10 @@ class Meteor extends Entity {
     for (let alienGroup of alienTypes) {
       for (let i = alienGroup.length - 1; i >= 0; i--) {
         let alien = alienGroup[i];
-        if (this.pos.dist(alien.pos) < (this.size + alien.size) / 2) {
+        const dx = this.pos.x - alien.pos.x;
+        const dy = this.pos.y - alien.pos.y;
+        const minDist = (this.size + alien.size) / 2;
+        if (dx * dx + dy * dy < minDist * minDist) {
           alien.health -= 30;
           
           // Don't return true here, allow the meteor to continue its flight

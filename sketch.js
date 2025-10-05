@@ -306,25 +306,38 @@ function drawSurface(){
 
 function drawClusterOverlays() {
   noStroke();
-  for (let center of AlienPlant.clusterCenters) {
-    let clusterRadius = 100; // Adjust this value based on your desired cluster size
+  const clusterRadius = 100;
+  const alpha = 100; // Constant alpha (map result is always 100 with identical min/max)
+  
+  // Pre-calculate angle step vertices (shared across all clusters/rings)
+  const angleStep = 0.1;
+  const numVertices = Math.ceil(TWO_PI / angleStep);
+  
+  for (let i = 0; i < AlienPlant.clusterCenters.length; i++) {
+    const center = AlienPlant.clusterCenters[i];
     
     // Skip clusters outside view (with buffer for partial visibility)
     if (center.x + clusterRadius < viewLeft || center.x - clusterRadius > viewRight) {
       continue;
     }
     
-    let alpha = map(sin(dayNightCycle * TWO_PI), -1, 1, 100, 100); // Vary transparency with day/night cycle
+    // Extract color components once
+    const r = red(center.color);
+    const g = green(center.color);
+    const b = blue(center.color);
     
-    // Create a gradient effect
-    for (let r = clusterRadius; r > 0; r -= 10) {
-      let interAlpha = map(r, 0, clusterRadius, alpha, 0);
-      fill(red(center.color), green(center.color), blue(center.color), interAlpha);
+    // Draw gradient rings from outside to inside
+    for (let radius = clusterRadius; radius > 0; radius -= 10) {
+      const interAlpha = map(radius, 0, clusterRadius, alpha, 0);
+      fill(r, g, b, interAlpha);
       
       beginShape();
-      for (let a = 0; a < TWO_PI; a += 0.1) {
-        let x = center.x + cos(a) * r;
-        let y = getCachedSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
+      // Cache surface lookups for this ring
+      for (let a = 0; a < TWO_PI; a += angleStep) {
+        const cosA = cos(a);
+        const sinA = sin(a);
+        const x = center.x + cosA * radius;
+        const y = getCachedSurfaceYAtX(x) - sinA * radius * 0.5;
         vertex(x, y);
       }
       endShape(CLOSE);
@@ -1465,6 +1478,7 @@ function drawWindLinesOptimized() {
   const windDirY = sin(invertedWindAngle);
   
   noFill();
+  stroke(255, 100 * windMagnitude); // Set stroke once for all bands
   
   const amplitude = 100 * windMagnitude; // Pre-calculate amplitude
   const phaseIncrement = 0.02; // Phase increment
@@ -1476,25 +1490,16 @@ function drawWindLinesOptimized() {
   // Define buffer to extend beyond the view boundaries horizontally
   const buffer = amplitude; // Adjust buffer as needed
 
-  // Calculate extended horizontal view boundaries
+  // Calculate extended horizontal view boundaries - already accounts for view
   const extendedLeft = viewLeft - buffer;
   const extendedRight = viewRight + buffer;
 
-  // Since all y positions are always in view, set size to cover the entire vertical span
-  const verticalSize = height; // Ensures vertical checks always pass
-
   // Draw swirling gas bands
   for (let y = -30; y <= height; y += stepY) {
-    stroke(255, 100 * windMagnitude); // Adjust color and opacity as needed
     beginShape();
 
+    // No need for isInView check - we already constrain x to visible range
     for (let x = extendedLeft; x <= extendedRight; x += stepX) {
-      const pos = { x: x, y: y };
-      
-      // Use isInView to determine if the vertex should be drawn
-      // Set size to verticalSize to ensure vertical checks always pass
-      if (!isInView(pos, verticalSize)) continue;
-
       // Project the point onto the inverted wind direction
       const proj = x * windDirX + y * windDirY;
 
@@ -1663,6 +1668,30 @@ function distToSegment(p, v, w) {
   t = constrain(t, 0, 1);
   let proj = p5.Vector.add(v, p5.Vector.sub(w, v).mult(t));
   return p5.Vector.dist(p, proj);
+}
+
+// Optimized version that returns squared distance (avoids sqrt)
+// Use when comparing distance to threshold: distToSegmentSq(p,v,w) < threshold*threshold
+function distToSegmentSq(p, v, w) {
+  const dx = w.x - v.x;
+  const dy = w.y - v.y;
+  const l2 = dx * dx + dy * dy;
+  
+  if (l2 === 0) {
+    const pdx = p.x - v.x;
+    const pdy = p.y - v.y;
+    return pdx * pdx + pdy * pdy;
+  }
+  
+  let t = ((p.x - v.x) * dx + (p.y - v.y) * dy) / l2;
+  t = constrain(t, 0, 1);
+  
+  const projX = v.x + dx * t;
+  const projY = v.y + dy * t;
+  const distX = p.x - projX;
+  const distY = p.y - projY;
+  
+  return distX * distX + distY * distY;
 }
 
 function getSurfaceYAtX(x) {
