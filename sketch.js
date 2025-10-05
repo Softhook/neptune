@@ -1544,14 +1544,6 @@ function displayGameOver() {
 }
 
 
-function updateViewBoundaries() {
-  viewLeft = cameraOffset;
-  viewRight = cameraOffset + width;
-  viewTop = 0;
-  viewBottom = height;
-}
-
-
 function victory() {
   
   if (ship.hasGrabbedPod) {
