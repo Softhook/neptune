@@ -363,11 +363,11 @@ function drawGame() {
   
 
     switch (true) {
-      case cameraFollowsMissile:
+      case cameraFollowsMissile && activeMissile && activeMissile.active:
         cameraOffset = constrain(activeMissile.pos.x - width / 2, 0, worldWidth - width);
         break;
       
-      case cameraFollowsDrone:
+      case cameraFollowsDrone && activeDrone && activeDrone.active:
         cameraOffset = constrain(activeDrone.pos.x - width / 2, 0, worldWidth - width);
         break;
       
@@ -392,7 +392,9 @@ function drawGame() {
   Nest.drawNests();
   AlienFortress.drawFortresses();
   
-  alienQueen.draw();
+  if (alienQueen) {
+    alienQueen.draw();
+  }
   
   if (alienKing) {
     alienKing.draw();
@@ -533,7 +535,9 @@ function updateGame() {
   }
   
 
-  alienQueen.update();
+  if (alienQueen) {
+    alienQueen.update();
+  }
   
   if (alienKing) {
     alienKing.update();
@@ -1649,6 +1653,9 @@ function distToSegment(p, v, w) {
 }
 
 function getSurfaceYAtX(x) {
+  // Ensure x is within world bounds
+  x = ((x % worldWidth) + worldWidth) % worldWidth;
+  
   for (let i = 0; i < moonSurface.length - 1; i++) {
     let start = moonSurface[i];
     let end = moonSurface[i + 1];
@@ -1670,6 +1677,10 @@ const terrainCache = new Map();
 
 function getCachedSurfaceYAtX(x) {
   if (x == null || isNaN(x)) return height;
+  
+  // Ensure x is within world bounds
+  x = ((x % worldWidth) + worldWidth) % worldWidth;
+  
   // Identify surrounding cache buckets for interpolation
   const baseBucket = Math.floor(x / TERRAIN_CACHE_RESOLUTION) * TERRAIN_CACHE_RESOLUTION;
   const nextBucket = baseBucket + TERRAIN_CACHE_RESOLUTION;

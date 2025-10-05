@@ -477,6 +477,7 @@ class Astronaut extends Entity {
 
   constructor(pos, size) {
     super(pos, createVector(0, 0), size);
+    this.uniqueId = 'astronaut-main'; // Unique identifier for serialization
     this.walkSpeed = 2;
     this.sprite = this.createSprite(color(255));
     this.hasGrabbedPod = false;
@@ -606,11 +607,13 @@ class Astronaut extends Entity {
       
     }
 
-    // Adjust target angle
-    if (keyIsDown(UP_ARROW)) {
-      this.targetAngle = max(this.targetAngle - 0.05, -PI / 2);
-    } else if (keyIsDown(DOWN_ARROW)) {
-      this.targetAngle = min(this.targetAngle + 0.05, PI / 2);
+    // Adjust target angle - only if camera is not following missile/drone
+    if (!cameraFollowsMissile && !cameraFollowsDrone) {
+      if (keyIsDown(UP_ARROW)) {
+        this.targetAngle = max(this.targetAngle - 0.05, -PI / 2);
+      } else if (keyIsDown(DOWN_ARROW)) {
+        this.targetAngle = min(this.targetAngle + 0.05, PI / 2);
+      }
     }
     
 
@@ -622,7 +625,7 @@ class Astronaut extends Entity {
     
    
     
-    if (this.hasGrabbedPod) {
+    if (this.hasGrabbedPod && pod) {
       pod.pos = this.pos.copy();
       pod.pos.y -= this.size / 2 + 5; // Position pod above astronaut's head
     }
@@ -723,7 +726,7 @@ class Astronaut extends Entity {
       noStroke();
 
       // Draw pod if astronaut is carrying it
-      if (this.hasGrabbedPod) {
+      if (this.hasGrabbedPod && pod) {
         fill(255, 0, 0);
         ellipse(this.pos.x, this.pos.y - this.size / 2 - 5, pod.size / 2, pod.size / 2);
       }
@@ -810,16 +813,18 @@ class Astronaut extends Entity {
   }
 
   checkPodInteraction() {
-    if (!this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
+    if (!pod || !this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
       this.grabPod();
     }
   }
 
   isNearPod() {
+    if (!pod) return false;
     return dist(this.pos.x, this.pos.y, pod.pos.x, pod.pos.y) < this.size / 2 + pod.size / 2;
   }
 
   grabPod() {
+    if (!pod) return;
     this.hasGrabbedPod = true;
     pod.updatePickupState('astronaut');
     money += 50;
@@ -843,7 +848,7 @@ class Astronaut extends Entity {
   }
 
   dropOffPod(base) {
-    if (!this.hasGrabbedPod) return; // Safety check
+    if (!pod || !this.hasGrabbedPod) return; // Safety check
     
     this.hasGrabbedPod = false;
     pod.updatePickupState(null); // Reset the pod's pickup state
@@ -1043,7 +1048,7 @@ class Ship extends Entity {
 
 
   handlePodInteraction() {
-    if (!this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
+    if (!pod || !this.hasGrabbedPod && !pod.isPickedUp() && this.isNearPod()) {
       this.grabPod();
     }
 
@@ -1054,10 +1059,12 @@ class Ship extends Entity {
   }
 
   isNearPod() {
+    if (!pod) return false;
     return dist(this.pos.x, this.pos.y, pod.pos.x, pod.pos.y) < this.size / 2 + pod.size / 2;
   }
 
   grabPod() {
+    if (!pod) return;
     this.hasGrabbedPod = true;
     pod.updatePickupState('ship');
     money += 100;
@@ -1081,6 +1088,7 @@ class Ship extends Entity {
   }
 
   dropOffPod() {
+    if (!pod) return;
     money += 500;
     energy = Math.min(energy + 10000, maxEnergy);
     this.hasGrabbedPod = false;
@@ -1089,7 +1097,9 @@ class Ship extends Entity {
   }
 
   updatePodPosition() {
-    pod.pos = p5.Vector.add(this.pos, p5.Vector.fromAngle(this.angle + PI, this.size));
+    if (pod) {
+      pod.pos = p5.Vector.add(this.pos, p5.Vector.fromAngle(this.angle + PI, this.size));
+    }
   }
 
 
@@ -1594,24 +1604,24 @@ checkCollisionWithEntities(entities) {
 
   checkCollisionWithQueen() {
     if (alienQueen) {
-        if (this.pos.dist(alienQueen.pos) < (alienQueen.size + this.size) / 2) {
-          const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
-          alienQueen.takeDamage(damage);
-          return true;
+      if (this.pos.dist(alienQueen.pos) < (alienQueen.size + this.size) / 2) {
+        const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
+        alienQueen.takeDamage(damage);
+        return true;
+      }
     }
     return false;
-    }
   }
 
   checkCollisionWithKing() {
     if (alienKing) {
-        if (this.pos.dist(alienKing.pos) < (alienKing.size + this.size) / 2) {
-          const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
-          alienKing.takeDamage(damage);
-          return true;
+      if (this.pos.dist(alienKing.pos) < (alienKing.size + this.size) / 2) {
+        const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
+        alienKing.takeDamage(damage);
+        return true;
+      }
     }
     return false;
-    }
   }
 
 checkCollisionWithNests() {
@@ -2231,10 +2241,12 @@ activateBurstDefense() {
 
     // Freeze AlienWorms (check head segment)
   for (let worm of AlienWorm.worms) {
-    let head = worm.segments[0]; // Head segment
-    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-    if (d < this.burstDefenseRadius) {
-      worm.freeze(this.freezeDuration);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      let head = worm.segments[0]; // Head segment
+      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+      if (d < this.burstDefenseRadius) {
+        worm.freeze(this.freezeDuration);
+      }
     }
   }
 
@@ -2891,8 +2903,10 @@ damageNearbyEntities() {
 
   // Damage AlienWorms
   for (let worm of AlienWorm.worms) {
-    if (this.pos.dist(worm.segments[0].pos) < this.explosionRadius) {
-      worm.takeDamage(this.damage);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      if (this.pos.dist(worm.segments[0].pos) < this.explosionRadius) {
+        worm.takeDamage(this.damage);
+      }
     }
   }
 
@@ -3102,10 +3116,12 @@ applyWind() {
 
     // Freeze AlienWorms (check head segment)
     for (let worm of AlienWorm.worms) {
-      let head = worm.segments[0]; // Head segment
-      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-      if (d < this.burstDefenseRadius) {
-        worm.freeze(this.freezeDuration);
+      if (worm && worm.segments && worm.segments.length > 0) {
+        let head = worm.segments[0]; // Head segment
+        let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+        if (d < this.burstDefenseRadius) {
+          worm.freeze(this.freezeDuration);
+        }
       }
     }
 
@@ -3155,7 +3171,7 @@ let dronePos;
 if (isWalking) {
   dronePos = astronaut.pos.copy().add(0, -astronaut.size);
 } else {
-  dronePos = ship.pos.copy().add(0, -astronaut.size);
+  dronePos = ship.pos.copy().add(0, -ship.size);
 }
 
     let startVelocity = createVector(0, 0);
@@ -4809,7 +4825,8 @@ draw() {
       // Remove the oldest rig
       DrillRig.rigs.sort((a, b) => a.placementTime - b.placementTime);
       const oldestRig = DrillRig.rigs.shift();
-      oldestRig.destroy();
+      // Create explosion directly without calling destroy() since we already removed it
+      explosions.push(new Explosion(oldestRig.pos, oldestRig.size, color(100, 100, 100), color(50, 50, 50)));
     }
 
     let rig = new DrillRig(pos);
@@ -4963,7 +4980,12 @@ move() {
     let rightPoint = this.surfacePoints[3];
     
     // Interpolate Y position
-    let t = (newX - leftPoint.x) / (rightPoint.x - leftPoint.x);
+    let xDiff = rightPoint.x - leftPoint.x;
+    if (xDiff === 0) {
+      // If points are at same x position, just use leftPoint y
+      return leftPoint.y - this.size / 2;
+    }
+    let t = (newX - leftPoint.x) / xDiff;
     return lerp(leftPoint.y, rightPoint.y, t) - this.size / 2;
   }
 
@@ -5018,10 +5040,12 @@ move() {
   
   // Freeze AlienWorms (check head segment)
   for (let worm of AlienWorm.worms) {
-    let head = worm.segments[0]; // Head segment
-    let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
-    if (d < this.burstDefenseRadius) {
-      worm.freeze(this.freezeDuration);
+    if (worm && worm.segments && worm.segments.length > 0) {
+      let head = worm.segments[0]; // Head segment
+      let d = dist(this.pos.x, this.pos.y, head.pos.x, head.pos.y);
+      if (d < this.burstDefenseRadius) {
+        worm.freeze(this.freezeDuration);
+      }
     }
   }
 
@@ -5133,7 +5157,7 @@ move() {
   drawLegs() {
     this.drawLeg(-10, 0, this.legPhase);
     this.drawLeg(10, 0, this.legPhase - Math.PI);
-    this.drawLeg(10, 0, this.legPhase- - Math.PI/2);
+    this.drawLeg(10, 0, this.legPhase - Math.PI/2);
     this.drawLeg(-10, 0, this.legPhase - Math.PI/2);
   }
 
@@ -5261,5 +5285,6 @@ move() {
   static resetWalkers() {
     WalkerRobot.walkers = [];
     WalkerRobot.spawnCooldown = 0;
+    WalkerRobot.walkerCounter = 0;
   }
 }
