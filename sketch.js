@@ -1670,6 +1670,30 @@ function distToSegment(p, v, w) {
   return p5.Vector.dist(p, proj);
 }
 
+// Optimized version that returns squared distance (avoids sqrt)
+// Use when comparing distance to threshold: distToSegmentSq(p,v,w) < threshold*threshold
+function distToSegmentSq(p, v, w) {
+  const dx = w.x - v.x;
+  const dy = w.y - v.y;
+  const l2 = dx * dx + dy * dy;
+  
+  if (l2 === 0) {
+    const pdx = p.x - v.x;
+    const pdy = p.y - v.y;
+    return pdx * pdx + pdy * pdy;
+  }
+  
+  let t = ((p.x - v.x) * dx + (p.y - v.y) * dy) / l2;
+  t = constrain(t, 0, 1);
+  
+  const projX = v.x + dx * t;
+  const projY = v.y + dy * t;
+  const distX = p.x - projX;
+  const distY = p.y - projY;
+  
+  return distX * distX + distY * distY;
+}
+
 function getSurfaceYAtX(x) {
   // Ensure x is within world bounds
   x = ((x % worldWidth) + worldWidth) % worldWidth;

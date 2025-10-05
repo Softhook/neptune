@@ -329,6 +329,76 @@ for (let segment of segments) {
 
 ---
 
+### 15. distToSegmentSq() - Squared Distance to Line Segment
+
+**File:** `sketch.js`  
+**Impact:** High - used for terrain collision detection (bullets, bombs, drones)
+
+**Added new function:**
+```javascript
+function distToSegmentSq(p, v, w) {
+  // Returns squared distance without sqrt
+  // Optimized for comparison: distToSegmentSq(p,v,w) < threshold*threshold
+}
+```
+
+**Applied to:**
+- Bullet.checkCollisionWithSurface()
+- Bomb.checkCollision()
+- Drone.checkCollision()
+- Missile.checkCollision()
+
+**Benefit:** Eliminates sqrt() in terrain collision checks that run every frame for projectiles.
+
+---
+
+### 16. Bomb Collision Detection - Comprehensive Optimization
+
+**File:** `classes.js`  
+**Impact:** High - bombs check collisions every frame when active
+
+**Methods Optimized:**
+- `checkCollision()` - squared distance for terrain
+- `checkAlienCollision()` - squared distance for all alien types (Nests, Fortresses, Aliens, Hunters, Zappers, Destroyers, Queen, King, Worms)
+
+**Before:**
+```javascript
+for (let nest of Nest.nests) {
+  if (this.pos.dist(nest.pos) < (this.size + nest.size) / 2) {
+    return true;
+  }
+}
+```
+
+**After:**
+```javascript
+for (let nest of Nest.nests) {
+  const dx = this.pos.x - nest.pos.x;
+  const dy = this.pos.y - nest.pos.y;
+  const minDist = (this.size + nest.size) / 2;
+  if (dx * dx + dy * dy < minDist * minDist) {
+    return true;
+  }
+}
+```
+
+**Benefit:** Each bomb checks against 50-100+ entities per frame. Eliminating sqrt for all checks provides significant performance gain.
+
+---
+
+### 17. Drone Collision Detection - Squared Distance Optimization
+
+**File:** `classes.js`  
+**Impact:** Medium - drone collision checked every frame when active
+
+**Changes:**
+- Uses `distToSegmentSq()` for terrain collision
+- Uses squared distance for entity collision
+
+**Benefit:** Faster collision detection for drone projectiles.
+
+---
+
 ## Performance Impact
 
 ### Estimated Improvements
@@ -348,6 +418,9 @@ for (let segment of segments) {
    - Hunter updates: M hunters * sqrt → 0 sqrt calls
    - Wingman AI: 2-3 sqrt per wingman → 0 sqrt calls
    - Missile collision/damage: ~20-50 sqrt → ~5 sqrt (only when applying damage)
+   - Bomb collision: ~50-100 sqrt per bomb → 0 sqrt calls
+   - Drone collision: ~20-40 sqrt per drone → 0 sqrt calls
+   - Terrain collision: All projectiles now use squared distance to line segments
    - **Total savings:** Hundreds to thousands of expensive sqrt() operations per frame
 
 3. **Function Call Overhead:**

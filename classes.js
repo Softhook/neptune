@@ -1515,8 +1515,9 @@ class Bullet extends Entity {
   }
 
   checkCollisionWithSurface() {
+    const thresholdSq = (this.size / 2) * (this.size / 2);
     for (let i = 0; i < moonSurface.length - 1; i++) {
-      if (distToSegment(this.pos, moonSurface[i], moonSurface[i + 1]) < this.size / 2) {
+      if (distToSegmentSq(this.pos, moonSurface[i], moonSurface[i + 1]) < thresholdSq) {
         return true;
       }
     }
@@ -1898,12 +1899,12 @@ class Bomb extends Entity {
   }
 
   checkCollision() {
+    const thresholdSq = (this.size / 2) * (this.size / 2);
     for (let i = 0; i < moonSurface.length - 1; i++) {
       let start = moonSurface[i];
       let end = moonSurface[i + 1];
-      let d = distToSegment(this.pos, start, end);
       
-      if (d < this.size / 2) {
+      if (distToSegmentSq(this.pos, start, end) < thresholdSq) {
         return true;
       }
     }
@@ -1912,63 +1913,90 @@ class Bomb extends Entity {
 
 checkAlienCollision() {
   for (let nest of Nest.nests) {
-    if (this.pos.dist(nest.pos) < (this.size + nest.size) / 2) {
+    const dx = this.pos.x - nest.pos.x;
+    const dy = this.pos.y - nest.pos.y;
+    const minDist = (this.size + nest.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
   // Check collision with fortresses
   for (let fortress of AlienFortress.fortresses) {
-    if (this.pos.dist(fortress.pos) < (this.size + fortress.size) / 2) {
+    const dx = this.pos.x - fortress.pos.x;
+    const dy = this.pos.y - fortress.pos.y;
+    const minDist = (this.size + fortress.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
   
   // Check collision with regular aliens
   for (let alien of Alien.aliens) {
-    if (this.pos.dist(alien.pos) < (this.size + alien.size) / 2) {
+    const dx = this.pos.x - alien.pos.x;
+    const dy = this.pos.y - alien.pos.y;
+    const minDist = (this.size + alien.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
   // Check collision with hunters
   for (let hunter of Hunter.hunters) {
-    if (this.pos.dist(hunter.pos) < (this.size + hunter.size) / 2) {
+    const dx = this.pos.x - hunter.pos.x;
+    const dy = this.pos.y - hunter.pos.y;
+    const minDist = (this.size + hunter.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
   // Check collision with zappers
   for (let zapper of Zapper.zappers) {
-    if (this.pos.dist(zapper.pos) < (this.size + zapper.size) / 2) {
+    const dx = this.pos.x - zapper.pos.x;
+    const dy = this.pos.y - zapper.pos.y;
+    const minDist = (this.size + zapper.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
   // Check collision with destroyers
   for (let destroyer of Destroyer.destroyers) {
-    if (this.pos.dist(destroyer.pos) < (this.size + destroyer.size) / 2) {
+    const dx = this.pos.x - destroyer.pos.x;
+    const dy = this.pos.y - destroyer.pos.y;
+    const minDist = (this.size + destroyer.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
   // Check collision with Queen, adjusting for her size
   if (alienQueen) {
-    if (this.pos.dist(alienQueen.pos) < (this.size + alienQueen.size) / 2) {
+    const dx = this.pos.x - alienQueen.pos.x;
+    const dy = this.pos.y - alienQueen.pos.y;
+    const minDist = (this.size + alienQueen.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
   
-    if (alienKing) {
-    if (this.pos.dist(alienKing.pos) < (this.size + alienKing.size) / 2) {
+  if (alienKing) {
+    const dx = this.pos.x - alienKing.pos.x;
+    const dy = this.pos.y - alienKing.pos.y;
+    const minDist = (this.size + alienKing.size) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
       return true;
     }
   }
 
-  // Check collision with alien worms
+  // Check collision with worms
   for (let worm of AlienWorm.worms) {
     for (let segment of worm.segments) {
-      if (this.pos.dist(segment.pos) < (this.size + segment.size) / 2) {
+      const dx = this.pos.x - segment.pos.x;
+      const dy = this.pos.y - segment.pos.y;
+      const minDist = (this.size + segment.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         return true;
       }
     }
@@ -3149,16 +3177,19 @@ applyWind() {
 
   checkCollision() {
     // Check for collision with moon surface or enemies
+    const thresholdSq = (this.size / 2) * (this.size / 2);
     for (let i = 0; i < moonSurface.length - 1; i++) {
       let start = moonSurface[i];
       let end = moonSurface[i + 1];
-      let d = distToSegment(this.pos, start, end);
-      if (d < this.size / 2) return true;
+      if (distToSegmentSq(this.pos, start, end) < thresholdSq) return true;
     }
 
     let entities = [...Nest.nests, ...AlienFortress.fortresses, ...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers];
     for (let entity of entities) {
-      if (this.pos.dist(entity.pos) < (this.size + entity.size) / 2) {
+      const dx = this.pos.x - entity.pos.x;
+      const dy = this.pos.y - entity.pos.y;
+      const minDist = (this.size + entity.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         return true;
       }
     }
