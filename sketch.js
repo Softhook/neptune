@@ -916,6 +916,7 @@ function keyPressed() {
         gameState = 'start';
         ambientMusic.start();
       }
+      return false;
     case 'start':
       if (key === '1' || key === '2') {
         gameMode = key === '1' ? 'singlePlayer' : 'twoPlayer';

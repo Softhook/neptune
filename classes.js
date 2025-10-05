@@ -3573,13 +3573,13 @@ class Upgrades {
 
     Bullet.damageMultiplier = 1;
     Bullet.updatePlayerBulletColour();
-    Bomb.defaultExplosionRadius = 50;
+    Bomb.defaultExplosionRadius = 30;
     Bomb.defaultBombDamage = 3;
     Wingman.MAX_WINGMEN = 0;
     Missile.defaultExplosionRadius = 100;
     Missile.defaultDamage = 5;
     DrillRig.ENERGY_GENERATION_RATE = 0.1;
-    WalkerRobot.SHOOT_SPEED = 50;
+    WalkerRobot.SHOOT_SPEED = 40;
     WalkerRobot.MAX_WALKERS = 0;
   }
 

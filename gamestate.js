@@ -1511,35 +1511,47 @@ static deserialize(upgradeData) {
     }
   }
 
-  function restoreProperty(prop, defaultValue, target) {
-    if (typeof upgradeData[prop] === 'number') {
-      target = upgradeData[prop];
-    } else {
-      console.warn(`${prop} not found in saved data, using default`);
-      target = defaultValue;
-    }
-  }
-
-  restoreProperty('bulletDamageMultiplier', 1, Bullet.damageMultiplier);
-  restoreProperty('bombExplosionRadius', 30, Bomb.defaultExplosionRadius);
-  restoreProperty('bombDamage', 3, Bomb.defaultBombDamage);
-  restoreProperty('turretHealth', 4, Turret.defaultHealth);
-  restoreProperty('turretRange', 200, Turret.defaultRange);
-  restoreProperty('maxShields', 3, Shield.MAX_SHIELDS);
-  restoreProperty('maxBalloons', 0, MoonBase.maxBalloons);
-  restoreProperty('shipThrustPower', 0.1, ship.thrustPower);
-  restoreProperty('shipRotationSpeed', 0.05, ship.rotationSpeed);
-  restoreProperty('astronautWalkSpeed', 2, astronaut.walkSpeed);
-  restoreProperty('astronautBombCooldown', 10, astronaut.bombThrowCooldownTime);
-  restoreProperty('parachuteSize', 0, ship.parachuteSize);
-  restoreProperty('parachuteDrag', 1, ship.parachuteDrag);
-  restoreProperty('missileExplosionRadius', 100, Missile.defaultExplosionRadius);
-  restoreProperty('missileDamage', 5, Missile.defaultDamage);
-  restoreProperty('drillRigEnergyRate', 0.1, DrillRig.ENERGY_GENERATION_RATE);
-  restoreProperty('walkerShootSpeed', 50, WalkerRobot.SHOOT_SPEED);
-  restoreProperty('walkerMaxUnits', 0, WalkerRobot.MAX_WALKERS);
-  restoreProperty('maxEnergy', 15000, maxEnergy);
-  restoreProperty('turretShootCooldown', 120, Turret.ShootCooldown);
+  // Restore static properties and globals from saved data
+  Bullet.damageMultiplier = typeof upgradeData.bulletDamageMultiplier === 'number' 
+    ? upgradeData.bulletDamageMultiplier : 1;
+  Bomb.defaultExplosionRadius = typeof upgradeData.bombExplosionRadius === 'number' 
+    ? upgradeData.bombExplosionRadius : 30;
+  Bomb.defaultBombDamage = typeof upgradeData.bombDamage === 'number' 
+    ? upgradeData.bombDamage : 3;
+  Turret.defaultHealth = typeof upgradeData.turretHealth === 'number' 
+    ? upgradeData.turretHealth : 4;
+  Turret.defaultRange = typeof upgradeData.turretRange === 'number' 
+    ? upgradeData.turretRange : 200;
+  Shield.MAX_SHIELDS = typeof upgradeData.maxShields === 'number' 
+    ? upgradeData.maxShields : 3;
+  MoonBase.maxBalloons = typeof upgradeData.maxBalloons === 'number' 
+    ? upgradeData.maxBalloons : 0;
+  ship.thrustPower = typeof upgradeData.shipThrustPower === 'number' 
+    ? upgradeData.shipThrustPower : 0.1;
+  ship.rotationSpeed = typeof upgradeData.shipRotationSpeed === 'number' 
+    ? upgradeData.shipRotationSpeed : 0.05;
+  astronaut.walkSpeed = typeof upgradeData.astronautWalkSpeed === 'number' 
+    ? upgradeData.astronautWalkSpeed : 2;
+  astronaut.bombThrowCooldownTime = typeof upgradeData.astronautBombCooldown === 'number' 
+    ? upgradeData.astronautBombCooldown : 10;
+  ship.parachuteSize = typeof upgradeData.parachuteSize === 'number' 
+    ? upgradeData.parachuteSize : 0;
+  ship.parachuteDrag = typeof upgradeData.parachuteDrag === 'number' 
+    ? upgradeData.parachuteDrag : 1;
+  Missile.defaultExplosionRadius = typeof upgradeData.missileExplosionRadius === 'number' 
+    ? upgradeData.missileExplosionRadius : 100;
+  Missile.defaultDamage = typeof upgradeData.missileDamage === 'number' 
+    ? upgradeData.missileDamage : 5;
+  DrillRig.ENERGY_GENERATION_RATE = typeof upgradeData.drillRigEnergyRate === 'number' 
+    ? upgradeData.drillRigEnergyRate : 0.1;
+  WalkerRobot.SHOOT_SPEED = typeof upgradeData.walkerShootSpeed === 'number' 
+    ? upgradeData.walkerShootSpeed : 40;
+  WalkerRobot.MAX_WALKERS = typeof upgradeData.walkerMaxUnits === 'number' 
+    ? upgradeData.walkerMaxUnits : 0;
+  maxEnergy = typeof upgradeData.maxEnergy === 'number' 
+    ? upgradeData.maxEnergy : 15000;
+  Turret.ShootCooldown = typeof upgradeData.turretShootCooldown === 'number' 
+    ? upgradeData.turretShootCooldown : 120;
 }
   
 static validate(upgradeData) {
