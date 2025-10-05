@@ -1545,7 +1545,12 @@ class Bullet extends Entity {
 
 checkCollisionWithEntities(entities) {
   for (let entity of entities) {
-    if (this.pos.dist(entity.pos) < (entity.size + this.size) / 2) {
+    const dx = this.pos.x - entity.pos.x;
+    const dy = this.pos.y - entity.pos.y;
+    const minDist = (entity.size + this.size) / 2;
+    const minDistSq = minDist * minDist;
+    
+    if (dx * dx + dy * dy < minDistSq) {
       const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
       entity.health -= damage;
       return true;
@@ -1558,7 +1563,12 @@ checkCollisionWithEntities(entities) {
   checkCollisionWithBarrageBalloons() {
     for (let base of MoonBase.moonBases) {
       for (let balloon of base.balloons) {
-        if (this.pos.dist(balloon.pos) < (balloon.size + this.size) / 2) {
+        const dx = this.pos.x - balloon.pos.x;
+        const dy = this.pos.y - balloon.pos.y;
+        const minDist = (balloon.size + this.size) / 2;
+        const minDistSq = minDist * minDist;
+        
+        if (dx * dx + dy * dy < minDistSq) {
           balloon.takeDamage(1);
           return true;
         }
@@ -1570,7 +1580,12 @@ checkCollisionWithEntities(entities) {
   checkCollisionWithDrones() {
     // Check collision with player's active drone
     if (activeDrone && activeDrone.active) {
-      if (this.pos.dist(activeDrone.pos) < (activeDrone.size + this.size) / 2) {
+      const dx = this.pos.x - activeDrone.pos.x;
+      const dy = this.pos.y - activeDrone.pos.y;
+      const minDist = (activeDrone.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
         activeDrone.destroy();
         return true;
       }
@@ -1579,7 +1594,12 @@ checkCollisionWithEntities(entities) {
     // Check collision with base drones
     for (let base of MoonBase.moonBases) {
       if (base.drone && base.drone.active) {
-        if (this.pos.dist(base.drone.pos) < (base.drone.size + this.size) / 2) {
+        const dx = this.pos.x - base.drone.pos.x;
+        const dy = this.pos.y - base.drone.pos.y;
+        const minDist = (base.drone.size + this.size) / 2;
+        const minDistSq = minDist * minDist;
+        
+        if (dx * dx + dy * dy < minDistSq) {
           base.drone.destroy();
           return true;
         }
@@ -1591,7 +1611,12 @@ checkCollisionWithEntities(entities) {
   checkCollisionWithWorms() {
     for (let worm of AlienWorm.worms) {
       for (let segment of worm.segments) {
-        if (this.pos.dist(segment.pos) < (segment.size + this.size) / 2) {
+        const dx = this.pos.x - segment.pos.x;
+        const dy = this.pos.y - segment.pos.y;
+        const minDist = (segment.size + this.size) / 2;
+        const minDistSq = minDist * minDist;
+        
+        if (dx * dx + dy * dy < minDistSq) {
           const damage = this.isPlayerBullet ? 2 * Bullet.damageMultiplier : 2;
           if (worm.takeDamage(damage)) {
             return true;
@@ -1604,7 +1629,12 @@ checkCollisionWithEntities(entities) {
 
   checkCollisionWithQueen() {
     if (alienQueen) {
-      if (this.pos.dist(alienQueen.pos) < (alienQueen.size + this.size) / 2) {
+      const dx = this.pos.x - alienQueen.pos.x;
+      const dy = this.pos.y - alienQueen.pos.y;
+      const minDist = (alienQueen.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
         const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
         alienQueen.takeDamage(damage);
         return true;
@@ -1615,7 +1645,12 @@ checkCollisionWithEntities(entities) {
 
   checkCollisionWithKing() {
     if (alienKing) {
-      if (this.pos.dist(alienKing.pos) < (alienKing.size + this.size) / 2) {
+      const dx = this.pos.x - alienKing.pos.x;
+      const dy = this.pos.y - alienKing.pos.y;
+      const minDist = (alienKing.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
         const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
         alienKing.takeDamage(damage);
         return true;
@@ -1626,7 +1661,12 @@ checkCollisionWithEntities(entities) {
 
 checkCollisionWithNests() {
   for (let nest of Nest.nests) {
-    if (this.pos.dist(nest.pos) < (nest.size + this.size) / 2) {
+    const dx = this.pos.x - nest.pos.x;
+    const dy = this.pos.y - nest.pos.y;
+    const minDist = (nest.size + this.size) / 2;
+    const minDistSq = minDist * minDist;
+    
+    if (dx * dx + dy * dy < minDistSq) {
       const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
       nest.health -= damage;
       return true;
@@ -1637,7 +1677,12 @@ checkCollisionWithNests() {
 
 checkCollisionWithFortresses() {
   for (let fortress of AlienFortress.fortresses) {
-    if (this.pos.dist(fortress.pos) < (fortress.size + this.size) / 2) {
+    const dx = this.pos.x - fortress.pos.x;
+    const dy = this.pos.y - fortress.pos.y;
+    const minDist = (fortress.size + this.size) / 2;
+    const minDistSq = minDist * minDist;
+    
+    if (dx * dx + dy * dy < minDistSq) {
       const damage = this.isPlayerBullet ? Bullet.damageMultiplier : 1;
       fortress.health -= damage;
       return true;
@@ -1648,7 +1693,12 @@ checkCollisionWithFortresses() {
 
   checkCollisionWithShip() {
   if (!isWalking && !astronaut.ridingWalker) {
-    if (this.pos.dist(ship.pos) < (ship.size + this.size) / 2) {
+    const dx = this.pos.x - ship.pos.x;
+    const dy = this.pos.y - ship.pos.y;
+    const minDist = (ship.size + this.size) / 2;
+    const minDistSq = minDist * minDist;
+    
+    if (dx * dx + dy * dy < minDistSq) {
       soundManager.play('shipHit');
       energy -= 500;
       if (gameMode === 'twoPlayer') {
@@ -1663,9 +1713,16 @@ checkCollisionWithFortresses() {
 
 checkCollisionWithWingmen() {
   for (let wingman of Wingman.wingmen) {
-    if (wingman.isActive && this.pos.dist(wingman.pos) < (wingman.size + this.size) / 2) {
-      wingman.takeDamage(10);
-      return true;
+    if (wingman.isActive) {
+      const dx = this.pos.x - wingman.pos.x;
+      const dy = this.pos.y - wingman.pos.y;
+      const minDist = (wingman.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
+        wingman.takeDamage(10);
+        return true;
+      }
     }
   }
   return false;
@@ -1673,7 +1730,12 @@ checkCollisionWithWingmen() {
 
   checkCollisionWithAstronaut() {
     if (isWalking && !astronaut.isInShip && !astronaut.ridingWalker) {
-      if (this.pos.dist(astronaut.pos) < (astronaut.size + this.size) / 2) {
+      const dx = this.pos.x - astronaut.pos.x;
+      const dy = this.pos.y - astronaut.pos.y;
+      const minDist = (astronaut.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
         energy -= 100;
         soundManager.play('shipHit');
         return true;
@@ -1695,7 +1757,12 @@ checkCollisionWithWingmen() {
 
   checkCollisionWithTurrets() {
     for (let turret of turrets) {
-      if (this.pos.dist(turret.pos) < (turret.size + this.size) / 2) {
+      const dx = this.pos.x - turret.pos.x;
+      const dy = this.pos.y - turret.pos.y;
+      const minDist = (turret.size + this.size) / 2;
+      const minDistSq = minDist * minDist;
+      
+      if (dx * dx + dy * dy < minDistSq) {
         turret.health -= 1;
         return true;
       }
@@ -1705,7 +1772,11 @@ checkCollisionWithWingmen() {
 
   checkCollisionWithShields() {
     for (let shield of Shield.shields) {
-      if (this.pos.dist(shield.pos) < shield.radius) {
+      const dx = this.pos.x - shield.pos.x;
+      const dy = this.pos.y - shield.pos.y;
+      const radiusSq = shield.radius * shield.radius;
+      
+      if (dx * dx + dy * dy < radiusSq) {
         if (!this.isPlayerBullet) {
           shield.takeDamage(10);
         }

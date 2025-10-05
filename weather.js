@@ -1510,12 +1510,19 @@ class QuantumStorm {
 
       // Update particles with quantum behavior
       this.quantumParticles.forEach(particle => {
-        // Chance to teleport when near vortex points
-        this.vortexPoints.forEach(vortex => {
-          if (particle.pos.dist(vortex) < 50 && random() < 0.1) {
+        // Chance to teleport when near vortex points - use squared distance
+        const teleportDistSq = 50 * 50;
+        for (let i = 0; i < this.vortexPoints.length; i++) {
+          const vortex = this.vortexPoints[i];
+          const dx = vortex.x - particle.pos.x;
+          const dy = vortex.y - particle.pos.y;
+          const distSq = dx * dx + dy * dy;
+          
+          if (distSq < teleportDistSq && random() < 0.1) {
             particle.teleport();
+            break; // Early exit after teleport
           }
-        });
+        }
         
         particle.update(this.vortexPoints, this.quantumRotation);
 
@@ -1593,13 +1600,17 @@ class QuantumStorm {
   }
 
   isShipNearParticle(particle) {
-    // Check if the ship is near the particle
-    return dist(ship.pos.x, ship.pos.y, particle.pos.x, particle.pos.y) < 50;
+    // Check if the ship is near the particle - use squared distance
+    const dx = ship.pos.x - particle.pos.x;
+    const dy = ship.pos.y - particle.pos.y;
+    return (dx * dx + dy * dy) < 2500; // 50 * 50
   }
 
   isAstronautNearParticle(particle) {
-    // Check if the astronaut is near the particle
-    return dist(astronaut.pos.x, astronaut.pos.y, particle.pos.x, particle.pos.y) < 50;
+    // Check if the astronaut is near the particle - use squared distance
+    const dx = astronaut.pos.x - particle.pos.x;
+    const dy = astronaut.pos.y - particle.pos.y;
+    return (dx * dx + dy * dy) < 2500; // 50 * 50
   }
 
   teleportPlayerShip() {
