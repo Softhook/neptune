@@ -492,7 +492,7 @@ function updateGame() {
   Zapper.updateZappers();
   Destroyer.updateDestroyers();
   Hunter.updateHunters();
-  moonBase.update(); /////????
+  // moonBase.update() is not needed - MoonBase.updateAll() handles all bases
   Shield.updateShields();
   Alien.updateAliens();
   AlienWorm.updateWorms();
