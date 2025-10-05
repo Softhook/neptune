@@ -399,6 +399,51 @@ for (let nest of Nest.nests) {
 
 ---
 
+### 18. Meteor Collision Detection - Squared Distance Optimization
+
+**File:** `weather.js`  
+**Impact:** High - meteors active during meteor showers
+
+**Changes:**
+- Squared distance for ship collision
+- Squared distance for shield collision
+- Squared distance for all alien type collisions (Aliens, Hunters, Zappers, Destroyers)
+
+**Benefit:** With potentially 10-20 meteors active during showers, eliminates 100+ sqrt calls per frame.
+
+---
+
+### 19. Boss AI Optimizations - AlienQueen & AlienKing
+
+**File:** `boss.js`  
+**Impact:** High - boss AI runs every frame during boss fights
+
+**Methods Optimized:**
+- `findNearestTarget()` - squared distance for target selection
+- `teleport()` - squared distance for minimum teleport distance check
+- `checkBurstDefense()` - squared distance for player proximity (both Queen and King)
+- Added `getDistanceToPlayerSq()` helper method
+
+**Before:**
+```javascript
+let distToPlayer = this.getDistanceToPlayer();
+if (distToPlayer < this.burstDefenseRadius) {
+  this.activateBurstDefense();
+}
+```
+
+**After:**
+```javascript
+let distToPlayerSq = this.getDistanceToPlayerSq();
+if (distToPlayerSq < this.burstDefenseRadius * this.burstDefenseRadius) {
+  this.activateBurstDefense();
+}
+```
+
+**Benefit:** Boss fights are computationally intensive. Eliminating sqrt in AI decisions improves performance during critical gameplay moments.
+
+---
+
 ## Performance Impact
 
 ### Estimated Improvements
@@ -420,6 +465,8 @@ for (let nest of Nest.nests) {
    - Missile collision/damage: ~20-50 sqrt → ~5 sqrt (only when applying damage)
    - Bomb collision: ~50-100 sqrt per bomb → 0 sqrt calls
    - Drone collision: ~20-40 sqrt per drone → 0 sqrt calls
+   - Meteor collision: ~20-40 sqrt per meteor → 0 sqrt calls
+   - Boss AI (Queen/King): 3-5 sqrt per frame → 0 sqrt calls
    - Terrain collision: All projectiles now use squared distance to line segments
    - **Total savings:** Hundreds to thousands of expensive sqrt() operations per frame
 
