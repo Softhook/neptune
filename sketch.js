@@ -492,7 +492,7 @@ function updateGame() {
   Zapper.updateZappers();
   Destroyer.updateDestroyers();
   Hunter.updateHunters();
-  moonBase.update(); /////????
+  // moonBase.update() is not needed - MoonBase.updateAll() handles all bases
   Shield.updateShields();
   Alien.updateAliens();
   AlienWorm.updateWorms();
@@ -916,6 +916,7 @@ function keyPressed() {
         gameState = 'start';
         ambientMusic.start();
       }
+      return false;
     case 'start':
       if (key === '1' || key === '2') {
         gameMode = key === '1' ? 'singlePlayer' : 'twoPlayer';
@@ -1540,14 +1541,6 @@ function displayGameOver() {
   textSize(16);
   text('Press ENTER', width / 2, height / 2 + 80);
   
-}
-
-
-function updateViewBoundaries() {
-  viewLeft = cameraOffset;
-  viewRight = cameraOffset + width;
-  viewTop = 0;
-  viewBottom = height;
 }
 
 
