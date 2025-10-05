@@ -565,9 +565,22 @@ function updateGame() {
 
 function drawPodIndicator() {
   if (!pod) return;
+  
+  // Don't show indicator if pod is picked up by ship or astronaut
+  if (pod.pickedUpByShip || pod.pickedUpByAstronaut) return;
 
   let podScreenPos = createVector(pod.pos.x - cameraOffset, pod.pos.y);
-  let playerPos = isWalking ? astronaut.pos : ship.pos;
+  
+  // Determine the reference position based on camera mode
+  let playerPos;
+  if (cameraFollowsMissile && activeMissile && activeMissile.active) {
+    playerPos = activeMissile.pos;
+  } else if (cameraFollowsDrone && activeDrone && activeDrone.active) {
+    playerPos = activeDrone.pos;
+  } else {
+    playerPos = isWalking ? astronaut.pos : ship.pos;
+  }
+  
   let playerScreenPos = createVector(playerPos.x - cameraOffset, playerPos.y);
 
   // Check if pod is off-screen
