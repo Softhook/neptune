@@ -1191,17 +1191,20 @@ class HeliumBlizzard {
     this.maxParticles = 6000;
     this.speedupFactor = 6;
     this.recoveryFactor = 1 / this.speedupFactor;
+    this.originalGravity = null;
+    this.gravityReductionFactor = 0.1; // Reduce gravity to 10% of normal
   }
 
   activate() {
-    gravity.y = -gravity.y;
+    this.originalGravity = gravity.copy();
+    gravity.y *= this.gravityReductionFactor;
     this.isActive = true;
     this.duration = this.totalDuration;
     this.alpha = 0;
     this.windStrength = random(2, 5);
     this.initializeParticles();
     soundManager.play('helium');
-    announcer.speak("Helium Storm! Acceleration and Euphoria.", 0, 2);   
+    announcer.speak("Helium Storm! Reduced gravity and acceleration.", 0, 2);   
   }
 
   initializeParticles() {
@@ -1313,7 +1316,9 @@ class HeliumBlizzard {
     this.applyRecoveryEffects();
     announcer.speak("Helium Storm dissipated.", 0, 2);
     this.duration = this.totalDuration;
-    gravity.y = -gravity.y;
+    if (this.originalGravity) {
+      gravity.y = this.originalGravity.y;
+    }
   }
 
   isBlizzardActive() {
