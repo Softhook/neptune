@@ -455,7 +455,7 @@ static createNests(count) {
 
 class AlienFortress extends Nest {
   static fortresses = [];
-  static FORTRESS_SPAWN_CHANCE = 0.000001; // Small chance per frame per nest
+  static FORTRESS_SPAWN_CHANCE = 0.000003; // Small chance per frame per nest
 
   constructor(pos, size, colory) {
     super(pos, size * 2, colory); // 2x larger than nest
