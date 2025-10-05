@@ -4825,7 +4825,8 @@ draw() {
       // Remove the oldest rig
       DrillRig.rigs.sort((a, b) => a.placementTime - b.placementTime);
       const oldestRig = DrillRig.rigs.shift();
-      oldestRig.destroy();
+      // Create explosion directly without calling destroy() since we already removed it
+      explosions.push(new Explosion(oldestRig.pos, oldestRig.size, color(100, 100, 100), color(50, 50, 50)));
     }
 
     let rig = new DrillRig(pos);

@@ -392,7 +392,9 @@ function drawGame() {
   Nest.drawNests();
   AlienFortress.drawFortresses();
   
-  alienQueen.draw();
+  if (alienQueen) {
+    alienQueen.draw();
+  }
   
   if (alienKing) {
     alienKing.draw();
@@ -533,7 +535,9 @@ function updateGame() {
   }
   
 
-  alienQueen.update();
+  if (alienQueen) {
+    alienQueen.update();
+  }
   
   if (alienKing) {
     alienKing.update();
