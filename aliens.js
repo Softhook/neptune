@@ -973,7 +973,14 @@ class Alien extends Entity {
       const playerEntity = (isWalking && astronaut) ? astronaut : ship;
       if (playerEntity && playerEntity.pos) {
         const THREAT_RADIUS = 260; // proximity that provokes defense early
-        const underThreat = Nest.nests.some(n => n?.pos && n.pos.dist(playerEntity.pos) < THREAT_RADIUS);
+        const THREAT_RADIUS_SQ = THREAT_RADIUS * THREAT_RADIUS; // Squared for faster comparison
+        // Use squared distance to avoid expensive sqrt calls
+        const underThreat = Nest.nests.some(n => {
+          if (!n?.pos) return false;
+          const dx = n.pos.x - playerEntity.pos.x;
+          const dy = n.pos.y - playerEntity.pos.y;
+          return (dx * dx + dy * dy) < THREAT_RADIUS_SQ;
+        });
         if (underThreat && framesSinceDefense > defensiveInterval * 0.35) {
           this.organizeDefensiveBehavior();
           Alien.lastDefensiveTriggerFrame = frameCount;
@@ -1153,9 +1160,13 @@ update() {
     const moveFactor = this.preUpdateMovement();
 
   this.updateTarget();
-  let distanceToTarget = p5.Vector.dist(this.pos, this.target.pos);
+  // Use squared distance for comparison to avoid sqrt
+  const dx = this.target.pos.x - this.pos.x;
+  const dy = this.target.pos.y - this.pos.y;
+  const distSqToTarget = dx * dx + dy * dy;
+  const circlingThresholdSq = (this.circlingRadius * 1.2) * (this.circlingRadius * 1.2);
 
-  if (distanceToTarget > this.circlingRadius * 1.2) {
+  if (distSqToTarget > circlingThresholdSq) {
     this.state = 'chase';
     let direction = p5.Vector.sub(this.target.pos, this.pos).normalize().mult(0.7 * moveFactor);
     this.vel.add(direction).limit(this.maxSpeed * moveFactor);

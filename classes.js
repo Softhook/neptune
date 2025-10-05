@@ -669,9 +669,12 @@ class Astronaut extends Entity {
     let minDistance = Infinity;
     
     for (let walker of WalkerRobot.walkers) {
-      let distance = this.pos.dist(walker.pos);
-      if (distance < minDistance) {
-        minDistance = distance;
+      // Use squared distance to avoid sqrt
+      const dx = this.pos.x - walker.pos.x;
+      const dy = this.pos.y - walker.pos.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistance * minDistance) {
+        minDistance = Math.sqrt(distSq); // Only calculate sqrt when we find a new minimum
         nearestWalker = walker;
       }
     }
@@ -680,7 +683,11 @@ class Astronaut extends Entity {
   }
 
   isCloseToWalker(walker) {
-    return this.pos.dist(walker.pos) < this.size + walker.size;
+    const dx = this.pos.x - walker.pos.x;
+    const dy = this.pos.y - walker.pos.y;
+    const distSq = dx * dx + dy * dy;
+    const threshold = this.size + walker.size;
+    return distSq < threshold * threshold;
   }
 
   mountWalker(walker) {
@@ -2951,10 +2958,14 @@ class Missile extends Entity {
         return true;
       }
     }
-    // Check collision with aliens, nests, etc.
+    // Check collision with aliens, nests, etc. - use squared distance
     let targets = [...(alienKing ? [alienKing] : []),...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...AlienFortress.fortresses, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers];
+    const halfSizePlusThreshold = this.size / 2;
     for (let target of targets) {
-      if (this.pos.dist(target.pos) < (this.size + target.size) / 2) {
+      const dx = this.pos.x - target.pos.x;
+      const dy = this.pos.y - target.pos.y;
+      const minDist = halfSizePlusThreshold + target.size / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         return true;
       }
     }
@@ -2976,12 +2987,17 @@ damageNearbyEntities() {
   let targets = [...(alienKing ? [alienKing] : []), ...(alienQueen ? [alienQueen] : []), ...Alien.aliens, ...Nest.nests, ...AlienFortress.fortresses, ...Hunter.hunters, ...Destroyer.destroyers, ...Zapper.zappers, ...MoonBase.moonBases];
   
   for (let target of targets) {
-    // Adjust distance check to include the target's size
-    let distance = this.pos.dist(target.pos);
-    let adjustedRadius = this.explosionRadius + target.size / 2; // Add half of target's size to the explosion radius
+    // Use squared distance to avoid sqrt until needed for damage calculation
+    const dx = this.pos.x - target.pos.x;
+    const dy = this.pos.y - target.pos.y;
+    const distSq = dx * dx + dy * dy;
+    const adjustedRadius = this.explosionRadius + target.size / 2;
+    const adjustedRadiusSq = adjustedRadius * adjustedRadius;
 
     // Check if target is within the adjusted explosion radius
-    if (distance < adjustedRadius) {
+    if (distSq < adjustedRadiusSq) {
+      // Only calculate sqrt when we know we need it for damage calculation
+      const distance = Math.sqrt(distSq);
       // Adjust damage scaling based on the distance and adjusted radius
       let damage = map(distance, 0, adjustedRadius, this.damage, 0);
 
@@ -2997,7 +3013,10 @@ damageNearbyEntities() {
   // Damage AlienWorms
   for (let worm of AlienWorm.worms) {
     if (worm && worm.segments && worm.segments.length > 0) {
-      if (this.pos.dist(worm.segments[0].pos) < this.explosionRadius) {
+      const dx = this.pos.x - worm.segments[0].pos.x;
+      const dy = this.pos.y - worm.segments[0].pos.y;
+      const explosionRadiusSq = this.explosionRadius * this.explosionRadius;
+      if (dx * dx + dy * dy < explosionRadiusSq) {
         worm.takeDamage(this.damage);
       }
     }
@@ -4303,12 +4322,28 @@ handleInput() {}
       this.targetPosition = this.calculateHoverPosition(playerPos);
     } else {
       const nearestEnemy = this.findNearestEnemy();
-      const distanceToPlayer = this.pos.dist(playerPos);
+      // Use squared distance for comparisons to avoid sqrt
+      const dx = this.pos.x - playerPos.x;
+      const dy = this.pos.y - playerPos.y;
+      const distSqToPlayer = dx * dx + dy * dy;
 
-      if (nearestEnemy && this.pos.dist(nearestEnemy.pos) < this.attackRange) {
-        this.state = 'attack';
-        this.targetPosition = nearestEnemy.pos;
-      } else if (distanceToPlayer > this.defendRange) {
+      if (nearestEnemy) {
+        const dxEnemy = this.pos.x - nearestEnemy.pos.x;
+        const dyEnemy = this.pos.y - nearestEnemy.pos.y;
+        const distSqToEnemy = dxEnemy * dxEnemy + dyEnemy * dyEnemy;
+        const attackRangeSq = this.attackRange * this.attackRange;
+        
+        if (distSqToEnemy < attackRangeSq) {
+          this.state = 'attack';
+          this.targetPosition = nearestEnemy.pos;
+        } else if (distSqToPlayer > this.defendRange * this.defendRange) {
+          this.state = 'follow';
+          this.targetPosition = playerPos; 
+        } else {
+          this.state = 'defend';
+          this.targetPosition = this.calculateDefendPosition(playerPos); 
+        }
+      } else if (distSqToPlayer > this.defendRange * this.defendRange) {
         this.state = 'follow';
         this.targetPosition = playerPos; 
       } else {
