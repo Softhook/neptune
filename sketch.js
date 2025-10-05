@@ -732,6 +732,13 @@ function resetGame() {
 
   earthquakeManager = new EarthquakeManager();
   tectonicShiftManager = new TectonicShiftManager();
+  methaneBlizzard = new MethaneBlizzard();
+  heliumBlizzard = new HeliumBlizzard();
+  rainbowrain = new RainbowRain();
+  storm = new Storm();
+  quantumStorm = new QuantumStorm();
+  eclipse = new Eclipse();
+  magneticStorm = new MagneticStorm();
 
   // Reset upgrades
   upgrades.reset();
