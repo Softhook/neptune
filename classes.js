@@ -2169,7 +2169,8 @@ adjustAlienPlants() {
     for (let i = Alien.aliens.length - 1; i >= 0; i--) {
       let alien = Alien.aliens[i];
       let d = dist(this.pos.x, this.pos.y, alien.pos.x, alien.pos.y);
-      if (d < this.explosionRadius) {
+      let adjustedRadius = this.explosionRadius + alien.size / 2; // Include alien size
+      if (d < adjustedRadius) {
         alien.health -= this.bombDamage;
       }
     }
@@ -2179,7 +2180,8 @@ adjustAlienPlants() {
     for (let i = Nest.nests.length - 1; i >= 0; i--) {
       let nest = Nest.nests[i];
       let d = dist(this.pos.x, this.pos.y, nest.pos.x, nest.pos.y);
-      if (d < this.explosionRadius) {
+      let adjustedRadius = this.explosionRadius + nest.size / 2; // Include nest size
+      if (d < adjustedRadius) {
         nest.health -= this.bombDamage;
       }
     }
@@ -2189,7 +2191,8 @@ adjustAlienPlants() {
     for (let i = AlienFortress.fortresses.length - 1; i >= 0; i--) {
       let fortress = AlienFortress.fortresses[i];
       let d = dist(this.pos.x, this.pos.y, fortress.pos.x, fortress.pos.y);
-      if (d < this.explosionRadius) {
+      let adjustedRadius = this.explosionRadius + fortress.size / 2; // Include fortress size
+      if (d < adjustedRadius) {
         fortress.health -= this.bombDamage;
       }
     }
@@ -2199,7 +2202,8 @@ adjustAlienPlants() {
     for (let i = Destroyer.destroyers.length - 1; i >= 0; i--) {
       let destroyer = Destroyer.destroyers[i];
       let d = dist(this.pos.x, this.pos.y, destroyer.pos.x, destroyer.pos.y);
-      if (d < this.explosionRadius) {
+      let adjustedRadius = this.explosionRadius + destroyer.size / 2; // Include destroyer size
+      if (d < adjustedRadius) {
         destroyer.health -= this.bombDamage;
       }
     }
@@ -2209,7 +2213,8 @@ adjustAlienPlants() {
     for (let i = Hunter.hunters.length - 1; i >= 0; i--) {
       let hunter = Hunter.hunters[i];
       let d = dist(this.pos.x, this.pos.y, hunter.pos.x, hunter.pos.y);
-      if (d < this.explosionRadius) {
+      let adjustedRadius = this.explosionRadius + hunter.size / 2; // Include hunter size
+      if (d < adjustedRadius) {
         hunter.health -= this.bombDamage;
       }
     }
