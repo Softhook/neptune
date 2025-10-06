@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Test</title>
+  <style>
+    body { font-family: monospace; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Neptune Debug Test</h1>
+  <div id="log"></div>
+  
+  <script>
+    const logDiv = document.getElementById('log');
+    
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = new Date().toISOString() + ': ' + message;
+      logDiv.appendChild(entry);
+      console.log(message);
+    }
+    
+    window.addEventListener('error', function(e) {
+      log('ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno, 'error');
+      log('Error object: ' + (e.error ? e.error.stack : 'No stack'), 'error');
+    });
+    
+    log('Starting in 2 seconds...');
+    
+    setTimeout(() => {
+      log('Redirecting to game...');
+      window.location.href = '/index.htm';
+    }, 2000);
+  </script>
+</body>
+</html>
