@@ -14,6 +14,8 @@ let gameMode = 'singlePlayer'; // 'singlePlayer' or 'twoPlayer'
 let alienEnergy = 10000;
 
 let font;
+let neptuneImage;
+let earthImage;
 let wingman;
 
 let atEarth = false;
@@ -50,6 +52,7 @@ let shootingStarFrequency = 0.0001;
 
 
 let showLevelTransition = false;
+let levelTransitionTimer = 0;
 let soundManager;
 let gameOverSoundPlayed = false;
 let windSound;
@@ -88,6 +91,7 @@ let debug;
 
 let ambientMusic;
 let introMusic = true;
+let announcer;
 let earthquakeManager;
 let tectonicShiftManager;
 let magneticStorm;
@@ -98,6 +102,7 @@ let storm;
 let quantumStorm;
 let eclipse;
 
+let alienQueen = null;
 let alienKing = null;
 
 // Version Manager for GitHub API (date-based version string dd.mm.yyyy)
@@ -173,6 +178,17 @@ let versionManager;
 function setup() {
   createCanvas(1200, 800);
   pixelDensity(1); // Force 1:1 pixel density for better performance on high-DPI displays
+  
+  // Load assets
+  font = loadFont('assets/Neptune.otf');
+  neptuneImage = loadImage('assets/neptune.jpg');
+  earthImage = loadImage('assets/earth.png');
+  
+  // Initialize sound manager and start loading sounds
+  soundManager = new SoundManager();
+  totalAssets = soundManager.getTotalAssets();
+  soundManager.preloadWithCallback(assetLoaded);
+  
   windSound = new WindSoundGenerator();
   createBackgroundGraphics();
   debug  = Debug.getInstance();
@@ -327,14 +343,13 @@ window.onerror = function(message, source, lineno, colno, error) { // Global err
   return true;
 };
 
-function preload() {
-  font = loadFont('assets/Neptune.otf');
-  neptuneImage = loadImage('assets/neptune.jpg');
-  earthImage = loadImage('assets/earth.png');
-  soundManager = new SoundManager();
-  totalAssets = soundManager.getTotalAssets();
-  soundManager.preloadWithCallback(assetLoaded);
-}
+// Preload removed - all assets now loaded in setup()
+// function preload() {
+//   font = loadFont('assets/Neptune.otf');
+//   neptuneImage = loadImage('assets/neptune.jpg');
+//   earthImage = loadImage('assets/earth.png');
+// }
+
 
 function assetLoaded() {
   loadedAssets++;
