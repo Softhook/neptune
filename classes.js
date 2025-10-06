@@ -1422,7 +1422,7 @@ class Pod extends Entity {
     if (this.pickedUpByAlien) {
       let alienHasPod = Alien.aliens.some(alien => alien.hasGrabbedPod);
       if (!alienHasPod) {
-        if (debug) debug.log(`Pod ${this.id} thinks it's picked up by an alien, but no alien has it. Resetting state.`);
+        debug.log(`Pod ${this.id} thinks it's picked up by an alien, but no alien has it. Resetting state.`);
         this.reset();
       }
     }
@@ -1448,7 +1448,7 @@ class Pod extends Entity {
   }
 
   logState(action) {
-    if (debug) debug.log(`Pod ${this.id} ${action}: Position (${this.pos.x.toFixed(0)}, ${this.pos.y.toFixed(0)}), Picked up: ${this.isPickedUp()}`);
+    debug.log(`Pod ${this.id} ${action}: Position (${this.pos.x.toFixed(0)}, ${this.pos.y.toFixed(0)}), Picked up: ${this.isPickedUp()}`);
   }
 }
 
@@ -2708,15 +2708,13 @@ class SoundManager {
         };
         callback();
       }, (error) => {
-        if (debug) debug.error(`Error decoding sound: ${soundName}`, error);
-        else console.error(`Error decoding sound: ${soundName}`, error);
+        debug.error(`Error decoding sound: ${soundName}`, error);
         callback();
       });
     };
 
     request.onerror = () => {
-      if (debug) debug.error(`Failed to load sound: ${soundName}`);
-      else console.error(`Failed to load sound: ${soundName}`);
+      debug.error(`Failed to load sound: ${soundName}`);
       callback();
     };
 
