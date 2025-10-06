@@ -166,14 +166,18 @@ damageEntities() { //ground impact
 
     // Damage nests
     for (let nest of Nest.nests) {
-      if (dist(this.pos.x, this.pos.y, nest.pos.x, nest.pos.y) < this.explosionRadius) {
+      let d = dist(this.pos.x, this.pos.y, nest.pos.x, nest.pos.y);
+      let adjustedRadius = this.explosionRadius + nest.size / 2; // Include nest size
+      if (d < adjustedRadius) {
         nest.health -= this.damage;
       }
     }
 
     // Damage fortresses
     for (let fortress of AlienFortress.fortresses) {
-      if (dist(this.pos.x, this.pos.y, fortress.pos.x, fortress.pos.y) < this.explosionRadius) {
+      let d = dist(this.pos.x, this.pos.y, fortress.pos.x, fortress.pos.y);
+      let adjustedRadius = this.explosionRadius + fortress.size / 2; // Include fortress size
+      if (d < adjustedRadius) {
         fortress.health -= this.damage;
       }
     }
@@ -212,7 +216,9 @@ damageEntities() { //ground impact
     damageAlienEntities(entities) {
     for (let i = entities.length - 1; i >= 0; i--) {
       let entity = entities[i];
-      if (dist(this.pos.x, this.pos.y, entity.pos.x, entity.pos.y) < this.explosionRadius) {
+      let d = dist(this.pos.x, this.pos.y, entity.pos.x, entity.pos.y);
+      let adjustedRadius = this.explosionRadius + entity.size / 2; // Include entity size
+      if (d < adjustedRadius) {
         entity.health -= this.damage;
         if (entity.health <= 0) {
           explosions.push(new Explosion(entity.pos, entity.size, color(0, 255, 0), color(0, 100, 0)));
