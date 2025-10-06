@@ -202,7 +202,11 @@ static isInCluster(pos) {
 
   static checkCollisionWithAstronaut(astronaut) {
     for (let plant of AlienPlant.plants) {
-      if (plant.pos.dist(astronaut.pos) < plant.currentSize / 2 + astronaut.size / 2) {
+      // Use squared distance to avoid sqrt
+      const dx = plant.pos.x - astronaut.pos.x;
+      const dy = plant.pos.y - astronaut.pos.y;
+      const minDist = plant.currentSize / 2 + astronaut.size / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         return true;
       }
     }
@@ -212,7 +216,11 @@ static isInCluster(pos) {
   static checkCollisionWithBullet(bullet) {
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
       let plant = AlienPlant.plants[i];
-      if (plant.pos.dist(bullet.pos) < plant.currentSize / 2 + bullet.size / 2) {
+      // Use squared distance to avoid sqrt
+      const dx = plant.pos.x - bullet.pos.x;
+      const dy = plant.pos.y - bullet.pos.y;
+      const minDist = plant.currentSize / 2 + bullet.size / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         if (plant.takeDamage(10)) {
           AlienPlant.destroyPlant(i);
         }
@@ -225,7 +233,11 @@ static isInCluster(pos) {
   static checkCollisionWithBomb(bomb) {
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
       let plant = AlienPlant.plants[i];
-      if (plant.pos.dist(bomb.pos) < bomb.explosionRadius + plant.currentSize / 2) {
+      // Use squared distance to avoid sqrt
+      const dx = plant.pos.x - bomb.pos.x;
+      const dy = plant.pos.y - bomb.pos.y;
+      const minDist = bomb.explosionRadius + plant.currentSize / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         AlienPlant.destroyPlant(i);
       }
     }
@@ -236,7 +248,11 @@ static isInCluster(pos) {
     
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
       let plant = AlienPlant.plants[i];
-      if (plant.pos.dist(worm.segments[0].pos) < worm.segments[0].size / 2 + plant.currentSize / 2) {
+      // Use squared distance to avoid sqrt
+      const dx = plant.pos.x - worm.segments[0].pos.x;
+      const dy = plant.pos.y - worm.segments[0].pos.y;
+      const minDist = worm.segments[0].size / 2 + plant.currentSize / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         if (plant.takeDamage(1)) {
           AlienPlant.destroyPlant(i);
         }
@@ -667,26 +683,36 @@ class Alien extends Entity {
     let direction = p5.Vector.sub(targetPos, this.pos).normalize();
 
     if (this.attackMode) {
-      const distanceToTarget = this.pos.dist(targetPos);
+      // Use squared distance to avoid sqrt
+      const dx = targetPos.x - this.pos.x;
+      const dy = targetPos.y - this.pos.y;
+      const distanceToTargetSq = dx * dx + dy * dy;
       const desiredDistance = random(150, 220);
       const speedFactor = 0.5 * this.speed * moveFactor;
 
-      if (distanceToTarget > desiredDistance + 50) {
+      const upperBound = desiredDistance + 50;
+      const lowerBound = desiredDistance - 50;
+      if (distanceToTargetSq > upperBound * upperBound) {
         direction.mult(speedFactor);
-      } else if (distanceToTarget < desiredDistance - 50) {
+      } else if (distanceToTargetSq < lowerBound * lowerBound) {
         direction.mult(-speedFactor);
       } else {
         direction.rotate(HALF_PI).mult(speedFactor);
       }
     } else if (this.defensiveMode) {
       // Defensive behavior: orbit around assigned nest
-      const distanceToNest = this.pos.dist(targetPos);
+      // Use squared distance to avoid sqrt
+      const dx = targetPos.x - this.pos.x;
+      const dy = targetPos.y - this.pos.y;
+      const distanceToNestSq = dx * dx + dy * dy;
       const speedFactor = 0.4 * this.speed * moveFactor;
 
-      if (distanceToNest > this.defensiveOrbitRadius + 30) {
+      const upperBound = this.defensiveOrbitRadius + 30;
+      const lowerBound = this.defensiveOrbitRadius - 30;
+      if (distanceToNestSq > upperBound * upperBound) {
         // Too far, move closer
         direction.mult(speedFactor);
-      } else if (distanceToNest < this.defensiveOrbitRadius - 30) {
+      } else if (distanceToNestSq < lowerBound * lowerBound) {
         // Too close, move away
         direction.mult(-speedFactor);
       } else {
@@ -755,8 +781,15 @@ class Alien extends Entity {
     }
 
     for (const bullet of Bullet.activeObjects) {
-      if (bullet.isPlayerBullet && this.pos.dist(bullet.pos) < 100 && random() < this.dodgeChance) {
-        const timeToImpact = this.pos.dist(bullet.pos) / bullet.vel.mag();
+      // Use squared distance to avoid sqrt (first check)
+      const dx = this.pos.x - bullet.pos.x;
+      const dy = this.pos.y - bullet.pos.y;
+      const distSq = dx * dx + dy * dy;
+      
+      if (bullet.isPlayerBullet && distSq < 10000 && random() < this.dodgeChance) { // 100 * 100 = 10000
+        // Only calculate actual distance when we need it for time calculation
+        const distance = Math.sqrt(distSq);
+        const timeToImpact = distance / bullet.vel.mag();
         const futurePos = p5.Vector.add(bullet.pos, p5.Vector.mult(bullet.vel, timeToImpact));
         this.vel.add(p5.Vector.sub(this.pos, futurePos).normalize().mult(3 * moveFactor)).limit(this.speed * 2 * moveFactor);
         this.lastDodgeTime = currentTime;
@@ -803,7 +836,10 @@ class Alien extends Entity {
     if (!target || !target.pos) {
       return this.pos.copy();
     }
-    const distance = this.pos.dist(target.pos);
+    // Use squared distance and only take sqrt when we need it
+    const dx = target.pos.x - this.pos.x;
+    const dy = target.pos.y - this.pos.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
     const timeToReach = distance / 5;
     return target.vel ? target.pos.copy().add(target.vel.copy().mult(timeToReach * this.predictionFactor)) : target.pos.copy();
   }
@@ -815,16 +851,26 @@ class Alien extends Entity {
   findNearestNest() {
     return Nest.nests.reduce((nearest, nest) => {
       if (nest && nest.pos) {
-        const d = p5.Vector.dist(this.pos, nest.pos);
-        return d < nearest.dist ? { nest, dist: d } : nearest;
+        // Use squared distance for comparison
+        const dx = this.pos.x - nest.pos.x;
+        const dy = this.pos.y - nest.pos.y;
+        const dSq = dx * dx + dy * dy;
+        return dSq < nearest.distSq ? { nest, distSq: dSq } : nearest;
       }
       return nearest;
-    }, { nest: null, dist: Infinity }).nest?.pos?.copy();
+    }, { nest: null, distSq: Infinity }).nest?.pos?.copy();
   }
 
   getRandomTarget() {
-    if (!this.randomTarget || p5.Vector.dist(this.pos, this.randomTarget) < 50) {
+    if (!this.randomTarget) {
       this.randomTarget = createVector(random(worldWidth), random(height / 4, 3 * height / 4));
+    } else {
+      // Use squared distance for comparison
+      const dx = this.pos.x - this.randomTarget.x;
+      const dy = this.pos.y - this.randomTarget.y;
+      if (dx * dx + dy * dy < 2500) { // 50 * 50 = 2500
+        this.randomTarget = createVector(random(worldWidth), random(height / 4, 3 * height / 4));
+      }
     }
     return this.randomTarget;
   }
@@ -842,11 +888,17 @@ class Alien extends Entity {
       return;
     }
 
-    if (!this.hasGrabbedPod && !pod.isPickedUp() && this.pos.dist(pod.pos) < (this.size + pod.size) / 2) {
-      this.hasGrabbedPod = true;
-      pod.updatePickupState('alien');
-      soundManager.play('alienPodPickup');
-      pod.pos = this.pos.copy();
+    if (!this.hasGrabbedPod && !pod.isPickedUp()) {
+      // Use squared distance to avoid sqrt
+      const dx = this.pos.x - pod.pos.x;
+      const dy = this.pos.y - pod.pos.y;
+      const minDist = (this.size + pod.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
+        this.hasGrabbedPod = true;
+        pod.updatePickupState('alien');
+        soundManager.play('alienPodPickup');
+        pod.pos = this.pos.copy();
+      }
     } else if (this.hasGrabbedPod) {
       pod.pos = this.pos.copy();
     }
@@ -858,7 +910,11 @@ class Alien extends Entity {
     for (const nest of Nest.nests) {
       if (!nest || !nest.pos) continue;
 
-      if (this.pos.dist(nest.pos) < (this.size + nest.size) / 2) {
+      // Use squared distance to avoid sqrt
+      const dx = this.pos.x - nest.pos.x;
+      const dy = this.pos.y - nest.pos.y;
+      const minDist = (this.size + nest.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
         this.hasGrabbedPod = false;
         soundManager.play('alienPodDropOff');
         nest.podsCollected++;
@@ -888,14 +944,18 @@ class Alien extends Entity {
 
   findNearestTarget() {
     let nearestTarget = null;
-    let nearestDistance = Infinity;
+    let nearestDistanceSq = Infinity;
+    const shootingRangeSq = this.shootingRange * this.shootingRange;
 
     const checkTarget = (target) => {
       if (target && target.pos) {
-        const distance = this.pos.dist(target.pos);
-        if (distance < this.shootingRange && distance < nearestDistance) {
+        // Use squared distance to avoid sqrt
+        const dx = this.pos.x - target.pos.x;
+        const dy = this.pos.y - target.pos.y;
+        const distanceSq = dx * dx + dy * dy;
+        if (distanceSq < shootingRangeSq && distanceSq < nearestDistanceSq) {
           nearestTarget = target;
-          nearestDistance = distance;
+          nearestDistanceSq = distanceSq;
         }
       }
     };
@@ -1308,8 +1368,10 @@ class Zapper extends Hunter {
       let direction = p5.Vector.sub(ship.pos, this.pos).normalize().mult(0.5 * moveFactor);
       this.vel.add(direction).limit(2 * moveFactor);
 
-      // Check if close enough to zap
-      if (p5.Vector.dist(this.pos, ship.pos) < this.zapRadius) {
+      // Check if close enough to zap - use squared distance
+      const dx = this.pos.x - ship.pos.x;
+      const dy = this.pos.y - ship.pos.y;
+      if (dx * dx + dy * dy < this.zapRadius * this.zapRadius) {
         this.zap();
       }
     }
