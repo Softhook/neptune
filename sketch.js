@@ -14,6 +14,8 @@ let gameMode = 'singlePlayer'; // 'singlePlayer' or 'twoPlayer'
 let alienEnergy = 10000;
 
 let font;
+let neptuneImage;
+let earthImage;
 let wingman;
 
 let atEarth = false;
@@ -50,6 +52,7 @@ let shootingStarFrequency = 0.0001;
 
 
 let showLevelTransition = false;
+let levelTransitionTimer = 0;
 let soundManager;
 let gameOverSoundPlayed = false;
 let windSound;
@@ -88,6 +91,7 @@ let debug;
 
 let ambientMusic;
 let introMusic = true;
+let announcer;
 let earthquakeManager;
 let tectonicShiftManager;
 let magneticStorm;
@@ -98,15 +102,97 @@ let storm;
 let quantumStorm;
 let eclipse;
 
+let alienQueen = null;
 let alienKing = null;
 
+// Version Manager for GitHub API (date-based version string dd.mm.yyyy)
+class VersionManager {
+  constructor() {
+    this.versionInfo = {
+      date: 'Loading...',
+      commitMessage: 'Loading...',
+      status: 'loading'
+    };
+    this.fetchVersion();
+  }
 
+  formatDate(isoString) {
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  async fetchVersion() {
+    try {
+      const apiUrl = 'https://api.github.com/repos/Softhook/neptune/commits/main';
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+
+      // Extract and format date (prefer author date)
+      const isoDate = (data.commit && data.commit.author && data.commit.author.date) ||
+                      (data.commit && data.commit.committer && data.commit.committer.date) ||
+                      new Date().toISOString();
+      const formattedDate = this.formatDate(isoDate);
+      const firstLineMessage = (data.commit?.message || 'No message').split('\n')[0];
+
+      this.versionInfo = {
+        date: formattedDate,
+        commitMessage: firstLineMessage,
+        status: 'loaded'
+      };
+      console.log(`Version loaded: ${formattedDate} - ${firstLineMessage}`);
+    } catch (error) {
+      console.error('Failed to fetch version from GitHub:', error);
+      const fallbackDate = this.formatDate(new Date().toISOString());
+      this.versionInfo = {
+        date: fallbackDate,
+        commitMessage: 'Could not fetch version',
+        status: 'error'
+      };
+    }
+  }
+
+  getVersionText() {
+    if (this.versionInfo.status === 'loading') {
+      return 'Version - Loading...';
+    } else if (this.versionInfo.status === 'error') {
+      return `Version ${this.versionInfo.date} - Unavailable`;
+    } else {
+      return `Version ${this.versionInfo.date} - ${this.versionInfo.commitMessage}`;
+    }
+  }
+}
+
+let versionManager;
 
 function setup() {
   createCanvas(1200, 800);
+  pixelDensity(1); // Force 1:1 pixel density for better performance on high-DPI displays
+  
+  // Load assets
+  font = loadFont('assets/Neptune.otf');
+  neptuneImage = loadImage('assets/neptune.jpg');
+  earthImage = loadImage('assets/earth.png');
+  
+  // Initialize sound manager and start loading sounds
+  soundManager = new SoundManager();
+  totalAssets = soundManager.getTotalAssets();
+  soundManager.preloadWithCallback(assetLoaded);
+  
   windSound = new WindSoundGenerator();
   createBackgroundGraphics();
   debug  = Debug.getInstance();
+  versionManager = new VersionManager();
   gameState = 'loading';
   skyColors = [NIGHT, DAWN, DAY, DUSK, NIGHT].map(c => color(...c)); // Precompute color arrays for faster interpolation
   
@@ -176,7 +262,7 @@ function draw() {
 }
 
 function averageFPS() {
-  if (!debug.isEnabled) return 0; // Return 0 if debug is not enabled
+  if (!debug || !debug.isEnabled) return 0; // Return 0 if debug is not enabled
   
   frameRates.push(frameRate());  // Always push the current frame rate
   if (millis() - lastFPSUpdateTime > FPS_UPDATE_INTERVAL) { // Time to update average?
@@ -248,21 +334,22 @@ function displayErrorScreen() {
 
 
 window.onerror = function(message, source, lineno, colno, error) { // Global error handler
-  debug.error("Unhandled error:", error);
+  if (debug) {
+    debug.error("Unhandled error:", error);
+  } else {
+    console.error("Unhandled error:", error);
+  }
   gameState = 'error';
-  alert("An unexpected error occurred. The game will restart.");
-  resetGame();
   return true;
 };
 
-function preload() {
-  font = loadFont('assets/Neptune.otf');
-  neptuneImage = loadImage('assets/neptune.jpg');
-  earthImage = loadImage('assets/earth.png');
-  soundManager = new SoundManager();
-  totalAssets = soundManager.getTotalAssets();
-  soundManager.preloadWithCallback(assetLoaded);
-}
+// Preload removed - all assets now loaded in setup()
+// function preload() {
+//   font = loadFont('assets/Neptune.otf');
+//   neptuneImage = loadImage('assets/neptune.jpg');
+//   earthImage = loadImage('assets/earth.png');
+// }
+
 
 function assetLoaded() {
   loadedAssets++;
@@ -292,7 +379,9 @@ function drawSurface(){
   beginShape();
   vertex(max(0, viewLeft), height); // Clamp to visible area
   
-  for (let point of moonSurface) {
+  // Use indexed for loop for better performance in hot path
+  for (let i = 0; i < moonSurface.length; i++) {
+    const point = moonSurface[i];
     // Only include points within the view boundaries (plus small buffer)
     if (point.x >= viewLeft - 50 && point.x <= viewRight + 50) {
       vertex(point.x, point.y);
@@ -306,25 +395,38 @@ function drawSurface(){
 
 function drawClusterOverlays() {
   noStroke();
-  for (let center of AlienPlant.clusterCenters) {
-    let clusterRadius = 100; // Adjust this value based on your desired cluster size
+  const clusterRadius = 100;
+  const alpha = 100; // Constant alpha (map result is always 100 with identical min/max)
+  
+  // Pre-calculate angle step vertices (shared across all clusters/rings)
+  const angleStep = 0.1;
+  const numVertices = Math.ceil(TWO_PI / angleStep);
+  
+  for (let i = 0; i < AlienPlant.clusterCenters.length; i++) {
+    const center = AlienPlant.clusterCenters[i];
     
     // Skip clusters outside view (with buffer for partial visibility)
     if (center.x + clusterRadius < viewLeft || center.x - clusterRadius > viewRight) {
       continue;
     }
     
-    let alpha = map(sin(dayNightCycle * TWO_PI), -1, 1, 100, 100); // Vary transparency with day/night cycle
+    // Extract color components once
+    const r = red(center.color);
+    const g = green(center.color);
+    const b = blue(center.color);
     
-    // Create a gradient effect
-    for (let r = clusterRadius; r > 0; r -= 10) {
-      let interAlpha = map(r, 0, clusterRadius, alpha, 0);
-      fill(red(center.color), green(center.color), blue(center.color), interAlpha);
+    // Draw gradient rings from outside to inside
+    for (let radius = clusterRadius; radius > 0; radius -= 10) {
+      const interAlpha = map(radius, 0, clusterRadius, alpha, 0);
+      fill(r, g, b, interAlpha);
       
       beginShape();
-      for (let a = 0; a < TWO_PI; a += 0.1) {
-        let x = center.x + cos(a) * r;
-        let y = getCachedSurfaceYAtX(x) - sin(a) * r * 0.5; // Flatten the bottom of the shape
+      // Cache surface lookups for this ring
+      for (let a = 0; a < TWO_PI; a += angleStep) {
+        const cosA = cos(a);
+        const sinA = sin(a);
+        const x = center.x + cosA * radius;
+        const y = getCachedSurfaceYAtX(x) - sinA * radius * 0.5;
         vertex(x, y);
       }
       endShape(CLOSE);
@@ -382,7 +484,9 @@ function drawGame() {
   
     MoonBase.drawAll();
   
-  for (let turret of turrets) {
+  // Use indexed for loop for better performance
+  for (let i = 0; i < turrets.length; i++) {
+    const turret = turrets[i];
     if (isInView(turret.pos, turret.size)) {
       turret.draw();
     }
@@ -423,13 +527,16 @@ function drawGame() {
   Missile.drawMissile();
   Drone.drawDrone();
 
-  for (let bomb of bombs) {
+  // Use indexed for loops for better performance
+  for (let i = 0; i < bombs.length; i++) {
+    const bomb = bombs[i];
     if (isInView(bomb.pos, bomb.size)) {
       bomb.draw();
     }
   }
   
-  for (let explosion of explosions) {
+  for (let i = 0; i < explosions.length; i++) {
+    const explosion = explosions[i];
     if (isInView(explosion.pos, explosion.currentSize)) {
       explosion.draw();
     }
@@ -830,7 +937,9 @@ function displayTitleScreen() {
     textSize(25);
   text("CHRISTIAN NOLD + SEBASTIAN NOLD BORASCHI", width / 2, height / 2 + 120);
   textSize(12);
-  text("Version 68 - Storms and Bug Fixes", width / 2, height / 2 + 160);
+  // Display version from GitHub API
+  let versionText = versionManager ? versionManager.getVersionText() : "Version - Loading...";
+  text(versionText, width / 2, height / 2 + 160);
   
   let pulseOpacity = sin(frameCount * 0.05) * 127 + 128; // Value between 1 and 255 
   textSize(20);
@@ -1014,11 +1123,11 @@ function handlePlayingState() {
   
   ///// New section
   // Debug controls
-  if (keyCode === 219) { 
+  if (keyCode === 219 && debug) { 
     debug.toggle();
     return false;
   }
-  if (keyCode === 221 && debug.isEnabled) {
+  if (keyCode === 221 && debug && debug.isEnabled) {
     debug.saveLogsToFile();
     return false;
   }
@@ -1259,21 +1368,26 @@ function drawHUD() {
     soundManager.play('warning');
   }
 
-  // General game info
+  // Pre-calculate values outside array to avoid recalculation
+  const windPercent = Math.round((windForce / maxWindForce) * 100);
+  const totalAliens = getTotalAlienCount();
+
+  // General game info - use indexed for loop for better performance
   fill('white');
-  [
+  const gameInfo = [
     `Money: ${money}`,
     ``,
     `Level: ${level}`,
-    `Aliens: ${getTotalAlienCount()}`,
+    `Aliens: ${totalAliens}`,
     `Nests: ${Nest.nests.length}`,
     `Plants: ${AlienPlant.plants.length}`,
     `Bases: ${MoonBase.moonBases.length}`,
-    `Wind: ${Math.round((windForce / maxWindForce) * 100)}%`,
+    `Wind: ${windPercent}%`,
 
-  ].forEach((line, index) => {
-    text(line, leftMargin, topMargin + (index + 2) * lineHeight);
-  });
+  ];
+  for (let i = 0; i < gameInfo.length; i++) {
+    text(gameInfo[i], leftMargin, topMargin + (i + 2) * lineHeight);
+  }
   
    // If there is a mission display the info
   if (MissionControl.currentMission) {  
@@ -1306,22 +1420,23 @@ if (isWalking) {
   text('Press D - base', leftMargin, topMargin + 12 * lineHeight);
 }
 
-  // Two-player mode info
+  // Two-player mode info - use indexed for loop
   if (gameMode === 'twoPlayer') {
     const rightMargin = width - 200;
     text(`Alien Energy: ${alienEnergy}`, rightMargin, topMargin);
-    [
+    const twoPlayerInfo = [
       "1: Alien (200)",
       "2: Destroyer (500)",
       "3: Hunter (1000)",
       "4: Zapper (1000)",
       "5: Nest (1000)"
-    ].forEach((line, index) => {
-      text(line, rightMargin, topMargin + (index + 2) * lineHeight);
-    });
+    ];
+    for (let i = 0; i < twoPlayerInfo.length; i++) {
+      text(twoPlayerInfo[i], rightMargin, topMargin + (i + 2) * lineHeight);
+    }
   }
 
-  if (debug.isEnabled) {
+  if (debug && debug.isEnabled) {
     text(`FPS: ${averageFPS().toFixed(2)}`, 10, height - 10);
   }
 
@@ -1369,8 +1484,11 @@ function drawBackground() {
 
   // Draw stars
   if (starBrightness > 10) { // Small threshold to avoid drawing very faint stars
+    noStroke();
     fill(255, starBrightness);
-    for (const star of backgroundStars) {
+    // Use indexed for loop for better performance in hot path
+    for (let i = 0; i < backgroundStars.length; i++) {
+      const star = backgroundStars[i];
       // Only draw stars within view bounds for performance
       if (star.x >= viewLeft && star.x <= viewRight) {
         ellipse(star.x, star.y, star.size);
@@ -1428,23 +1546,29 @@ function createShootingStar() {
 function updateShootingStars() {
   for (let i = shootingStars.length - 1; i >= 0; i--) {
     const star = shootingStars[i];
-    star.x += cos(star.angle) * star.speed;
-    star.y += sin(star.angle) * star.speed;
+    const cosAngle = cos(star.angle);
+    const sinAngle = sin(star.angle);
+    star.x += cosAngle * star.speed;
+    star.y += sinAngle * star.speed;
     star.length = max(0, star.length - star.speed * 0.1);
 
     if (isInView({ x: star.x, y: star.y }, 2)) {
       push();
-      // Draw the fading trail
+      // Pre-calculate values outside loop
+      const segmentLength = star.length / 6;
+      const cosSegment = cosAngle * segmentLength;
+      const sinSegment = sinAngle * segmentLength;
+      
+      // Draw the fading trail with batched graphics state
       for (let j = 0; j < 6; j++) {
-        const alpha = map(j, 0, 9, 255, 0);
-        const segmentLength = star.length / 6;
-        const segmentStartX = star.x - cos(star.angle) * (j * segmentLength);
-        const segmentStartY = star.y - sin(star.angle) * (j * segmentLength);
-        const segmentEndX = star.x - cos(star.angle) * ((j + 1) * segmentLength);
-        const segmentEndY = star.y - sin(star.angle) * ((j + 1) * segmentLength);
+        const alpha = 255 - (j * 28.33); // Optimized: avoid map() call
+        const segmentStartX = star.x - cosSegment * j;
+        const segmentStartY = star.y - sinSegment * j;
+        const segmentEndX = star.x - cosSegment * (j + 1);
+        const segmentEndY = star.y - sinSegment * (j + 1);
         
         stroke(200, alpha);
-        strokeWeight(2 - j * 0.2); // Gradually thinner trail
+        strokeWeight(2 - j * 0.2);
         line(segmentStartX, segmentStartY, segmentEndX, segmentEndY);
       }
       pop();
@@ -1465,36 +1589,28 @@ function drawWindLinesOptimized() {
   const windDirY = sin(invertedWindAngle);
   
   noFill();
+  stroke(255, 100 * windMagnitude); // Set stroke once for all bands
   
   const amplitude = 100 * windMagnitude; // Pre-calculate amplitude
   const phaseIncrement = 0.02; // Phase increment
 
-  // Define step sizes
+  // Define step sizes - scale with screen width for performance
   const stepY = 30;
-  const stepX = 10;
+  const stepX = max(10, width / 120); // Adaptive step: larger screens use bigger steps
 
   // Define buffer to extend beyond the view boundaries horizontally
   const buffer = amplitude; // Adjust buffer as needed
 
-  // Calculate extended horizontal view boundaries
+  // Calculate extended horizontal view boundaries - already accounts for view
   const extendedLeft = viewLeft - buffer;
   const extendedRight = viewRight + buffer;
 
-  // Since all y positions are always in view, set size to cover the entire vertical span
-  const verticalSize = height; // Ensures vertical checks always pass
-
   // Draw swirling gas bands
   for (let y = -30; y <= height; y += stepY) {
-    stroke(255, 100 * windMagnitude); // Adjust color and opacity as needed
     beginShape();
 
+    // No need for isInView check - we already constrain x to visible range
     for (let x = extendedLeft; x <= extendedRight; x += stepX) {
-      const pos = { x: x, y: y };
-      
-      // Use isInView to determine if the vertex should be drawn
-      // Set size to verticalSize to ensure vertical checks always pass
-      if (!isInView(pos, verticalSize)) continue;
-
       // Project the point onto the inverted wind direction
       const proj = x * windDirX + y * windDirY;
 
@@ -1663,6 +1779,30 @@ function distToSegment(p, v, w) {
   t = constrain(t, 0, 1);
   let proj = p5.Vector.add(v, p5.Vector.sub(w, v).mult(t));
   return p5.Vector.dist(p, proj);
+}
+
+// Optimized version that returns squared distance (avoids sqrt)
+// Use when comparing distance to threshold: distToSegmentSq(p,v,w) < threshold*threshold
+function distToSegmentSq(p, v, w) {
+  const dx = w.x - v.x;
+  const dy = w.y - v.y;
+  const l2 = dx * dx + dy * dy;
+  
+  if (l2 === 0) {
+    const pdx = p.x - v.x;
+    const pdy = p.y - v.y;
+    return pdx * pdx + pdy * pdy;
+  }
+  
+  let t = ((p.x - v.x) * dx + (p.y - v.y) * dy) / l2;
+  t = constrain(t, 0, 1);
+  
+  const projX = v.x + dx * t;
+  const projY = v.y + dy * t;
+  const distX = p.x - projX;
+  const distY = p.y - projY;
+  
+  return distX * distX + distY * distY;
 }
 
 function getSurfaceYAtX(x) {
