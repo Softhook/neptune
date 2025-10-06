@@ -324,6 +324,8 @@ window.onerror = function(message, source, lineno, colno, error) { // Global err
     console.error("Unhandled error:", error);
   }
   gameState = 'error';
+  alert("An unexpected error occurred. The game will restart.");
+  resetGame();
   return true;
 };
 
