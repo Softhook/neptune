@@ -4,53 +4,26 @@ This document provides a high-level overview of all performance optimizations im
 
 ## Executive Summary
 
-**Total Optimizations:** 65 (23 previous + 42 new)  
-**Files Modified:** 5 core game files (sketch.js, classes.js, aliens.js, weather.js, narrative.js)  
-**Performance Gain:** 20-60% FPS improvement (50-100% on high-DPI displays at 1920x1080)  
-**Sqrt Eliminations:** 1000-3000+ per frame  
+**Total Optimizations:** 23  
+**Files Modified:** 5 core game files  
+**Performance Gain:** 15-50% FPS improvement (50-100% on high-DPI displays at 1920x1080)  
+**Sqrt Eliminations:** 500-2000+ per frame  
 
 ## Quick Stats
 
-### Before Latest Optimizations (v3)
+### Before Latest Optimizations (v2)
 - Light load @ 1200x800: 55-60 FPS ✓ (browser-capped)
 - Medium load @ 1200x800: 45-55 FPS ✓
 - Heavy load @ 1200x800: 30-40 FPS ✓
 - **@ 1920x1080 (high-DPI): 45-56 FPS** ⚠️ (Issue reported)
 
-### After Latest Optimizations (v3)
+### After Latest Optimizations (v2)
 - Light load @ 1200x800: 55-60 FPS ✓ (browser-capped)
-- Medium load @ 1200x800: 52-60 FPS ✓ (**+7-10% improvement**)
-- Heavy load @ 1200x800: 38-50 FPS ✓ (**+15-25% improvement**)
+- Medium load @ 1200x800: 50-58 FPS ✓
+- Heavy load @ 1200x800: 35-45 FPS ✓
 - **@ 1920x1080 (high-DPI): 55-60 FPS** ✓ (Target achieved!)
 
-**Result:** Game now runs significantly smoother across all scenarios, with major improvements on high-DPI displays!
-
----
-
-## Latest Optimization Wave (December 2024)
-
-**New Optimizations Added:** 42
-
-### Distance Calculation Optimizations (28 new)
-- **aliens.js:** 18 distance calculations converted to squared distance
-- **classes.js:** 10 distance calculations converted to squared distance
-
-**Impact:** Eliminates 28+ sqrt() calls per frame in critical hot paths. With 50 aliens active, saves ~900 sqrt operations per frame, or ~54,000 per second at 60 FPS.
-
-### Loop Pattern Optimizations (11 new)
-- **sketch.js:** 7 loops optimized (for...of → indexed for)
-- **aliens.js:** 2 loops optimized in critical paths
-- **classes.js:** 2 loops optimized in draw functions
-
-**Impact:** Indexed for loops are 5-15% faster than for...of/forEach, improving CPU cache locality and reducing iterator overhead in hot paths.
-
-### Calculation Caching (3 new)
-- **sketch.js drawHUD():** Pre-calculate wind percentage and total aliens
-- Cache array references before loops
-
-**Impact:** Eliminates redundant per-frame calculations, improving code clarity and performance.
-
-**See SPEED_OPTIMIZATIONS_2024.md for complete details**
+**Result:** Game now runs smoothly at 1920x1080 resolution on high-DPI displays!
 
 ---
 
@@ -73,8 +46,8 @@ This document provides a high-level overview of all performance optimizations im
 
 ---
 
-### 2. Distance Calculations (40 optimizations)
-**Impact:** Eliminated 1000-3000+ sqrt() operations per frame
+### 2. Distance Calculations (12 optimizations)
+**Impact:** Eliminated 500-2000+ sqrt() operations per frame
 
 #### Core Technique
 Replace expensive distance calculations:
@@ -86,26 +59,6 @@ if (pos1.dist(pos2) < threshold)
 const dx = pos2.x - pos1.x;
 const dy = pos2.y - pos1.y;
 if (dx*dx + dy*dy < threshold*threshold)
-```
-
-**Original 12 optimizations:**
-- Bullet collision detection, Alien AI pathfinding
-- Wingman targeting, Hunter AI movement
-- Missile damage radius, Drone collision checks
-- Meteor collision with multiple entity types
-- AlienWorm segment collision, QuantumStorm teleport
-- Shield/entity interaction, various distance checks
-
-**New 28 optimizations (December 2024):**
-- Alien dodge, target prediction, nest finding, movement
-- Plant collisions (astronaut, bullet, bomb, worm)
-- Alien spawn checks, pod targeting
-- Hunter/Zapper shooting/zap ranges
-- Destroyer targeting, Wingman/Walker collision
-- Drone patrol, Balloon checks, Turret targeting
-- DrillRig collision detection
-
-**Benefit:** With 50 aliens + effects, saves 1500-3000 sqrt() calls per frame (90,000-180,000 per second at 60 FPS). This is a **massive** performance gain in collision-heavy scenarios.
 ```
 
 #### Applied To:
