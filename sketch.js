@@ -362,7 +362,9 @@ function drawSurface(){
   beginShape();
   vertex(max(0, viewLeft), height); // Clamp to visible area
   
-  for (let point of moonSurface) {
+  // Use indexed for loop for better performance in hot path
+  for (let i = 0; i < moonSurface.length; i++) {
+    const point = moonSurface[i];
     // Only include points within the view boundaries (plus small buffer)
     if (point.x >= viewLeft - 50 && point.x <= viewRight + 50) {
       vertex(point.x, point.y);
@@ -465,7 +467,9 @@ function drawGame() {
   
     MoonBase.drawAll();
   
-  for (let turret of turrets) {
+  // Use indexed for loop for better performance
+  for (let i = 0; i < turrets.length; i++) {
+    const turret = turrets[i];
     if (isInView(turret.pos, turret.size)) {
       turret.draw();
     }
@@ -506,13 +510,16 @@ function drawGame() {
   Missile.drawMissile();
   Drone.drawDrone();
 
-  for (let bomb of bombs) {
+  // Use indexed for loops for better performance
+  for (let i = 0; i < bombs.length; i++) {
+    const bomb = bombs[i];
     if (isInView(bomb.pos, bomb.size)) {
       bomb.draw();
     }
   }
   
-  for (let explosion of explosions) {
+  for (let i = 0; i < explosions.length; i++) {
+    const explosion = explosions[i];
     if (isInView(explosion.pos, explosion.currentSize)) {
       explosion.draw();
     }
@@ -1344,21 +1351,26 @@ function drawHUD() {
     soundManager.play('warning');
   }
 
-  // General game info
+  // Pre-calculate values outside array to avoid recalculation
+  const windPercent = Math.round((windForce / maxWindForce) * 100);
+  const totalAliens = getTotalAlienCount();
+
+  // General game info - use indexed for loop for better performance
   fill('white');
-  [
+  const gameInfo = [
     `Money: ${money}`,
     ``,
     `Level: ${level}`,
-    `Aliens: ${getTotalAlienCount()}`,
+    `Aliens: ${totalAliens}`,
     `Nests: ${Nest.nests.length}`,
     `Plants: ${AlienPlant.plants.length}`,
     `Bases: ${MoonBase.moonBases.length}`,
-    `Wind: ${Math.round((windForce / maxWindForce) * 100)}%`,
+    `Wind: ${windPercent}%`,
 
-  ].forEach((line, index) => {
-    text(line, leftMargin, topMargin + (index + 2) * lineHeight);
-  });
+  ];
+  for (let i = 0; i < gameInfo.length; i++) {
+    text(gameInfo[i], leftMargin, topMargin + (i + 2) * lineHeight);
+  }
   
    // If there is a mission display the info
   if (MissionControl.currentMission) {  
@@ -1391,19 +1403,20 @@ if (isWalking) {
   text('Press D - base', leftMargin, topMargin + 12 * lineHeight);
 }
 
-  // Two-player mode info
+  // Two-player mode info - use indexed for loop
   if (gameMode === 'twoPlayer') {
     const rightMargin = width - 200;
     text(`Alien Energy: ${alienEnergy}`, rightMargin, topMargin);
-    [
+    const twoPlayerInfo = [
       "1: Alien (200)",
       "2: Destroyer (500)",
       "3: Hunter (1000)",
       "4: Zapper (1000)",
       "5: Nest (1000)"
-    ].forEach((line, index) => {
-      text(line, rightMargin, topMargin + (index + 2) * lineHeight);
-    });
+    ];
+    for (let i = 0; i < twoPlayerInfo.length; i++) {
+      text(twoPlayerInfo[i], rightMargin, topMargin + (i + 2) * lineHeight);
+    }
   }
 
   if (debug.isEnabled) {
@@ -1456,7 +1469,9 @@ function drawBackground() {
   if (starBrightness > 10) { // Small threshold to avoid drawing very faint stars
     noStroke();
     fill(255, starBrightness);
-    for (const star of backgroundStars) {
+    // Use indexed for loop for better performance in hot path
+    for (let i = 0; i < backgroundStars.length; i++) {
+      const star = backgroundStars[i];
       // Only draw stars within view bounds for performance
       if (star.x >= viewLeft && star.x <= viewRight) {
         ellipse(star.x, star.y, star.size);

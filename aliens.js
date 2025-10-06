@@ -783,7 +783,10 @@ class Alien extends Entity {
       return false;
     }
 
-    for (const bullet of Bullet.activeObjects) {
+    // Use indexed for loop for better performance in hot path
+    const bullets = Bullet.activeObjects;
+    for (let i = 0; i < bullets.length; i++) {
+      const bullet = bullets[i];
       // Use squared distance for dodge check (avoids sqrt)
       const dx = this.pos.x - bullet.pos.x;
       const dy = this.pos.y - bullet.pos.y;
@@ -908,7 +911,10 @@ class Alien extends Entity {
     if (!this.hasGrabbedPod) return;
 
     // Use squared distance for collision check (avoids sqrt)
-    for (const nest of Nest.nests) {
+    // Use indexed for loop for better performance
+    const nests = Nest.nests;
+    for (let i = 0; i < nests.length; i++) {
+      const nest = nests[i];
       if (!nest || !nest.pos) continue;
       const nestThreshold = (this.size + nest.size) / 2;
       const nestThresholdSq = nestThreshold * nestThreshold;
@@ -961,8 +967,12 @@ class Alien extends Entity {
 
     checkTarget(ship);
 
-    for (const wingman of Wingman.wingmen) {
-      wingman.isActive && checkTarget(wingman);
+    // Use indexed for loop for better performance
+    const wingmen = Wingman.wingmen;
+    for (let i = 0; i < wingmen.length; i++) {
+      if (wingmen[i].isActive) {
+        checkTarget(wingmen[i]);
+      }
     }
 
     isWalking && !astronaut.isInShip && checkTarget(astronaut);

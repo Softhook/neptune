@@ -1311,7 +1311,10 @@ class Particle {
 
   static drawParticles() {
     noStroke();
-    for (let particle of Particle.activeParticles) {
+    // Use indexed for loop for better performance in hot path
+    const particles = Particle.activeParticles;
+    for (let i = 0; i < particles.length; i++) {
+      const particle = particles[i];
       if (isInView(particle.pos, particle.size)) {
         particle.draw();
       }
@@ -1374,7 +1377,10 @@ class Shield {
   }
 
   static drawShields() {
-    for (let shield of Shield.shields) {
+    // Use indexed for loop for better performance
+    const shields = Shield.shields;
+    for (let i = 0; i < shields.length; i++) {
+      const shield = shields[i];
       if (isInView(shield.pos, shield.radius)) {
         shield.draw();
       }
