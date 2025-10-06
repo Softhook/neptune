@@ -100,40 +100,57 @@ let eclipse;
 
 let alienKing = null;
 
-// Version Manager for GitHub API
+// Version Manager for GitHub API (date-based version string dd.mm.yyyy)
 class VersionManager {
   constructor() {
     this.versionInfo = {
-      commitHash: 'Loading...',
+      date: 'Loading...',
       commitMessage: 'Loading...',
       status: 'loading'
     };
     this.fetchVersion();
   }
 
+  formatDate(isoString) {
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
   async fetchVersion() {
     try {
-      // GitHub API endpoint for latest commit on main branch
       const apiUrl = 'https://api.github.com/repos/Softhook/neptune/commits/main';
-      
       const response = await fetch(apiUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data = await response.json();
-      
+
+      // Extract and format date (prefer author date)
+      const isoDate = (data.commit && data.commit.author && data.commit.author.date) ||
+                      (data.commit && data.commit.committer && data.commit.committer.date) ||
+                      new Date().toISOString();
+      const formattedDate = this.formatDate(isoDate);
+      const firstLineMessage = (data.commit?.message || 'No message').split('\n')[0];
+
       this.versionInfo = {
-        commitHash: data.sha.substring(0, 7), // Short hash
-        commitMessage: data.commit.message.split('\n')[0], // First line only
+        date: formattedDate,
+        commitMessage: firstLineMessage,
         status: 'loaded'
       };
-      
-      console.log(`Version loaded: ${this.versionInfo.commitHash} - ${this.versionInfo.commitMessage}`);
+      console.log(`Version loaded: ${formattedDate} - ${firstLineMessage}`);
     } catch (error) {
       console.error('Failed to fetch version from GitHub:', error);
+      const fallbackDate = this.formatDate(new Date().toISOString());
       this.versionInfo = {
-        commitHash: 'Unavailable',
+        date: fallbackDate,
         commitMessage: 'Could not fetch version',
         status: 'error'
       };
@@ -144,9 +161,9 @@ class VersionManager {
     if (this.versionInfo.status === 'loading') {
       return 'Version - Loading...';
     } else if (this.versionInfo.status === 'error') {
-      return 'Version - Unavailable';
+      return `Version ${this.versionInfo.date} - Unavailable`;
     } else {
-      return `Version ${this.versionInfo.commitHash} - ${this.versionInfo.commitMessage}`;
+      return `Version ${this.versionInfo.date} - ${this.versionInfo.commitMessage}`;
     }
   }
 }
