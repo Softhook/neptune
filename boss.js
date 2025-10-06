@@ -161,8 +161,8 @@ updateShape() {
     if (this.currentBurstFrame > 0) {
       this.currentBurstFrame--;
     } else if (!GameTimer.exists('queenBurstDefense')) {
-      let distToPlayerSq = this.getDistanceToPlayerSq();
-      if (distToPlayerSq < this.burstDefenseRadius * this.burstDefenseRadius) {
+      let distToPlayer = this.getDistanceToPlayer();
+      if (distToPlayer < this.burstDefenseRadius) {
         this.activateBurstDefense();
       }
     }
@@ -202,13 +202,6 @@ updateShape() {
   getDistanceToPlayer() {
     let playerPos = isWalking ? astronaut.pos : ship.pos;
     return this.pos.dist(playerPos);
-  }
-  
-  getDistanceToPlayerSq() {
-    let playerPos = isWalking ? astronaut.pos : ship.pos;
-    const dx = this.pos.x - playerPos.x;
-    const dy = this.pos.y - playerPos.y;
-    return dx * dx + dy * dy;
   }
 
   getColor() {
@@ -495,17 +488,9 @@ fireLaser() {
   
     return targets.reduce((closest, current) => {
       if (!current || !current.pos) return closest;
-      const dx = current.pos.x - this.pos.x;
-      const dy = current.pos.y - this.pos.y;
-      const dSq = dx * dx + dy * dy;
-      const shootingRangeSq = this.shootingRange * this.shootingRange;
-      
-      if (dSq < shootingRangeSq) {
-        if (!closest) return current;
-        const closestDx = closest.pos.x - this.pos.x;
-        const closestDy = closest.pos.y - this.pos.y;
-        const closestDSq = closestDx * closestDx + closestDy * closestDy;
-        if (dSq < closestDSq) return current;
+      let d = p5.Vector.dist(this.pos, current.pos);
+      if (d < this.shootingRange && (!closest || d < p5.Vector.dist(this.pos, closest.pos))) {
+        return current;
       }
       return closest;
     }, null);
@@ -538,12 +523,9 @@ fireLaser() {
     this.createTeleportEffect();
     
     let newPos;
-    const minDistSq = 500 * 500;
     do {
       newPos = createVector(random(600,worldWidth-600), random(height / 2)); //the 600 is to stop it getting too close to the edge
-      const dx = newPos.x - this.pos.x;
-      const dy = newPos.y - this.pos.y;
-    } while (dx * dx + dy * dy < minDistSq || !this.isValidPosition(newPos));
+    } while (this.pos.dist(newPos) < 500 || !this.isValidPosition(newPos));
     
     let displacement = p5.Vector.sub(newPos, this.pos);
     this.pos = newPos;
@@ -615,8 +597,8 @@ fireLaser() {
     if (this.currentBurstFrame > 0) {
       this.currentBurstFrame--;
     } else if (!GameTimer.exists('kingBurstDefense')) {
-      let distToPlayerSq = this.getDistanceToPlayerSq();
-      if (distToPlayerSq < this.burstDefenseRadius * this.burstDefenseRadius) {
+      let distToPlayer = this.getDistanceToPlayer();
+      if (distToPlayer < this.burstDefenseRadius) {
         this.activateBurstDefense();
       }
     }

@@ -28,22 +28,15 @@ class Meteor extends Entity {
 
   checkCollision() {  // Check collision wile inflight
     
-    if (!ship.isLanded) {
-      const dx = this.pos.x - ship.pos.x;
-      const dy = this.pos.y - ship.pos.y;
-      const minDist = (this.size + ship.size) / 2;
-      if (dx * dx + dy * dy < minDist * minDist) {
-        energy -= 2000; // High damage to flying ship
-        soundManager.play('shipHit');
-        return true;
-      }
+    if (!ship.isLanded && this.pos.dist(ship.pos) < (this.size + ship.size) / 2) {
+      energy -= 2000; // High damage to flying ship
+      soundManager.play('shipHit');
+      return true;
     }
 
     // Check collision with shields
     for (let shield of Shield.shields) {
-      const dx = this.pos.x - shield.pos.x;
-      const dy = this.pos.y - shield.pos.y;
-      if (dx * dx + dy * dy < shield.radius * shield.radius) {
+      if (this.pos.dist(shield.pos) < shield.radius) {
         shield.takeDamage(this.damage);
         return true; // Meteor disappears without exploding
       }
@@ -54,10 +47,7 @@ class Meteor extends Entity {
     for (let alienGroup of alienTypes) {
       for (let i = alienGroup.length - 1; i >= 0; i--) {
         let alien = alienGroup[i];
-        const dx = this.pos.x - alien.pos.x;
-        const dy = this.pos.y - alien.pos.y;
-        const minDist = (this.size + alien.size) / 2;
-        if (dx * dx + dy * dy < minDist * minDist) {
+        if (this.pos.dist(alien.pos) < (this.size + alien.size) / 2) {
           alien.health -= 30;
           
           // Don't return true here, allow the meteor to continue its flight
@@ -1520,19 +1510,12 @@ class QuantumStorm {
 
       // Update particles with quantum behavior
       this.quantumParticles.forEach(particle => {
-        // Chance to teleport when near vortex points - use squared distance
-        const teleportDistSq = 50 * 50;
-        for (let i = 0; i < this.vortexPoints.length; i++) {
-          const vortex = this.vortexPoints[i];
-          const dx = vortex.x - particle.pos.x;
-          const dy = vortex.y - particle.pos.y;
-          const distSq = dx * dx + dy * dy;
-          
-          if (distSq < teleportDistSq && random() < 0.1) {
+        // Chance to teleport when near vortex points
+        this.vortexPoints.forEach(vortex => {
+          if (particle.pos.dist(vortex) < 50 && random() < 0.1) {
             particle.teleport();
-            break; // Early exit after teleport
           }
-        }
+        });
         
         particle.update(this.vortexPoints, this.quantumRotation);
 
@@ -1558,16 +1541,13 @@ class QuantumStorm {
       noFill();
       strokeWeight(1.5);
       
-      // Pre-calculate triangle stroke color
-      const triangleStrokeAlpha = this.alpha * 0.8;
-      
       this.quantumParticles.forEach(particle => {
         if (isInView(particle.pos, particle.size)) {
           // Draw glowing triangle with rotation
           push();
           translate(particle.pos.x, particle.pos.y);
           rotate(particle.rotation);
-          stroke(190, 100, 100, triangleStrokeAlpha);
+          stroke(190, 100, 100, this.alpha * 0.8);
           triangle(
             -particle.size, -particle.size,
             particle.size, -particle.size,
@@ -1576,51 +1556,39 @@ class QuantumStorm {
           pop();
           
           // Draw connection lines to vortices
-          const maxDistSq = 150 * 150; // Pre-calculate squared distance for comparison
-          for (let i = 0; i < this.vortexPoints.length; i++) {
-            const vortex = this.vortexPoints[i];
-            const dx = vortex.x - particle.pos.x;
-            const dy = vortex.y - particle.pos.y;
-            const distSq = dx * dx + dy * dy;
-            
-            if (distSq < maxDistSq) {
-              const dist = Math.sqrt(distSq);
+          this.vortexPoints.forEach(vortex => {
+            if (particle.pos.dist(vortex) < 150) {
               stroke(
                 280, 
                 100, 
-                map(dist, 0, 150, 100, 30), 
+                map(particle.pos.dist(vortex), 0, 150, 100, 30), 
                 this.alpha * 0.3
               );
               line(particle.pos.x, particle.pos.y, vortex.x, vortex.y);
             }
-          }
+          });
         }
       });
       
-      // Draw vortex effects - batch fill/noStroke outside loop
-      fill(280, 100, 100, this.alpha * 0.2);
-      noStroke();
-      for (let i = 0; i < this.vortexPoints.length; i++) {
-        const vortex = this.vortexPoints[i];
+      // Draw vortex effects
+      this.vortexPoints.forEach(vortex => {
+        fill(280, 100, 100, this.alpha * 0.2);
+        noStroke();
         ellipse(vortex.x, vortex.y, 30, 30);
-      }
+      });
       
       pop();
     }
   }
 
   isShipNearParticle(particle) {
-    // Check if the ship is near the particle - use squared distance
-    const dx = ship.pos.x - particle.pos.x;
-    const dy = ship.pos.y - particle.pos.y;
-    return (dx * dx + dy * dy) < 2500; // 50 * 50
+    // Check if the ship is near the particle
+    return dist(ship.pos.x, ship.pos.y, particle.pos.x, particle.pos.y) < 50;
   }
 
   isAstronautNearParticle(particle) {
-    // Check if the astronaut is near the particle - use squared distance
-    const dx = astronaut.pos.x - particle.pos.x;
-    const dy = astronaut.pos.y - particle.pos.y;
-    return (dx * dx + dy * dy) < 2500; // 50 * 50
+    // Check if the astronaut is near the particle
+    return dist(astronaut.pos.x, astronaut.pos.y, particle.pos.x, particle.pos.y) < 50;
   }
 
   teleportPlayerShip() {
@@ -1659,21 +1627,15 @@ class QuantumParticle {
     this.trail.push(this.pos.copy());
     if (this.trail.length > 10) this.trail.shift();
 
-    // Apply multiple vortex influences - optimize with squared distance check first
-    const maxDistSq = 200 * 200;
-    for (let i = 0; i < vortexPoints.length; i++) {
-      const vortex = vortexPoints[i];
-      const dx = vortex.x - this.pos.x;
-      const dy = vortex.y - this.pos.y;
-      const distSq = dx * dx + dy * dy;
-      
-      if (distSq < maxDistSq) {
-        const distance = Math.sqrt(distSq);
-        let force = p5.Vector.sub(vortex, this.pos);
+    // Apply multiple vortex influences
+    vortexPoints.forEach(vortex => {
+      let force = p5.Vector.sub(vortex, this.pos);
+      let distance = force.mag();
+      if (distance < 200) {
         force.setMag(map(distance, 0, 200, 2, 0.1));
         this.velocity.add(force);
       }
-    }
+    });
 
     this.velocity.limit(3);
     this.pos.add(this.velocity);
@@ -1874,9 +1836,9 @@ drawBackgroundEffect() {
 
   drawThreads() {
     blendMode(ADD);
-    colorMode(HSB);
     noStroke();
     for (let thread of this.threads) {
+      colorMode(HSB);
       let alpha = thread.alpha * (this.alpha / 255);
       let hueShifted = (thread.hue + millis() / 100) % 360;
 
