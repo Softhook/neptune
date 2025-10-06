@@ -246,7 +246,7 @@ function draw() {
 }
 
 function averageFPS() {
-  if (!debug.isEnabled) return 0; // Return 0 if debug is not enabled
+  if (!debug || !debug.isEnabled) return 0; // Return 0 if debug is not enabled
   
   frameRates.push(frameRate());  // Always push the current frame rate
   if (millis() - lastFPSUpdateTime > FPS_UPDATE_INTERVAL) { // Time to update average?
@@ -318,7 +318,11 @@ function displayErrorScreen() {
 
 
 window.onerror = function(message, source, lineno, colno, error) { // Global error handler
-  debug.error("Unhandled error:", error);
+  if (debug) {
+    debug.error("Unhandled error:", error);
+  } else {
+    console.error("Unhandled error:", error);
+  }
   gameState = 'error';
   alert("An unexpected error occurred. The game will restart.");
   resetGame();
@@ -1106,11 +1110,11 @@ function handlePlayingState() {
   
   ///// New section
   // Debug controls
-  if (keyCode === 219) { 
+  if (keyCode === 219 && debug) { 
     debug.toggle();
     return false;
   }
-  if (keyCode === 221 && debug.isEnabled) {
+  if (keyCode === 221 && debug && debug.isEnabled) {
     debug.saveLogsToFile();
     return false;
   }
@@ -1419,7 +1423,7 @@ if (isWalking) {
     }
   }
 
-  if (debug.isEnabled) {
+  if (debug && debug.isEnabled) {
     text(`FPS: ${averageFPS().toFixed(2)}`, 10, height - 10);
   }
 
