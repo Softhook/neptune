@@ -3474,8 +3474,12 @@ class BaseDrone extends Drone {
       this.homeBase.pos.y
     );
     
-    let distFromBase = this.pos.dist(baseCenter);
-    if (distFromBase > this.patrolRadius) {
+    // Use squared distance for comparison (avoids sqrt)
+    const dx = this.pos.x - baseCenter.x;
+    const dy = this.pos.y - baseCenter.y;
+    const distSqFromBase = dx * dx + dy * dy;
+    const patrolRadiusSq = this.patrolRadius * this.patrolRadius;
+    if (distSqFromBase > patrolRadiusSq) {
       let direction = p5.Vector.sub(baseCenter, this.pos);
       direction.setMag(this.speed);
       this.vel = direction;
@@ -3592,7 +3596,12 @@ checkAlienCollision() {
   for (let alienGroup of alienTypes) {
     for (let i = alienGroup.length - 1; i >= 0; i--) {
       let alien = alienGroup[i];
-      if (this.pos.dist(alien.pos) < (this.size + alien.size) / 2) {
+      // Use squared distance for collision check (avoids sqrt)
+      const threshold = (this.size + alien.size) / 2;
+      const thresholdSq = threshold * threshold;
+      const dx = this.pos.x - alien.pos.x;
+      const dy = this.pos.y - alien.pos.y;
+      if (dx * dx + dy * dy < thresholdSq) {
         
         // Damadge the alien
         alien.health -= 5;
@@ -3608,11 +3617,15 @@ checkAlienCollision() {
   
   
   
-  // Check collision with AlienWorms
+  // Check collision with AlienWorms (use squared distance)
   for (let i = AlienWorm.worms.length - 1; i >= 0; i--) {
     let worm = AlienWorm.worms[i];
     for (let segment of worm.segments) {
-      if (this.pos.dist(segment.pos) < (this.size + segment.size) / 2) {
+      const threshold = (this.size + segment.size) / 2;
+      const thresholdSq = threshold * threshold;
+      const dx = this.pos.x - segment.pos.x;
+      const dy = this.pos.y - segment.pos.y;
+      if (dx * dx + dy * dy < thresholdSq) {
         // Damage the worm
         if (worm.takeDamage(2)) { // Assuming 2 damage per collision
           AlienWorm.worms.splice(i, 1);
@@ -4556,12 +4569,16 @@ canShootTarget() {
     return false;
   }
  
-  let distanceToTarget = this.pos.dist(this.currentTarget.pos);
+  // Use squared distance for comparison (avoids sqrt)
+  const dx = this.pos.x - this.currentTarget.pos.x;
+  const dy = this.pos.y - this.currentTarget.pos.y;
+  const distanceToTargetSq = dx * dx + dy * dy;
+  const attackRangeSq = this.attackRange * this.attackRange;
   let angleToTarget = p5.Vector.sub(this.currentTarget.pos, this.pos).heading();
   let angleDifference = (angleToTarget - this.angle + TWO_PI) % TWO_PI;
   if (angleDifference > PI) angleDifference = TWO_PI - angleDifference;
  
-  return distanceToTarget <= this.attackRange && angleDifference < 0.3;
+  return distanceToTargetSq <= attackRangeSq && angleDifference < 0.3;
 }
 
   attackBehavior() {
@@ -4602,8 +4619,13 @@ canShootTarget() {
   }
 
   checkCollisions() {
+    // Use squared distance for collision check (avoids sqrt)
     for (let alien of Alien.aliens) {
-      if (this.pos.dist(alien.pos) < (this.size + alien.size) / 2) {
+      const threshold = (this.size + alien.size) / 2;
+      const thresholdSq = threshold * threshold;
+      const dx = this.pos.x - alien.pos.x;
+      const dy = this.pos.y - alien.pos.y;
+      if (dx * dx + dy * dy < thresholdSq) {
         this.takeDamage(10);
         break;
       }
@@ -4717,13 +4739,17 @@ canShootTarget() {
 
   findNearestEnemy() {
     let nearest = null;
-    let minDist = Infinity;
+    let minDistSq = Infinity;
     const enemies = [...Alien.aliens, ...Hunter.hunters, ...Zapper.zappers, ...Destroyer.destroyers, ...AlienFortress.fortresses];
+    const attackRangeSq = this.attackRange * this.attackRange;
     
+    // Use squared distance for comparison (avoids sqrt)
     for (let enemy of enemies) {
-      const dist = this.pos.dist(enemy.pos);
-      if (dist < minDist && dist < this.attackRange) {
-        minDist = dist;
+      const dx = this.pos.x - enemy.pos.x;
+      const dy = this.pos.y - enemy.pos.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq && distSq < attackRangeSq) {
+        minDistSq = distSq;
         nearest = enemy;
       }
     }
@@ -4734,13 +4760,17 @@ canShootTarget() {
   findBombTarget() {
     let targets = [...Nest.nests, ...AlienFortress.fortresses, ...AlienWorm.worms];
     let nearestTarget = null;
-    let minDist = Infinity;
+    let minDistSq = Infinity;
+    const attackRangeSq = this.attackRange * this.attackRange;
 
+    // Use squared distance for comparison (avoids sqrt)
     for (let target of targets) {
       let targetPos = target instanceof AlienWorm ? target.segments[1].pos : target.pos;
-      let dist = this.pos.dist(targetPos);
-      if (dist < minDist && dist < this.attackRange) {
-        minDist = dist;
+      const dx = this.pos.x - targetPos.x;
+      const dy = this.pos.y - targetPos.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistSq && distSq < attackRangeSq) {
+        minDistSq = distSq;
         nearestTarget = target;
       }
     }
@@ -4945,19 +4975,27 @@ draw() {
   }
 
   checkCollisions() {
-    // Check collisions with AlienWorms
+    // Check collisions with AlienWorms (use squared distance to avoid sqrt)
     for (let worm of AlienWorm.worms) {
       for (let segment of worm.segments) {
-        if (this.pos.dist(segment.pos) < (this.size + segment.size) / 2) {
+        const threshold = (this.size + segment.size) / 2;
+        const thresholdSq = threshold * threshold;
+        const dx = this.pos.x - segment.pos.x;
+        const dy = this.pos.y - segment.pos.y;
+        if (dx * dx + dy * dy < thresholdSq) {
           this.takeDamage(1);
           break;
         }
       }
     }
 
-    // Check collisions with alien bullets
+    // Check collisions with alien bullets (use squared distance to avoid sqrt)
     for (let bullet of Bullet.activeObjects) {
-      if (!bullet.isPlayerBullet && this.pos.dist(bullet.pos) < (this.size + bullet.size) / 2) {
+      const threshold = (this.size + bullet.size) / 2;
+      const thresholdSq = threshold * threshold;
+      const dx = this.pos.x - bullet.pos.x;
+      const dy = this.pos.y - bullet.pos.y;
+      if (!bullet.isPlayerBullet && dx * dx + dy * dy < thresholdSq) {
         this.takeDamage(10);
         Bullet.recycle(bullet);
       }
@@ -5244,14 +5282,17 @@ move() {
     }
 
     let closestTarget = null;
-    let closestDistance = this.shootRange;
+    let closestDistanceSq = this.shootRange * this.shootRange;
 
+    // Use squared distance for comparison (avoids sqrt)
     for (let target of targets) {
       if (target && target.pos) {
-        let distance = this.pos.dist(target.pos);
-        if (distance < closestDistance) {
+        const dx = this.pos.x - target.pos.x;
+        const dy = this.pos.y - target.pos.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < closestDistanceSq) {
           closestTarget = target;
-          closestDistance = distance;
+          closestDistanceSq = distSq;
         }
       }
     }
@@ -5387,8 +5428,13 @@ move() {
   }
 
   checkBulletCollision() {
+    // Use squared distance for collision check (avoids sqrt)
     for (let bullet of Bullet.activeObjects) {
-      if (!bullet.isPlayerBullet && this.pos.dist(bullet.pos) < (this.size + bullet.size) / 2) {
+      const threshold = (this.size + bullet.size) / 2;
+      const thresholdSq = threshold * threshold;
+      const dx = this.pos.x - bullet.pos.x;
+      const dy = this.pos.y - bullet.pos.y;
+      if (!bullet.isPlayerBullet && dx * dx + dy * dy < thresholdSq) {
         this.takeDamage(10);
         Bullet.recycle(bullet);
         return true;
