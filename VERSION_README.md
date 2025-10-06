@@ -1,26 +1,30 @@
 # Version Information
 
-The game's title screen displays version information from the latest git commit.
+The game's title screen displays version information fetched directly from the GitHub API.
 
 ## How it works
 
-The version information is stored in `version.js`, which is auto-generated from git commit data. This file contains:
-- Commit hash (short form)
-- Commit message
-- Last updated timestamp
+The version information is fetched in real-time from GitHub's public API when the game loads:
+- API endpoint: `https://api.github.com/repos/Softhook/neptune/commits/main`
+- Displays: Commit hash (first 7 characters) and commit message (first line)
 
-## Updating Version Information
+The `VersionManager` class in `sketch.js` handles three states:
+1. **Loading** - Shows "Version - Loading..." while fetching
+2. **Success** - Shows "Version abc1234 - Commit message" when loaded
+3. **Error** - Shows "Version - Unavailable" if the API is unreachable
 
-After making commits, run the update script to refresh the version info:
+## Benefits
 
-```bash
-./update-version.sh
-```
+- ✅ No local files to maintain or update
+- ✅ Always shows the latest commit information from GitHub
+- ✅ No need to run scripts before deploying
+- ✅ Graceful degradation when offline or API unavailable
+- ✅ Works automatically on any deployment
 
-This will regenerate `version.js` with the latest commit information.
+## Legacy Files (No Longer Used)
 
-## Note
+The following files are no longer used and can be ignored:
+- `update-version.sh` - Previously used to generate version.js
+- `version.js` - No longer referenced in the code
 
-`version.js` is listed in `.gitignore` and should not be committed to the repository. Each developer or deployment should generate their own version file based on their local git state.
-
-When deploying or sharing the game, make sure to run `update-version.sh` first to ensure the version reflects the current commit.
+These files are kept for reference but are not part of the current implementation.

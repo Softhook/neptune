@@ -100,7 +100,58 @@ let eclipse;
 
 let alienKing = null;
 
+// Version Manager for GitHub API
+class VersionManager {
+  constructor() {
+    this.versionInfo = {
+      commitHash: 'Loading...',
+      commitMessage: 'Loading...',
+      status: 'loading'
+    };
+    this.fetchVersion();
+  }
 
+  async fetchVersion() {
+    try {
+      // GitHub API endpoint for latest commit on main branch
+      const apiUrl = 'https://api.github.com/repos/Softhook/neptune/commits/main';
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      this.versionInfo = {
+        commitHash: data.sha.substring(0, 7), // Short hash
+        commitMessage: data.commit.message.split('\n')[0], // First line only
+        status: 'loaded'
+      };
+      
+      console.log(`Version loaded: ${this.versionInfo.commitHash} - ${this.versionInfo.commitMessage}`);
+    } catch (error) {
+      console.error('Failed to fetch version from GitHub:', error);
+      this.versionInfo = {
+        commitHash: 'Unavailable',
+        commitMessage: 'Could not fetch version',
+        status: 'error'
+      };
+    }
+  }
+
+  getVersionText() {
+    if (this.versionInfo.status === 'loading') {
+      return 'Version - Loading...';
+    } else if (this.versionInfo.status === 'error') {
+      return 'Version - Unavailable';
+    } else {
+      return `Version ${this.versionInfo.commitHash} - ${this.versionInfo.commitMessage}`;
+    }
+  }
+}
+
+let versionManager;
 
 function setup() {
   createCanvas(1200, 800);
@@ -108,6 +159,7 @@ function setup() {
   windSound = new WindSoundGenerator();
   createBackgroundGraphics();
   debug  = Debug.getInstance();
+  versionManager = new VersionManager();
   gameState = 'loading';
   skyColors = [NIGHT, DAWN, DAY, DUSK, NIGHT].map(c => color(...c)); // Precompute color arrays for faster interpolation
   
@@ -844,10 +896,8 @@ function displayTitleScreen() {
     textSize(25);
   text("CHRISTIAN NOLD + SEBASTIAN NOLD BORASCHI", width / 2, height / 2 + 120);
   textSize(12);
-  // Display version from git commit info
-  let versionText = typeof VERSION_INFO !== 'undefined' 
-    ? `Version ${VERSION_INFO.commitHash} - ${VERSION_INFO.commitMessage}`
-    : "Version - Unknown";
+  // Display version from GitHub API
+  let versionText = versionManager ? versionManager.getVersionText() : "Version - Loading...";
   text(versionText, width / 2, height / 2 + 160);
   
   let pulseOpacity = sin(frameCount * 0.05) * 127 + 128; // Value between 1 and 255 
