@@ -35,8 +35,8 @@
 - Numeric hotkeys (`1–5`) remain untouched for the alien role and bypass the radial system entirely.
 
 ## Implementation Checklist
-1. Add an `ActionMenu` module that provides action descriptors (`id`, `label`, `icon`, `isEnabled`, `onSelect`).
-2. Inject context providers (ship, astronaut) to assemble filtered action lists per frame.
+1. Add an `ActionMenu` module
+2. Inject context providers (ship, astronaut) to assemble filtered action lists
 3. Extend input handling so `A` hold logic opens the menu, caches last actions, and respects other UI states.
-4. Render the radial UI with cooldown/resource feedback and integrate the HUD hint system.
+4. Render the radial UI with cooldown.
 5. Playtest keyboard and controller builds to tune hold thresholds, selection snapping, and favourite defaults.
