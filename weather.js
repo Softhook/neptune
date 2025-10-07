@@ -1927,19 +1927,23 @@ class LightningStorm {
   constructor() {
     this.isActive = false;
     this.isWarning = false;
-    this.warningDuration = 180; // 3 seconds
+    this.warningDuration = 600; // 10 seconds
     this.stormDuration = 1200; // 20 seconds
     this.alpha = 0;
-    this.stormProbability = 0.00002;
+    //this.stormProbability = 0.00002;
+    this.stormProbability = 0.02;
     this.warningTimer = 0;
     this.stormTimer = 0;
-    this.lightningBolts = [];
+    this.lightningBolts = []; // Main bolt objects
     this.maxBolts = 3; // Maximum simultaneous lightning bolts
     this.boltCooldown = 0;
     this.minBoltInterval = 30; // Minimum frames between bolts
     this.maxBoltInterval = 90; // Maximum frames between bolts
     this.flashAlpha = 0;
     this.flashDecay = 30; // How fast the screen flash fades
+    // New effect containers
+    this.sparks = []; // Small particle sparks at impact points
+    this.scorchMarks = []; // Fading ground scorch marks
   }
 
   activate() {
@@ -1947,7 +1951,7 @@ class LightningStorm {
     this.warningTimer = this.warningDuration;
     this.isActive = false;
     this.alpha = 0;
-    announcer.speak("Lightning Storm Warning!", 0, 2);
+    announcer.speak("Warning Lightning in 10 seconds! Your engines will be disabled", 0, 2);
   }
 
   update() {
@@ -1968,8 +1972,16 @@ class LightningStorm {
       
       // Update lightning bolts
       for (let i = this.lightningBolts.length - 1; i >= 0; i--) {
-        this.lightningBolts[i].life--;
-        if (this.lightningBolts[i].life <= 0) {
+        const bolt = this.lightningBolts[i];
+        bolt.life--;
+        // Update branch lifetimes
+        for (let b = bolt.branches.length - 1; b >= 0; b--) {
+          bolt.branches[b].life--;
+          if (bolt.branches[b].life <= 0) {
+            bolt.branches.splice(b, 1);
+          }
+        }
+        if (bolt.life <= 0) {
           this.lightningBolts.splice(i, 1);
         }
       }
@@ -2003,6 +2015,8 @@ class LightningStorm {
     this.stormTimer = this.stormDuration;
     this.lightningBolts = [];
     this.boltCooldown = 10; // Start quickly
+    // Lock all ship and wingman engines
+    Ship.enginesLocked = true;
     
     // Auto-deploy player ship parachute
     if (!ship.isLanded && ship.hasParachute && !ship.parachuteDeployed) {
@@ -2024,79 +2038,110 @@ class LightningStorm {
   }
 
   createLightningBolt() {
-    // Create a lightning bolt from random position at top of screen
+    // Core bolt start/end
     const startX = random(worldWidth);
     const startY = 0;
-    const endX = startX + random(-100, 100); // Some horizontal variance
-    const endY = random(height * 0.5, height); // Strike to mid-lower screen
-    
-    // Generate lightning path with branches
-    const segments = this.generateLightningPath(startX, startY, endX, endY);
-    
-    this.lightningBolts.push({
-      segments: segments,
-      life: 15, // Frames the bolt stays visible
-      maxLife: 15,
-      thickness: random(2, 4)
-    });
+    const endX = startX + random(-80, 80);
+    // Find surface height at endX so bolt always reaches ground
+    const surfaceY = getCachedSurfaceYAtX(endX);
+    // Slight offset above ground for visual separation
+    const endY = surfaceY - random(2, 6);
+
+    const bolt = this.generateFractalBolt(startX, startY, endX, endY);
+    // Ensure final point is at (or just above) ground after subdivision jitter
+    bolt.points[bolt.points.length - 1].y = getCachedSurfaceYAtX(bolt.points[bolt.points.length - 1].x) - 1;
+    this.lightningBolts.push(bolt);
+    this.createImpactEffects(bolt);
   }
 
-  generateLightningPath(x1, y1, x2, y2) {
-    const segments = [];
-    const numSegments = floor(random(8, 15));
-    let currentX = x1;
-    let currentY = y1;
-    
-    for (let i = 0; i <= numSegments; i++) {
-      const t = i / numSegments;
-      const targetX = lerp(x1, x2, t);
-      const targetY = lerp(y1, y2, t);
-      
-      // Add jagged offset except for start and end
-      const jitterX = (i > 0 && i < numSegments) ? random(-30, 30) : 0;
-      const jitterY = (i > 0 && i < numSegments) ? random(-20, 20) : 0;
-      
-      const nextX = targetX + jitterX;
-      const nextY = targetY + jitterY;
-      
-      segments.push({
-        x1: currentX,
-        y1: currentY,
-        x2: nextX,
-        y2: nextY
+  // --- Fractal Bolt Generation (midpoint displacement + branching) ---
+  generateFractalBolt(x1, y1, x2, y2) {
+    const basePoints = [createVector(x1, y1), createVector(x2, y2)];
+    this.subdivideBolt(basePoints, 80, 0.55, 6); // displacement, roughness, min segment length
+
+    // Build branches off random main path points
+    const branches = [];
+    const branchCount = floor(random(1, 4));
+    for (let i = 0; i < branchCount; i++) {
+      const idx = floor(random(2, basePoints.length - 2));
+      const anchor = basePoints[idx];
+      const branchEnd = p5.Vector.add(
+        anchor,
+        createVector(random(-120, 120), random(40, 180))
+      );
+      const bPoints = [anchor.copy(), branchEnd];
+      this.subdivideBolt(bPoints, 40, 0.6, 8);
+      branches.push({
+        points: bPoints,
+        life: 10,
+        maxLife: 10
       });
-      
-      currentX = nextX;
-      currentY = nextY;
-      
-      // Occasionally add a branch (20% chance per segment)
-      if (i < numSegments - 2 && random() < 0.2) {
-        const branchEndX = currentX + random(-80, 80);
-        const branchEndY = currentY + random(50, 150);
-        const branchSegments = floor(random(2, 5));
-        
-        let branchX = currentX;
-        let branchY = currentY;
-        
-        for (let j = 1; j <= branchSegments; j++) {
-          const bt = j / branchSegments;
-          const bNextX = lerp(currentX, branchEndX, bt) + random(-15, 15);
-          const bNextY = lerp(currentY, branchEndY, bt) + random(-10, 10);
-          
-          segments.push({
-            x1: branchX,
-            y1: branchY,
-            x2: bNextX,
-            y2: bNextY
-          });
-          
-          branchX = bNextX;
-          branchY = bNextY;
-        }
+    }
+
+    return {
+      points: basePoints,
+      branches: branches,
+      life: 18,
+      maxLife: 18,
+      thickness: random(2.2, 3.8),
+      pulsePhase: random(TWO_PI)
+    };
+  }
+
+  subdivideBolt(points, displacement, roughness, minSeg) {
+    // Recursive midpoint displacement for natural lightning
+    for (let i = points.length - 1; i > 0; i--) {
+      const a = points[i - 1];
+      const b = points[i];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minSeg * minSeg) continue; // segment small enough
+      const mid = createVector((a.x + b.x) / 2, (a.y + b.y) / 2);
+      // Perpendicular jitter
+      const perp = createVector(-dy, dx).setMag(random(-displacement, displacement));
+      mid.add(perp);
+      points.splice(i, 0, mid);
+    }
+    displacement *= roughness;
+    if (displacement > 3) {
+      this.subdivideBolt(points, displacement, roughness, minSeg);
+    }
+  }
+
+  createImpactEffects(bolt) {
+    // Determine end point (last point of main bolt)
+    const end = bolt.points[bolt.points.length - 1];
+    // Re-snap defensively
+    end.y = getCachedSurfaceYAtX(end.x) - 1;
+    // Play impact sound (distinct from zapper if available)
+    if (soundManager && soundManager.play) {
+      // Try a dedicated lightning impact sound name first; fallback to existing
+      if (soundManager.has && soundManager.has('lightningImpact')) {
+        soundManager.play('lightningImpact');
+      } else {
+        soundManager.play('zapperFire');
       }
     }
-    
-    return segments;
+    // Sparks
+    const sparkCount = floor(random(4, 10));
+    for (let i = 0; i < sparkCount; i++) {
+      this.sparks.push({
+        pos: end.copy(),
+        vel: p5.Vector.random2D().mult(random(1, 3)).add(createVector(0, random(0.5, 2))),
+        life: random(15, 35),
+        maxLife: 0, // Will set after
+        hue: random(190, 230)
+      });
+      this.sparks[this.sparks.length - 1].maxLife = this.sparks[this.sparks.length - 1].life;
+    }
+    // Scorch mark
+    this.scorchMarks.push({
+      x: end.x,
+      y: getCachedSurfaceYAtX(end.x),
+      alpha: 180,
+      size: random(18, 40)
+    });
   }
 
   draw() {
@@ -2124,44 +2169,154 @@ class LightningStorm {
 
   drawLightningBolts() {
     push();
-    strokeWeight(1);
-    
+    // Additive blending for glow layering
+    blendMode(ADD);
+    strokeJoin(ROUND);
+    strokeCap(ROUND);
+
     for (let bolt of this.lightningBolts) {
-      // Calculate fade based on bolt life
-      const fadeAlpha = map(bolt.life, 0, bolt.maxLife, 0, 255);
-      
-      // Draw outer glow (thicker, more transparent)
-      stroke(150, 180, 255, fadeAlpha * 0.3);
-      strokeWeight(bolt.thickness * 3);
-      for (let seg of bolt.segments) {
-        line(seg.x1, seg.y1, seg.x2, seg.y2);
-      }
-      
-      // Draw middle layer
-      stroke(200, 220, 255, fadeAlpha * 0.6);
-      strokeWeight(bolt.thickness * 1.5);
-      for (let seg of bolt.segments) {
-        line(seg.x1, seg.y1, seg.x2, seg.y2);
-      }
-      
-      // Draw core (brightest)
-      stroke(255, 255, 255, fadeAlpha);
+      const lifeT = bolt.life / bolt.maxLife;
+      const pulse = (sin(frameCount * 0.5 + bolt.pulsePhase) * 0.5 + 0.5) * 0.4 + 0.6; // 0.6 - 1.0
+      const coreAlpha = 255 * lifeT;
+      const glowAlpha = 120 * lifeT * pulse;
+
+      // Translucent tapered ribbon fill (before strokes) to bring back earlier look without harsh polygon
+      this.drawBoltRibbon(bolt.points, glowAlpha * 0.22, bolt.thickness, pulse);
+
+      // Outer glow pass
+      stroke(180, 200, 255, glowAlpha * 0.35);
+      strokeWeight(bolt.thickness * 4.5);
+      this.drawBoltPolyline(bolt.points);
+      bolt.branches.forEach(br => {
+        const t = br.life / br.maxLife;
+        stroke(170, 200, 255, glowAlpha * 0.25 * t);
+        strokeWeight(bolt.thickness * 2.8);
+        this.drawBoltPolyline(br.points);
+      });
+
+      // Middle glow
+      stroke(200, 230, 255, glowAlpha * 0.6);
+      strokeWeight(bolt.thickness * 2.2);
+      this.drawBoltPolyline(bolt.points);
+      bolt.branches.forEach(br => {
+        const t = br.life / br.maxLife;
+        stroke(200, 230, 255, glowAlpha * 0.5 * t);
+        strokeWeight(bolt.thickness * 1.4);
+        this.drawBoltPolyline(br.points);
+      });
+
+      // Core
+      stroke(255, 255, 255, coreAlpha);
       strokeWeight(bolt.thickness);
-      for (let seg of bolt.segments) {
-        line(seg.x1, seg.y1, seg.x2, seg.y2);
-      }
+      this.drawBoltPolyline(bolt.points);
+      bolt.branches.forEach(br => {
+        const t = br.life / br.maxLife;
+        stroke(255, 255, 255, coreAlpha * 0.7 * t);
+        strokeWeight(bolt.thickness * 0.6);
+        this.drawBoltPolyline(br.points);
+      });
     }
-    
+
+    // Sparks (after main bolts to merge glow nicely)
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const s = this.sparks[i];
+      const t = s.life / s.maxLife;
+      push();
+      colorMode(HSB, 360, 255, 255, 255);
+      fill(s.hue, 200, 255, 255 * t);
+      noStroke();
+      ellipse(s.pos.x, s.pos.y, 3 + (1 - t) * 3);
+      pop();
+      s.pos.add(s.vel);
+      s.vel.mult(0.95);
+      s.life--;
+      if (s.life <= 0) this.sparks.splice(i, 1);
+    }
+
+    blendMode(BLEND);
     pop();
+
+    // Draw scorch marks (below additive layer, simple dark ellipses)
+    push();
+    noStroke();
+    for (let i = this.scorchMarks.length - 1; i >= 0; i--) {
+      const m = this.scorchMarks[i];
+      fill(50, 50, 60, m.alpha);
+      ellipse(m.x, m.y, m.size, m.size * 0.5);
+      m.alpha -= 2;
+      if (m.alpha <= 0) this.scorchMarks.splice(i, 1);
+    }
+    pop();
+  }
+
+  drawBoltPolyline(points) {
+    // Draw as individual line segments (no fill) to avoid accidental polygon fills
+    noFill();
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      // jitter only applied to interior points when computing their displayed position
+      const jxA = (i > 0 && i < points.length - 1) ? this._jitter(a.x, a.y).x : a.x;
+      const jyA = (i > 0 && i < points.length - 1) ? this._jitter(a.x, a.y).y : a.y;
+      const jxB = (i + 1 > 0 && i + 1 < points.length - 1) ? this._jitter(b.x, b.y).x : b.x;
+      const jyB = (i + 1 > 0 && i + 1 < points.length - 1) ? this._jitter(b.x, b.y).y : b.y;
+      line(jxA, jyA, jxB, jyB);
+    }
+  }
+
+  _jitter(x, y) {
+    const n = noise(x * 0.02, y * 0.02, frameCount * 0.1);
+    const angle = n * TWO_PI;
+    const mag = 0.6;
+    return createVector(x + cos(angle) * mag, y + sin(angle) * mag);
+  }
+
+  drawBoltRibbon(points, alpha, baseThickness, pulse) {
+    if (points.length < 2) return;
+    // Draw a tapered quad strip using two offset polylines; no closing back to start
+    noStroke();
+    const maxWidth = baseThickness * 3.2 * pulse;
+    beginShape(TRIANGLE_STRIP);
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      // Normalized position along bolt
+      const t = i / (points.length - 1);
+      // Taper: wider near middle, narrower at ends (bell curve)
+      const bell = sin(t * PI); // 0 -> 1 -> 0
+      const width = maxWidth * bell;
+      // Direction vector (forward)
+      let dir;
+      if (i === points.length - 1) {
+        dir = p5.Vector.sub(points[i], points[i - 1]);
+      } else {
+        dir = p5.Vector.sub(points[i + 1], points[i]);
+      }
+      dir.normalize();
+      // Perp
+      const perp = createVector(-dir.y, dir.x).mult(width * 0.5);
+      // Mild jitter so sides are organic
+      const jitter = this._jitter(p.x, p.y);
+      const jx = jitter.x - p.x;
+      const jy = jitter.y - p.y;
+      // Color shift slightly by t for subtle gradient
+      const edgeAlpha = alpha * (0.6 + 0.4 * bell);
+      fill(190 + 30 * (1 - bell), 210, 255, edgeAlpha); // HSB-like assumption; p5 in RGB so values approximate bluish tint
+      vertex(p.x + perp.x + jx * 0.3, p.y + perp.y + jy * 0.3);
+      vertex(p.x - perp.x + jx * 0.3, p.y - perp.y + jy * 0.3);
+    }
+    endShape();
   }
 
   disableThrust() {
     // Disable player ship thrust
     ship.isThrusting = false;
+    // Light damping to prevent indefinite upward drift if already moving
+    ship.vel.y *= 0.995;
     
     // Disable all wingmen thrust
     for (let wingman of Wingman.wingmen) {
       wingman.isThrusting = false;
+      wingman.vel.y *= 0.995;
     }
     
     // Disable cruise missile thrust (if active)
@@ -2173,6 +2328,8 @@ class LightningStorm {
   deactivate() {
     this.isActive = false;
     this.lightningBolts = [];
+    // Unlock engines when storm ends
+    Ship.enginesLocked = false;
     announcer.speak("Lightning Storm has passed.", 0, 2);
   }
 

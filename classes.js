@@ -895,6 +895,8 @@ class Astronaut extends Entity {
 }
 
 class Ship extends Entity {
+  // Static flag to allow global disabling of thrust (e.g., during lightning storms)
+  static enginesLocked = false;
   constructor(pos, vel, size) {
     super(pos, vel, size);
     this.angle = -PI / 2;
@@ -995,6 +997,12 @@ class Ship extends Entity {
   }
 
   thrust() {
+    // Prevent thrust when a global engine lock (e.g., Lightning Storm) is active
+    if (Ship.enginesLocked) {
+      this.isThrusting = false;
+      return; // Early exit: engines are disabled
+    }
+
     if (energy > 0 && !this.isZapped) {
       const thrust = p5.Vector.fromAngle(this.angle, this.thrustPower);
       this.vel.add(thrust);
