@@ -104,7 +104,15 @@ Many entities modify `moonSurface[]` array (bombs, meteors). Always:
 - Player achievements and warnings
 
 ## Development Environment
-Simple p5.js browser-based game - open `index.html` directly in browser. No build process required.
+
+### Running the Game
+Simple p5.js browser-based game - open `index.htm` directly in browser. No build process required.
+
+**Steps to run:**
+1. Open `index.htm` in a modern web browser (Chrome/Edge recommended for best performance)
+2. The game will load automatically
+3. Press ENTER at the title screen to start
+4. Press `[` key during gameplay to enable debug mode and see FPS counter
 
 **Script loading order** (critical for dependencies):
 ```html
@@ -112,8 +120,34 @@ Simple p5.js browser-based game - open `index.html` directly in browser. No buil
 <script src="classes.js"></script>   <!-- Core entities -->
 <script src="aliens.js"></script>    <!-- Alien ecosystem -->
 <script src="gamestate.js"></script> <!-- Save/load system -->
-<!-- Additional modules... -->
+<script src="missions.js"></script>  <!-- Mission system -->
+<script src="weather.js"></script>   <!-- Weather effects -->
+<script src="narrative.js"></script> <!-- Narration -->
+<script src="boss.js"></script>      <!-- Boss entities -->
 ```
+
+### Code Quality & Validation
+
+**Syntax validation:**
+```bash
+node -c sketch.js
+node -c classes.js
+node -c aliens.js
+node -c weather.js
+node -c boss.js
+node -c gamestate.js
+node -c missions.js
+node -c narrative.js
+```
+
+**Always validate syntax after making changes** - The game has no automated tests, so syntax checking is critical.
+
+### Browser Developer Tools
+Use browser DevTools for debugging and performance profiling:
+- **Console** (F12): View debug logs and errors
+- **Performance tab**: Profile frame rendering and identify bottlenecks
+- **Sources tab**: Set breakpoints for debugging game logic
+- Monitor functions: `drawGame()`, `updateGame()`, `Bullet.drawBullets()`, `Alien.updateAliens()`
 
 ## Common Gotchas
 - **Energy bounds**: Always check `energy = Math.min(energy, maxEnergy)` after modifications
@@ -150,3 +184,47 @@ debug.setVisualDebug(key, value);  // On-screen debug display
 - Always test save/load after entity changes (serialization is complex)
 - Use `debug.measureExecutionTime(func, label)` for performance analysis
 - Verify `energy = Math.min(energy, maxEnergy)` bounds after modifications
+
+### Manual Testing Checklist
+After making code changes, verify:
+1. **Syntax validation** with `node -c <filename>.js`
+2. **Visual output** - Open game in browser, check rendering is correct
+3. **Gameplay** - Test affected features work as expected
+4. **Save/Load** - Use F5/F6 to verify state persistence (if entities modified)
+5. **Performance** - Enable debug mode with `[` key, monitor FPS
+6. **Console errors** - Check browser console for JavaScript errors
+
+## Code Modification Guidelines
+
+### When Adding New Features
+- **Minimal changes**: Only modify what's necessary to implement the feature
+- **Preserve existing behavior**: Don't break unrelated functionality
+- **Follow patterns**: Use existing code patterns (Entity inheritance, static collections, etc.)
+- **Test thoroughly**: Manual testing is essential since there are no automated tests
+
+### When Fixing Bugs
+- **Identify root cause**: Understand why the bug occurs before fixing
+- **Minimal fix**: Change as few lines as possible
+- **Verify fix**: Test the specific scenario that triggered the bug
+- **Check side effects**: Ensure the fix doesn't break other features
+
+### Security & Best Practices
+- **No credentials in code**: Never commit API keys, passwords, or tokens
+- **Safe DOM manipulation**: The game uses p5.js canvas - avoid raw HTML injection
+- **Input validation**: Validate user input in upgrade screens and save/load system
+- **Error handling**: Wrap risky operations in try-catch (see global error handler pattern)
+
+### Performance Expectations
+- **Target FPS**: 30-60 FPS depending on scenario complexity
+- **Light scenarios**: 55-60 FPS (few entities, no weather)
+- **Heavy scenarios**: 30-45 FPS (100+ aliens, multiple weather effects, boss fights)
+- **Always use squared distance** for collision detection (avoid `sqrt()`)
+- **Batch graphics state changes** (fill/stroke calls outside loops)
+- **Use view culling** with `isInView()` for off-screen entities
+
+## Documentation
+Refer to performance optimization documentation in repository:
+- **OPTIMIZATIONS.md** - Detailed technical documentation of 23 optimizations
+- **PERFORMANCE_TESTS.md** - Testing methodology and validation procedures
+- **PERFORMANCE_README.md** - Quick start guide for FPS monitoring and benchmarks
+- **SUMMARY.md** - High-level overview and performance metrics
