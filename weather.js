@@ -1922,3 +1922,261 @@ drawBackgroundEffect() {
     return this.isActive;
   }
 }
+
+class LightningStorm {
+  constructor() {
+    this.isActive = false;
+    this.isWarning = false;
+    this.warningDuration = 180; // 3 seconds
+    this.stormDuration = 1200; // 20 seconds
+    this.alpha = 0;
+    this.stormProbability = 0.00002;
+    this.warningTimer = 0;
+    this.stormTimer = 0;
+    this.lightningBolts = [];
+    this.maxBolts = 3; // Maximum simultaneous lightning bolts
+    this.boltCooldown = 0;
+    this.minBoltInterval = 30; // Minimum frames between bolts
+    this.maxBoltInterval = 90; // Maximum frames between bolts
+    this.flashAlpha = 0;
+    this.flashDecay = 30; // How fast the screen flash fades
+  }
+
+  activate() {
+    this.isWarning = true;
+    this.warningTimer = this.warningDuration;
+    this.isActive = false;
+    this.alpha = 0;
+    announcer.speak("Lightning Storm Warning!", 0, 2);
+  }
+
+  update() {
+    if (!this.isActive && !this.isWarning && random() < this.stormProbability) {
+      this.activate();
+    }
+
+    if (this.isWarning) {
+      this.warningTimer--;
+      if (this.warningTimer <= 0) {
+        this.startStorm();
+      }
+    }
+
+    if (this.isActive) {
+      this.stormTimer--;
+      this.updateAlpha();
+      
+      // Update lightning bolts
+      for (let i = this.lightningBolts.length - 1; i >= 0; i--) {
+        this.lightningBolts[i].life--;
+        if (this.lightningBolts[i].life <= 0) {
+          this.lightningBolts.splice(i, 1);
+        }
+      }
+
+      // Create new lightning bolts
+      if (this.boltCooldown <= 0 && this.lightningBolts.length < this.maxBolts) {
+        this.createLightningBolt();
+        this.boltCooldown = floor(random(this.minBoltInterval, this.maxBoltInterval));
+        this.flashAlpha = 100; // Trigger screen flash
+        soundManager.play('zapperFire'); // Reuse existing zapper sound for lightning
+      }
+      this.boltCooldown--;
+
+      // Fade screen flash
+      if (this.flashAlpha > 0) {
+        this.flashAlpha = max(0, this.flashAlpha - this.flashDecay);
+      }
+
+      // Apply effects to ships and missiles
+      this.disableThrust();
+
+      if (this.stormTimer <= 0) {
+        this.deactivate();
+      }
+    }
+  }
+
+  startStorm() {
+    this.isWarning = false;
+    this.isActive = true;
+    this.stormTimer = this.stormDuration;
+    this.lightningBolts = [];
+    this.boltCooldown = 10; // Start quickly
+    
+    // Auto-deploy player ship parachute
+    if (!ship.isLanded && ship.hasParachute && !ship.parachuteDeployed) {
+      ship.parachuteDeployed = true;
+    }
+    
+    announcer.speak("Lightning Storm! All engines disabled!", 0, 2);
+  }
+
+  updateAlpha() {
+    const fadeDuration = 60;
+    if (this.stormTimer > this.stormDuration - fadeDuration) {
+      this.alpha = map(this.stormDuration - this.stormTimer, 0, fadeDuration, 0, 150);
+    } else if (this.stormTimer < fadeDuration) {
+      this.alpha = map(this.stormTimer, 0, fadeDuration, 0, 150);
+    } else {
+      this.alpha = 150;
+    }
+  }
+
+  createLightningBolt() {
+    // Create a lightning bolt from random position at top of screen
+    const startX = random(worldWidth);
+    const startY = 0;
+    const endX = startX + random(-100, 100); // Some horizontal variance
+    const endY = random(height * 0.5, height); // Strike to mid-lower screen
+    
+    // Generate lightning path with branches
+    const segments = this.generateLightningPath(startX, startY, endX, endY);
+    
+    this.lightningBolts.push({
+      segments: segments,
+      life: 15, // Frames the bolt stays visible
+      maxLife: 15,
+      thickness: random(2, 4)
+    });
+  }
+
+  generateLightningPath(x1, y1, x2, y2) {
+    const segments = [];
+    const numSegments = floor(random(8, 15));
+    let currentX = x1;
+    let currentY = y1;
+    
+    for (let i = 0; i <= numSegments; i++) {
+      const t = i / numSegments;
+      const targetX = lerp(x1, x2, t);
+      const targetY = lerp(y1, y2, t);
+      
+      // Add jagged offset except for start and end
+      const jitterX = (i > 0 && i < numSegments) ? random(-30, 30) : 0;
+      const jitterY = (i > 0 && i < numSegments) ? random(-20, 20) : 0;
+      
+      const nextX = targetX + jitterX;
+      const nextY = targetY + jitterY;
+      
+      segments.push({
+        x1: currentX,
+        y1: currentY,
+        x2: nextX,
+        y2: nextY
+      });
+      
+      currentX = nextX;
+      currentY = nextY;
+      
+      // Occasionally add a branch (20% chance per segment)
+      if (i < numSegments - 2 && random() < 0.2) {
+        const branchEndX = currentX + random(-80, 80);
+        const branchEndY = currentY + random(50, 150);
+        const branchSegments = floor(random(2, 5));
+        
+        let branchX = currentX;
+        let branchY = currentY;
+        
+        for (let j = 1; j <= branchSegments; j++) {
+          const bt = j / branchSegments;
+          const bNextX = lerp(currentX, branchEndX, bt) + random(-15, 15);
+          const bNextY = lerp(currentY, branchEndY, bt) + random(-10, 10);
+          
+          segments.push({
+            x1: branchX,
+            y1: branchY,
+            x2: bNextX,
+            y2: bNextY
+          });
+          
+          branchX = bNextX;
+          branchY = bNextY;
+        }
+      }
+    }
+    
+    return segments;
+  }
+
+  draw() {
+    if (this.isWarning || this.isActive) {
+      this.drawBackgroundTint();
+    }
+
+    if (this.isActive) {
+      this.drawScreenFlash();
+      this.drawLightningBolts();
+    }
+  }
+
+  drawBackgroundTint() {
+    fill(50, 50, 100, this.alpha * 0.4);
+    rect(0, 0, worldWidth, height);
+  }
+
+  drawScreenFlash() {
+    if (this.flashAlpha > 0) {
+      fill(255, 255, 255, this.flashAlpha);
+      rect(0, 0, worldWidth, height);
+    }
+  }
+
+  drawLightningBolts() {
+    push();
+    strokeWeight(1);
+    
+    for (let bolt of this.lightningBolts) {
+      // Calculate fade based on bolt life
+      const fadeAlpha = map(bolt.life, 0, bolt.maxLife, 0, 255);
+      
+      // Draw outer glow (thicker, more transparent)
+      stroke(150, 180, 255, fadeAlpha * 0.3);
+      strokeWeight(bolt.thickness * 3);
+      for (let seg of bolt.segments) {
+        line(seg.x1, seg.y1, seg.x2, seg.y2);
+      }
+      
+      // Draw middle layer
+      stroke(200, 220, 255, fadeAlpha * 0.6);
+      strokeWeight(bolt.thickness * 1.5);
+      for (let seg of bolt.segments) {
+        line(seg.x1, seg.y1, seg.x2, seg.y2);
+      }
+      
+      // Draw core (brightest)
+      stroke(255, 255, 255, fadeAlpha);
+      strokeWeight(bolt.thickness);
+      for (let seg of bolt.segments) {
+        line(seg.x1, seg.y1, seg.x2, seg.y2);
+      }
+    }
+    
+    pop();
+  }
+
+  disableThrust() {
+    // Disable player ship thrust
+    ship.isThrusting = false;
+    
+    // Disable all wingmen thrust
+    for (let wingman of Wingman.wingmen) {
+      wingman.isThrusting = false;
+    }
+    
+    // Disable cruise missile thrust (if active)
+    if (activeMissile && activeMissile.active) {
+      activeMissile.fuel = max(0, activeMissile.fuel - 5); // Rapidly drain fuel
+    }
+  }
+
+  deactivate() {
+    this.isActive = false;
+    this.lightningBolts = [];
+    announcer.speak("Lightning Storm has passed.", 0, 2);
+  }
+
+  isStormActive() {
+    return this.isActive;
+  }
+}

@@ -97,6 +97,7 @@ let rainbowrain;
 let storm;
 let quantumStorm;
 let eclipse;
+let lightningStorm;
 
 let alienKing = null;
 
@@ -190,6 +191,7 @@ function setup() {
   storm = new Storm();
   quantumStorm = new QuantumStorm();
   eclipse = new Eclipse();
+  lightningStorm = new LightningStorm();
   
   
   alienQueen = AlienQueen.create();
@@ -530,6 +532,7 @@ function drawGame() {
   storm.draw();
   quantumStorm.draw();
   eclipse.draw();
+  lightningStorm.draw();
 
 
   
@@ -640,6 +643,7 @@ function updateGame() {
     rainbowrain.update();
     storm.update();
     quantumStorm.update();
+    lightningStorm.update();
   }
   
   eclipse.update();
@@ -826,6 +830,7 @@ function resetGame() {
   quantumStorm = new QuantumStorm();
   eclipse = new Eclipse();
   magneticStorm = new MagneticStorm();
+  lightningStorm = new LightningStorm();
 
   // Reset upgrades
   upgrades.reset();
