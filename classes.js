@@ -2686,7 +2686,7 @@ class SoundManager {
       'alienShooting', 'gameOver', 'nextLevel', 'alienPodPickup', 'quantumRift', 'eclipseWarning',
       'alienPodDropOff', 'alienDestruction', 'nestDestruction','teleport','turretFreezeBurst',
       'moonBaseDestruction', 'hunterSpawned','zapperSpawned', 'wormDead','destroyerSpawned',
-      'shipBomb', 'meteorImpact','diamondImpact','earthquake','astronautJump','missileImpact','nestBurstDefense','balloonPop','warning'
+      'shipBomb', 'meteorImpact','diamondImpact','earthquake','astronautJump','missileImpact','nestBurstDefense','balloonPop','warning','lightning'
     ];
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -2734,14 +2734,14 @@ class SoundManager {
       alienShooting: 2, gameOver: 5, nextLevel: 5, alienPodPickup: 1,enterKing: 5, teleportKing: 3, laserKing: 1,
       alienPodDropOff: 2, alienDestruction: 3, turretFreezeBurst: 1, nestDestruction: 4,walkerShoot: 2,quantumRift: 5, eclipseWarning: 5,
       moonBaseDestruction: 5, teleport: 5, hunterSpawned: 2, destroyerSpawned: 2, zapperSpawned: 2,earthquake: 4,
-      shipBomb: 4, meteorImpact: 1, wormDead: 4, astronautJump: 4, nestBurstDefense: 1, balloonPop: 3,diamondImpact: 1,missileLaunch: 3, missileImpact: 5,warning: 3
+      shipBomb: 4, meteorImpact: 1, wormDead: 4, astronautJump: 4, nestBurstDefense: 1, balloonPop: 3,diamondImpact: 1,missileLaunch: 3, missileImpact: 5,warning: 3, lightning: 5
     };
     return priorities[soundName] || 1;
   }
 
   getVolume(soundName) {
     const volumes = {
-      shipThrust: 0.2, missileLaunch: 0.5, turretFreezeBurst: 0.8, nestDestruction: 0.8, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5
+      shipThrust: 0.2, missileLaunch: 0.5, turretFreezeBurst: 0.8, nestDestruction: 0.8, meteorImpact: 0.5, diamondImpact: 0.6, hunterSpawned: 0.7, destroyerSpawned: 0.7, walkerShoot: 0.2, warning: 0.5, lightning: 0.9
     };
     return volumes[soundName] || 1.0;
   }

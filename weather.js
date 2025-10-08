@@ -1930,15 +1930,16 @@ class LightningStorm {
     this.warningDuration = 600; // 10 seconds
     this.stormDuration = 1200; // 20 seconds
     this.alpha = 0;
-    //this.stormProbability = 0.00002;
-    this.stormProbability = 0.02;
+    this.stormProbability = 0.00002;
     this.warningTimer = 0;
     this.stormTimer = 0;
     this.lightningBolts = []; // Main bolt objects
     this.maxBolts = 3; // Maximum simultaneous lightning bolts
     this.boltCooldown = 0;
-    this.minBoltInterval = 30; // Minimum frames between bolts
-    this.maxBoltInterval = 90; // Maximum frames between bolts
+    //this.minBoltInterval = 30; // Minimum frames between bolts
+    //this.maxBoltInterval = 90; // Maximum frames between bolts
+    this.minBoltInterval = 5; // Minimum frames between bolts
+    this.maxBoltInterval = 25; // Maximum frames between bolts
     this.flashAlpha = 0;
     this.flashDecay = 30; // How fast the screen flash fades
     // New effect containers
@@ -1951,7 +1952,7 @@ class LightningStorm {
     this.warningTimer = this.warningDuration;
     this.isActive = false;
     this.alpha = 0;
-    announcer.speak("Warning Lightning in 10 seconds! Your engines will be disabled", 0, 2);
+    announcer.speak("Lightning Storm in 10 seconds! Warning your engines will be disabled", 0, 2);
   }
 
   update() {
@@ -1991,7 +1992,7 @@ class LightningStorm {
         this.createLightningBolt();
         this.boltCooldown = floor(random(this.minBoltInterval, this.maxBoltInterval));
         this.flashAlpha = 100; // Trigger screen flash
-        soundManager.play('zapperFire'); // Reuse existing zapper sound for lightning
+        // Lightning sound now handled conditionally inside createLightningBolt() only if bolt is on-screen
       }
       this.boltCooldown--;
 
@@ -2052,6 +2053,14 @@ class LightningStorm {
     bolt.points[bolt.points.length - 1].y = getCachedSurfaceYAtX(bolt.points[bolt.points.length - 1].x) - 1;
     this.lightningBolts.push(bolt);
     this.createImpactEffects(bolt);
+
+    // Play sound only if any part of the bolt is within current camera view
+    if (soundManager && soundManager.play) {
+      const visible = bolt.points.some(p => p.x >= viewLeft && p.x <= viewRight && p.y >= 0 && p.y <= height);
+      if (visible) {
+        soundManager.play('lightning');
+      }
+    }
   }
 
   // --- Fractal Bolt Generation (midpoint displacement + branching) ---
@@ -2114,15 +2123,7 @@ class LightningStorm {
     const end = bolt.points[bolt.points.length - 1];
     // Re-snap defensively
     end.y = getCachedSurfaceYAtX(end.x) - 1;
-    // Play impact sound (distinct from zapper if available)
-    if (soundManager && soundManager.play) {
-      // Try a dedicated lightning impact sound name first; fallback to existing
-      if (soundManager.has && soundManager.has('lightningImpact')) {
-        soundManager.play('lightningImpact');
-      } else {
-        soundManager.play('zapperFire');
-      }
-    }
+    // (Sound handled in createLightningBolt when bolt confirmed visible)
     // Sparks
     const sparkCount = floor(random(4, 10));
     for (let i = 0; i < sparkCount; i++) {
@@ -2142,6 +2143,130 @@ class LightningStorm {
       alpha: 180,
       size: random(18, 40)
     });
+
+    // Apply destruction at strike location
+    this.applyStrikeDestruction(end.x, end.y);
+  }
+
+  applyStrikeDestruction(x, y) {
+    // Radius very small: direct hit only (tunable)
+    const r = 25; // small lethal radius
+    const rSq = r * r;
+
+    // Helper to test squared distance
+    const within = (px, py) => {
+      const dx = px - x;
+      const dy = py - y;
+      return (dx*dx + dy*dy) <= rSq;
+    };
+
+    // Ship (only if landed and near surface endpoint)
+    if (ship && ship.isLanded && within(ship.pos.x, ship.pos.y + ship.size/2)) {
+      energy -= 1500; // heavy energy damage
+      if (soundManager) soundManager.play('shipHit');
+    }
+
+    // Astronaut (walking mode)
+    if (isWalking && astronaut && within(astronaut.pos.x, astronaut.pos.y + astronaut.size/2)) {
+      energy -= 1000;
+    }
+
+    // Pod (if present at strike)
+    if (pod && !pod.pickedUpByShip && !pod.pickedUpByAstronaut && within(pod.pos.x, pod.pos.y)) {
+      // Simulate pod being destroyed: drop explosion & remove?
+      explosions.push(new Explosion(createVector(pod.pos.x, pod.pos.y), 40, color(255,255,255), color(120,120,255)));
+      pod.podDropOff(createVector(pod.pos.x, pod.pos.y - 30)); // minor displacement
+    }
+
+    // Moon bases
+    for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
+      const base = MoonBase.moonBases[i];
+      const bx = base.pos.x + base.width/2;
+      const by = base.pos.y + base.height/2;
+      if (within(bx, by)) {
+        base.health -= 200;
+        if (base.health <= 0) {
+          explosions.push(new Explosion(createVector(bx, by), 80, color(255,255,255), color(180,180,255)));
+          MoonBase.moonBases.splice(i,1);
+        }
+      }
+    }
+
+    // Turrets
+    for (let i = turrets.length - 1; i >= 0; i--) {
+      const t = turrets[i];
+      if (within(t.pos.x, t.pos.y)) {
+        t.health = 0;
+        explosions.push(new Explosion(t.pos.copy(), 50, color(255,255,255), color(150,150,255)));
+        turrets.splice(i,1);
+      }
+    }
+
+    // Drill Rigs
+    for (let i = DrillRig.rigs.length - 1; i >= 0; i--) {
+      const rig = DrillRig.rigs[i];
+      if (within(rig.pos.x, rig.pos.y)) {
+        rig.health = 0;
+        explosions.push(new Explosion(rig.pos.copy(), 50, color(255,255,255), color(150,150,255)));
+        DrillRig.rigs.splice(i,1);
+      }
+    }
+
+    // Walkers
+    for (let i = WalkerRobot.walkers.length - 1; i >= 0; i--) {
+      const walker = WalkerRobot.walkers[i];
+      if (within(walker.pos.x, walker.pos.y)) {
+        walker.health = 0;
+        explosions.push(new Explosion(walker.pos.copy(), 40, color(255,255,255), color(120,120,255)));
+        WalkerRobot.walkers.splice(i,1);
+      }
+    }
+
+    // Aliens (and special alien types) generic function
+    const hitAlienArray = arr => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const a = arr[i];
+        if (within(a.pos.x, a.pos.y)) {
+          a.health = 0;
+          explosions.push(new Explosion(a.pos.copy(), a.size || 30, color(255,255,255), color(150,150,255)));
+          soundManager && soundManager.play('alienDestruction');
+          arr.splice(i,1);
+        }
+      }
+    };
+    hitAlienArray(Alien.aliens);
+    hitAlienArray(Hunter.hunters);
+    hitAlienArray(Zapper.zappers);
+    hitAlienArray(Destroyer.destroyers);
+
+    // Plants
+    for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
+      const plant = AlienPlant.plants[i];
+      if (within(plant.pos.x, plant.pos.y)) {
+        explosions.push(new Explosion(plant.pos.copy(), plant.size || 30, color(255,255,255), color(150,150,255)));
+        AlienPlant.destroyPlant(i);
+      }
+    }
+
+    // Nests
+    for (let i = Nest.nests.length - 1; i >= 0; i--) {
+      const nest = Nest.nests[i];
+      if (within(nest.pos.x, nest.pos.y)) {
+        nest.health = 0;
+        explosions.push(new Explosion(nest.pos.copy(), nest.size || 40, color(255,255,255), color(150,150,255)));
+        Nest.nests.splice(i,1);
+      }
+    }
+
+    // Fortresses
+    for (let i = AlienFortress.fortresses.length - 1; i >= 0; i--) {
+      const fort = AlienFortress.fortresses[i];
+      if (within(fort.pos.x, fort.pos.y)) {
+        fort.health = 0;
+        explosions.push(new Explosion(fort.pos.copy(), fort.size || 60, color(255,255,255), color(150,150,255)));
+        AlienFortress.fortresses.splice(i,1);
+      }
+    }
   }
 
   draw() {
