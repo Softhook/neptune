@@ -19,7 +19,7 @@ class WindReed extends Entity {
   static NOISE_TIME_SCALE = 0.0018;
   static TAPER_FACTOR = 0.55;             // How thin tip becomes (0-1)
 
-  constructor(pos, subterranean=false, variant=1) {
+  constructor(pos, subterranean=false, variant=1, clusterColor=null) {
     super(pos.copy(), createVector(0,0), 4);
     this.surfaceAttached = !subterranean;
     // Variant influences height & thickness (1 = normal, >1 = tall / thicker)
@@ -32,10 +32,22 @@ class WindReed extends Entity {
     this.segmentLength = random(WindReed.SEG_LEN_MIN, WindReed.SEG_LEN_MAX) * lenScale;
     this.baseThickness = random(2.2, 3.8) * (variant > 1 ? 1.25 : 1);
     this.phase = random(1000);
-    // More naturalistic color slight brown/olive modulation
-    const gBase = 140 + random(40);
-    const hueShift = random(-25, 25);
-    this.color = color(90 + hueShift, gBase, 80 + random(35));
+    // Color: derive from cluster color if provided, else fallback neutral
+    if (clusterColor) {
+      const baseR = red(clusterColor);
+      const baseG = green(clusterColor);
+      const baseB = blue(clusterColor);
+      // Subtle variation (avoid drifting far from cluster tone)
+      const vr = constrain(baseR + random(-15, 15), 0, 255);
+      const vg = constrain(baseG + random(-25, 25), 0, 255);
+      const vb = constrain(baseB + random(-15, 15), 0, 255);
+      this.color = color(vr, vg, vb);
+    } else {
+      // Fallback (should rarely happen now)
+      const gBase = 140 + random(40);
+      const hueShift = random(-25, 25);
+      this.color = color(90 + hueShift, gBase, 80 + random(35));
+    }
     this.tipGlow = random(15, 70);
     this.cached = [];
     this._clusterBoost = 1; // updated each update
@@ -60,8 +72,9 @@ class WindReed extends Entity {
     // Determine proximity to nearest plant cluster
     const nearCluster = WindReed.isNearPlantCluster(baseX, baseY);
     if (!nearCluster) return; // Abort spawn entirely if not within cluster influence
+    const nearestCluster = WindReed.getNearestCluster(baseX, baseY);
     const variant = nearCluster && random() < 0.4 ? 2 : 1; // tall variant near clusters sometimes
-    const w = new WindReed(createVector(baseX, baseY), subterranean, variant);
+    const w = new WindReed(createVector(baseX, baseY), subterranean, variant, nearestCluster ? nearestCluster.color : null);
     WindReed.reeds.push(w);
     // Possibly spawn a small local group (natural clustering) near clusters
     if (nearCluster && random() < WindReed.GROUP_SPAWN_CHANCE) {
@@ -72,10 +85,24 @@ class WindReed extends Entity {
         let gy = getCachedSurfaceYAtX(gx);
         if (random()<0.15) gy += random(6,14); // subterranean occasional
         const v2 = random()<0.3?2:1;
-        const r2 = new WindReed(createVector(gx,gy), false, v2);
+        const r2 = new WindReed(createVector(gx,gy), false, v2, nearestCluster ? nearestCluster.color : null);
         WindReed.reeds.push(r2);
       }
     }
+  }
+
+  static getNearestCluster(x,y) {
+    if (!AlienPlant || !AlienPlant.clusterCenters || !AlienPlant.clusterCenters.length) return null;
+    let nearest = null;
+    let bestDistSq = Infinity;
+    for (let i=0;i<AlienPlant.clusterCenters.length;i++) {
+      const c = AlienPlant.clusterCenters[i];
+      const dx = c.x - x;
+      const dy = c.y - y;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestDistSq) { bestDistSq = d2; nearest = c; }
+    }
+    return nearest;
   }
 
   static isNearPlantCluster(x,y) {
