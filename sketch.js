@@ -480,6 +480,8 @@ function drawGame() {
   AlienPlant.drawPlants();
   Nest.drawNests();
   AlienFortress.drawFortresses();
+  // Wind reeds (flora) after static terrain + alien plants
+  try { if (typeof WindReed !== 'undefined' && WindReed.drawReeds) WindReed.drawReeds(); } catch(e){ if(!window.__reedDrawWarn){ console.warn('WindReed draw issue:', e); window.__reedDrawWarn=true; } }
   
   if (alienQueen) {
     alienQueen.draw();
@@ -587,6 +589,8 @@ function updateGame() {
   Alien.updateAliens();
   AlienWorm.updateWorms();
   AlienPlant.update();
+  // WindReed update
+  try { if (typeof WindReed !== 'undefined' && WindReed.updateReeds) WindReed.updateReeds(); } catch(e){ if(!window.__reedUpdateWarn){ console.warn('WindReed update issue:', e); window.__reedUpdateWarn=true; } }
   
   Nest.updateNests();
   AlienFortress.updateFortresses();
@@ -844,6 +848,10 @@ function resetGame() {
   ship.placeOnMoonBase();
   AlienPlant.createNewCluster();
   AlienPlant.spawnNewPlant();
+  // Now that at least one cluster exists, schedule reed initialization
+  if (typeof WindReed !== 'undefined' && WindReed.spawnInitial) {
+    setTimeout(()=>{ try { WindReed.spawnInitial(); } catch(e){ console.warn('WindReed initial spawn failed:', e); } },0);
+  }
   placePodOnSurface();
   WalkerRobot.resetWalkers();
 
@@ -1362,6 +1370,7 @@ function drawHUD() {
     `Aliens: ${getTotalAlienCount()}`,
     `Nests: ${Nest.nests.length}`,
     `Plants: ${AlienPlant.plants.length}`,
+  `Reeds: ${ (typeof WindReed !== 'undefined' && WindReed.reeds) ? WindReed.reeds.length : 0 }`,
     `Bases: ${MoonBase.moonBases.length}`,
     `Wind: ${Math.round((windForce / maxWindForce) * 100)}%`,
 

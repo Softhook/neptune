@@ -1227,7 +1227,6 @@ class Ship extends Entity {
 applyZapEffect(duration) {
   this.isZapped = true;
   this.zapTimer = duration;
-  
   // Release the pod if the ship is carrying it
   if (this.hasGrabbedPod) {
     this.hasGrabbedPod = false;
@@ -1235,16 +1234,17 @@ applyZapEffect(duration) {
   }
 }
 
-  drawForcefield() {
-    push();
-    translate(this.pos.x, this.pos.y);
-    noFill();
-    stroke(0, 100, 255, 100);
-    strokeWeight(2);
-    ellipse(0, 0, this.size * 3);
-    pop();
-  }
+drawForcefield() {
+  push();
+  translate(this.pos.x, this.pos.y);
+  noFill();
+  stroke(0, 100, 255, 100);
+  strokeWeight(2);
+  ellipse(0, 0, this.size * 3);
+  pop();
 }
+}
+
 
 class Particle {
   static pool = [];
