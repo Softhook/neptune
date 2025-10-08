@@ -523,7 +523,7 @@ class EarthquakeManager {
     this.earthquakeWarningTimer = 0;
     this.earthquakeDuration = 0;
     this.maxEarthquakeIntensity = 10;
-    this.earthquakeProbability = 0.00005; // Adjust as needed
+  this.earthquakeProbability = 0.000025; // Halved from 0.00005
   }
 
   update() {
@@ -713,7 +713,7 @@ class TectonicShiftManager {
     this.tectonicShiftWarningTimer = 0;
     this.tectonicShiftDuration = 0;
     this.maxTectonicShiftIntensity = 10;
-    this.tectonicShiftProbability = 0.00005; // Same as earthquake probability
+  this.tectonicShiftProbability = 0.000025; // Halved from 0.00005
   }
 
   update() {
@@ -916,7 +916,7 @@ class MagneticStorm {
     this.duration = 0;
     this.fadeDuration = 180; // 3 seconds for fade in/out
     this.alpha = 0;
-    this.magneticStormProbability = 0.00002; // Adjust as needed
+  this.magneticStormProbability = 0.00001; // Halved from 0.00002
     this.initializeParticles();
   }
 
@@ -1031,7 +1031,7 @@ class MethaneBlizzard {
     this.totalDuration = 3200;
     this.duration = this.totalDuration; // Initialize duration to totalDuration
     this.alpha = 0;
-    this.blizzardProbability = 0.00002;
+  this.blizzardProbability = 0.00001; // Halved from 0.00002
     this.windStrength = 0;
     this.visibility = 1;
     this.particles = [];
@@ -1202,7 +1202,7 @@ class HeliumBlizzard {
     this.totalDuration = 3200;
     this.duration = this.totalDuration;
     this.alpha = 0;
-    this.blizzardProbability = 0.00002;
+  this.blizzardProbability = 0.00001; // Halved from 0.00002
     this.windStrength = 0;
     this.visibility = 1;
     this.particles = [];
@@ -1358,7 +1358,7 @@ class Storm {
     this.maxWindForce = 0.01;
     this.previousWindForce = 0;
     this.visibility = 1;
-    this.stormProbability = 0.00002;
+  this.stormProbability = 0.00001; // Halved from 0.00002
     this.warningTimer = 0;
     this.windFadeInTimer = 0;
     this.windFadeOutTimer = 0;
@@ -1467,7 +1467,7 @@ class QuantumStorm {
     this.duration = 0;
     this.fadeDuration = 360;
     this.alpha = 0;
-    this.stormProbability = 0.00002;
+  this.stormProbability = 0.00001; // Halved from 0.00002
     this.vortexPoints = [];
     this.quantumRotation = 0;
     this.initializeParticles();
@@ -1708,7 +1708,7 @@ class Eclipse {
     this.warningMessage = "";
 
     // Added probability for an eclipse to occur
-    this.eclipseProbability = 0.00002;
+  this.eclipseProbability = 0.00001; // Halved from 0.00002
   }
 
   activate() {
@@ -1771,7 +1771,7 @@ class RainbowRain {
     this.totalDuration = 4000;
     this.duration = this.totalDuration;
     this.alpha = 0;
-    this.rainProbability = 0.00001;
+  this.rainProbability = 0.000005; // Halved from 0.00001
     this.threads = [];
     this.maxThreads = 300;
     this.swirlIntensity = 0.1;
@@ -1930,7 +1930,7 @@ class LightningStorm {
     this.warningDuration = 600; // 10 seconds
     this.stormDuration = 1200; // 20 seconds
     this.alpha = 0;
-    this.stormProbability = 0.00002;
+  this.stormProbability = 0.00001; // Halved from 0.00002
     this.warningTimer = 0;
     this.stormTimer = 0;
     this.lightningBolts = []; // Main bolt objects
