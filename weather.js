@@ -234,10 +234,12 @@ damageEntities() { //ground impact
       base.pos.y = newY - base.height;
     }
     for (let nest of Nest.nests) {
+      if (nest.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = min(this.getNewSurfaceY(nest.pos.x), height);
       nest.pos.y = newY - nest.size / 2;
     }
     for (let fortress of AlienFortress.fortresses) {
+      if (fortress.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = min(this.getNewSurfaceY(fortress.pos.x), height);
       fortress.pos.y = newY - fortress.size / 2;
     }
@@ -477,10 +479,12 @@ class DiamondRain {
       base.pos.y = newY - base.height;
     }
     for (let nest of Nest.nests) {
+      if (nest.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = DiamondRain.getNewSurfaceY(nest.pos.x);
       nest.pos.y = newY - nest.size / 2;
     }
     for (let fortress of AlienFortress.fortresses) {
+      if (fortress.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = DiamondRain.getNewSurfaceY(fortress.pos.x);
       fortress.pos.y = newY - fortress.size / 2;
     }
@@ -626,6 +630,7 @@ class EarthquakeManager {
     
     // Update nests
     for (let nest of Nest.nests) {
+      if (nest.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = this.getNewSurfaceY(nest.pos.x);
       nest.pos.y = newY - nest.size / 2;
     }

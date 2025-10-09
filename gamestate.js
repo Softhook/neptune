@@ -290,7 +290,8 @@ class EntitySerializer {
       moonBases: Array.isArray(MoonBase.moonBases) ? MoonBase.moonBases.map(base => this.serializeMoonBase(base)) : [],
       turrets: Array.isArray(turrets) ? turrets.map(turret => this.serializeTurret(turret)) : [],
       shields: Array.isArray(Shield.shields) ? Shield.shields.map(shield => this.serializeShield(shield)) : [],
-      alienPlants: Array.isArray(AlienPlant.plants) ? AlienPlant.plants.map(plant => this.serializeAlienPlant(plant)) : [],
+  alienPlants: Array.isArray(AlienPlant.plants) ? AlienPlant.plants.map(plant => this.serializeAlienPlant(plant)) : [],
+  windReeds: Array.isArray(WindReed?.reeds) ? WindReed.reeds.map(r => this.serializeWindReed(r)) : [],
       alienWorms: Array.isArray(AlienWorm.worms) ? AlienWorm.worms.map(worm => this.serializeAlienWorm(worm)) : [],
       meteors: Array.isArray(Meteor.meteors) ? Meteor.meteors.map(meteor => this.serializeMeteor(meteor)) : [],
       diamonds: Array.isArray(DiamondRain.diamonds) ? DiamondRain.diamonds.map(diamond => this.serializeDiamond(diamond)) : [],
@@ -325,6 +326,14 @@ class EntitySerializer {
     turrets = entities.turrets ? entities.turrets.map(turret => this.deserializeTurret(turret)) : [];
     Shield.shields = entities.shields ? entities.shields.map(shield => this.deserializeShield(shield)) : [];
     AlienPlant.plants = entities.alienPlants ? entities.alienPlants.map(plant => this.deserializeAlienPlant(plant)) : [];
+    if (entities.windReeds) {
+      const reeds = entities.windReeds.map(r => this.deserializeWindReed(r));
+      // ensure stable id ordering so future spawns increment correctly
+      reeds.sort((a,b) => (a.id||0) - (b.id||0));
+      WindReed.reeds = reeds;
+    } else {
+      WindReed.reeds = WindReed.reeds || [];
+    }
     AlienWorm.worms = entities.alienWorms ? entities.alienWorms.map(worm => this.deserializeAlienWorm(worm)) : [];
     Meteor.meteors = entities.meteors ? entities.meteors.map(meteor => this.deserializeMeteor(meteor)) : [];
     DiamondRain.diamonds = entities.diamonds ? entities.diamonds.map(diamond => this.deserializeDiamond(diamond)) : [];
@@ -724,7 +733,9 @@ static deserializePod(podData) {
       size: nest.size,
       health: nest.health,
       podsCollected: nest.podsCollected,
-      color: nest.color.toString()
+      color: nest.color.toString(),
+      attachedReedId: nest.attachedReedId ?? null,
+      isAnchoredToReed: !!nest.isAnchoredToReed
     };
   }
 
@@ -732,10 +743,12 @@ static deserializePod(podData) {
     const newNest = new Nest(
       this.deserializeVector(nestData.pos),
       nestData.size,
-      color(nestData.color)
+      color(nestData.color),
+      nestData.attachedReedId ?? null
     );
     newNest.health = nestData.health;
     newNest.podsCollected = nestData.podsCollected;
+    newNest.isAnchoredToReed = !!nestData.isAnchoredToReed;
     return newNest;
   }
 
@@ -745,7 +758,9 @@ static deserializePod(podData) {
       size: fortress.size,
       health: fortress.health,
       podsCollected: fortress.podsCollected,
-      color: fortress.color.toString()
+      color: fortress.color.toString(),
+      attachedReedId: fortress.attachedReedId ?? null,
+      isAnchoredToReed: !!fortress.isAnchoredToReed
     };
   }
 
@@ -753,10 +768,12 @@ static deserializePod(podData) {
     const newFortress = new AlienFortress(
       this.deserializeVector(fortressData.pos),
       fortressData.size / 2, // Divide by 2 since constructor multiplies by 2
-      color(fortressData.color)
+      color(fortressData.color),
+      fortressData.attachedReedId ?? null
     );
     newFortress.health = fortressData.health;
     newFortress.podsCollected = fortressData.podsCollected;
+    newFortress.isAnchoredToReed = !!fortressData.isAnchoredToReed;
     return newFortress;
   }
 
@@ -911,7 +928,9 @@ static deserializePod(podData) {
       color: plant.color.toString(),
       fullyGrown: plant.fullyGrown,
       isDecaying: plant.isDecaying,
-      decayChance: plant.decayChance
+      decayChance: plant.decayChance,
+      attachedReedId: plant.attachedReedId ?? null,
+      isAnchoredToReed: !!plant.isAnchoredToReed
     };
   }
 
@@ -919,7 +938,8 @@ static deserializePod(podData) {
     const newPlant = new AlienPlant(
       this.deserializeVector(plantData.pos),
       plantData.size,
-      color(plantData.color)
+      color(plantData.color),
+      plantData.attachedReedId ?? null
     );
     newPlant.maxSize = plantData.maxSize;
     newPlant.currentSize = plantData.currentSize;
@@ -929,7 +949,38 @@ static deserializePod(podData) {
     newPlant.fullyGrown = plantData.fullyGrown;
     newPlant.isDecaying = plantData.isDecaying;
     newPlant.decayChance = plantData.decayChance;
+    newPlant.isAnchoredToReed = !!plantData.isAnchoredToReed;
     return newPlant;
+  }
+
+  static serializeWindReed(reed) {
+    return {
+      id: reed.id,
+      pos: this.serializeVector(reed.pos),
+      variant: reed.variant,
+      surfaceAttached: !!reed.surfaceAttached,
+      color: this.serializeColor(reed.color),
+      segments: reed.segments,
+      maxSegments: reed.maxSegments,
+      segmentLength: reed.segmentLength,
+      baseThickness: reed.baseThickness,
+      phase: reed.phase
+    };
+  }
+
+  static deserializeWindReed(data) {
+    // subterranean param is inverse of surfaceAttached
+    const subterranean = data.surfaceAttached ? false : true;
+    const reed = new WindReed(this.deserializeVector(data.pos), subterranean, data.variant || 1, null);
+    reed.id = data.id ?? reed.id;
+    reed.color = this.deserializeColor(data.color);
+    reed.segments = data.segments ?? reed.segments;
+    reed.maxSegments = data.maxSegments ?? reed.maxSegments;
+    reed.segmentLength = data.segmentLength ?? reed.segmentLength;
+    reed.baseThickness = data.baseThickness ?? reed.baseThickness;
+    reed.phase = data.phase ?? reed.phase;
+    reed.surfaceAttached = !!data.surfaceAttached;
+    return reed;
   }
 
   static serializeAlienWorm(worm) {

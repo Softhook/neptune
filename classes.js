@@ -1677,8 +1677,9 @@ checkCollisionWithEntities(entities) {
 
 checkCollisionWithNests() {
   for (let nest of Nest.nests) {
+    const centerY = nest.pos.y + 10; // match draw translate offset
     const dx = this.pos.x - nest.pos.x;
-    const dy = this.pos.y - nest.pos.y;
+    const dy = this.pos.y - centerY;
     const minDist = (nest.size + this.size) / 2;
     const minDistSq = minDist * minDist;
     
@@ -1693,8 +1694,9 @@ checkCollisionWithNests() {
 
 checkCollisionWithFortresses() {
   for (let fortress of AlienFortress.fortresses) {
+    const centerY = fortress.pos.y + 10; // match draw translate offset
     const dx = this.pos.x - fortress.pos.x;
-    const dy = this.pos.y - fortress.pos.y;
+    const dy = this.pos.y - centerY;
     const minDist = (fortress.size + this.size) / 2;
     const minDistSq = minDist * minDist;
     
@@ -2127,6 +2129,7 @@ reshapeMoonSurface() {
   
   adjustNests() {
     for (let nest of Nest.nests) {
+      if (nest.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = min(this.getNewSurfaceY(nest.pos.x), height);
       nest.pos.y = newY - nest.size / 2;
     }
@@ -2134,6 +2137,7 @@ reshapeMoonSurface() {
 
   adjustFortresses() {
     for (let fortress of AlienFortress.fortresses) {
+      if (fortress.isAnchoredToReed) continue; // anchored entities follow reed tips
       let newY = min(this.getNewSurfaceY(fortress.pos.x), height);
       fortress.pos.y = newY - fortress.size / 2;
     }

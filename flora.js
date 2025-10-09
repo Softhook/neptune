@@ -21,6 +21,8 @@ class WindReed extends Entity {
 
   constructor(pos, subterranean=false, variant=1, clusterColor=null) {
     super(pos.copy(), createVector(0,0), 4);
+    this.id = WindReed.reeds.length ? (WindReed.reeds[WindReed.reeds.length-1].id + 1) : 1;
+  this.attachedEntities = []; // references to plants / nests / fortresses anchored (ids only)
     this.surfaceAttached = !subterranean;
     // Variant influences height & thickness (1 = normal, >1 = tall / thicker)
     this.variant = variant;
@@ -51,6 +53,7 @@ class WindReed extends Entity {
     this.tipGlow = random(15, 70);
     this.cached = [];
     this._clusterBoost = 1; // updated each update
+    this._geometryFrame = -1; // track last frame geometry built
   }
 
   static spawnInitial() {
@@ -120,7 +123,31 @@ class WindReed extends Entity {
     const hasClusters = (AlienPlant && AlienPlant.clusterCenters && AlienPlant.clusterCenters.length);
     if (!hasClusters) {
       // Purge all reeds if clusters vanished
-      if (WindReed.reeds.length) WindReed.reeds.length = 0;
+      if (WindReed.reeds.length) {
+        // Detach anchored entities gracefully
+        for (const plant of (AlienPlant?.plants || [])) {
+          if (plant.isAnchoredToReed) {
+            plant.isAnchoredToReed = false;
+            plant.attachedReedId = null;
+          }
+        }
+        for (const nest of (Nest?.nests || [])) {
+          if (nest.isAnchoredToReed) {
+            nest.isAnchoredToReed = false;
+            nest.attachedReedId = null;
+            // snap to surface to avoid floating when reed disappears
+            nest.pos.y = getCachedSurfaceYAtX(nest.pos.x) - 10;
+          }
+        }
+        for (const fort of (AlienFortress?.fortresses || [])) {
+          if (fort.isAnchoredToReed) {
+            fort.isAnchoredToReed = false;
+            fort.attachedReedId = null;
+            fort.pos.y = getCachedSurfaceYAtX(fort.pos.x) - 10;
+          }
+        }
+        WindReed.reeds.length = 0;
+      }
       return;
     }
     if (WindReed.reeds.length < WindReed.MAX_REEDS && random() < 0.0009) {
@@ -130,6 +157,9 @@ class WindReed extends Entity {
       WindReed.spawnOneDistributed(dirX);
     }
     for (let i = 0; i < WindReed.reeds.length; i++) WindReed.reeds[i].update();
+
+    // Ensure every reed tip has at least one anchored plant
+    WindReed.ensurePlantsAtTips();
   }
 
   static tooClose(pos) {
@@ -154,6 +184,7 @@ class WindReed extends Entity {
   }
 
   buildGeometry() {
+    if (this._geometryFrame === frameCount) return; // already built this frame
     this.cached.length = 0;
     const base = this.pos.copy();
     this.cached.push(base);
@@ -174,6 +205,66 @@ class WindReed extends Entity {
       this.cached.push(p);
       prev = p;
     }
+  }
+
+  getTipPosition() {
+    // Ensure geometry up to date this frame
+    this.buildGeometry();
+    const tip = this.cached[this.cached.length - 1];
+    return tip ? tip.copy() : this.pos.copy();
+  }
+
+  static ensurePlantsAtTips() {
+    if (typeof AlienPlant === 'undefined' || !Array.isArray(AlienPlant.plants)) return;
+    // Build a set of reedIds that already have an anchored plant
+    const anchoredSet = new Set();
+    for (let i = 0; i < AlienPlant.plants.length; i++) {
+      const p = AlienPlant.plants[i];
+      if (p && p.isAnchoredToReed && p.attachedReedId != null) {
+        anchoredSet.add(p.attachedReedId);
+      }
+    }
+    // Also exclude reeds that have an anchored nest or fortress
+    if (typeof Nest !== 'undefined') {
+      for (let n of Nest.nests) {
+        if (n && n.isAnchoredToReed && n.attachedReedId != null) anchoredSet.add(n.attachedReedId);
+      }
+    }
+    if (typeof AlienFortress !== 'undefined') {
+      for (let f of AlienFortress.fortresses) {
+        if (f && f.isAnchoredToReed && f.attachedReedId != null) anchoredSet.add(f.attachedReedId);
+      }
+    }
+    for (let i = 0; i < WindReed.reeds.length; i++) {
+      const r = WindReed.reeds[i];
+      if (!anchoredSet.has(r.id)) {
+        // Spawn a new plant anchored to this reed tip
+        const tip = r.getTipPosition();
+        const nearestCluster = WindReed.getNearestCluster(r.pos.x, r.pos.y);
+        const size = random(40, 100);
+        const pos = createVector(tip.x, tip.y + size * 0.35);
+        const colorBase = nearestCluster ? nearestCluster.color : r.color;
+        const plant = new AlienPlant(pos, size, colorBase, r.id);
+        AlienPlant.plants.push(plant);
+        // Track registration for bookkeeping
+        WindReed.registerAttachment(r.id, 'plant', plant);
+      }
+    }
+  }
+
+  static registerAttachment(reedId, entityType, entityRef) {
+    const r = WindReed.reeds.find(rr => rr.id === reedId);
+    if (!r) return;
+    const id = entityRef?.uniqueId || `${entityType}-${Math.floor(random(1e9))}`;
+    r.attachedEntities.push({ entityType, id });
+  }
+
+  static unregisterAttachment(reedId, entityRef) {
+    const r = WindReed.reeds.find(rr => rr.id === reedId);
+    if (!r) return;
+    const uid = entityRef?.uniqueId;
+    if (!uid) return;
+    r.attachedEntities = r.attachedEntities.filter(e => e.id !== uid);
   }
 
   draw() {

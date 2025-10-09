@@ -8,8 +8,9 @@ class AlienPlant extends Entity {
   static normalGrowthRate = [0.01, 0.03];
   static enhancedGrowthRate = [0.04, 0.08]; // faster growth during diamond rain
 
-  constructor(pos, size, clusterColor) {
+  constructor(pos, size, clusterColor, attachedReedId=null) {
     super(pos, createVector(0, 0), size);
+    this.uniqueId = `plant-${Math.floor(random(1e9))}`;
     this.maxSize = size;
     this.currentSize = 10;
     this.growthRate = random(AlienPlant.normalGrowthRate[0], AlienPlant.normalGrowthRate[1]);
@@ -20,7 +21,9 @@ class AlienPlant extends Entity {
     this.fullyGrown = false;
     this.isDecaying = false;
     this.decayChance = 0.0004; // 0.05% chance to start decaying each update
-    this.targetPos = pos.copy();
+  this.targetPos = pos.copy();
+  this.attachedReedId = attachedReedId;
+  this.isAnchoredToReed = attachedReedId !== null;
   }
 
   generateColor(clusterColor) {
@@ -65,9 +68,21 @@ class AlienPlant extends Entity {
   }
 
   updatePosition() {
-  // Use cached terrain lookup for performance
-  this.targetPos.y = getCachedSurfaceYAtX(this.pos.x) - this.currentSize / 2;
-    // Smoothly interpolate towards the target position
+    if (this.isAnchoredToReed && typeof WindReed !== 'undefined') {
+      const reed = WindReed.reeds.find(r => r.id === this.attachedReedId);
+      if (reed) {
+        const tip = reed.getTipPosition();
+        this.pos.x = tip.x;
+        // Position plant slightly below tip so the tip is visually above it
+        this.pos.y = tip.y + this.currentSize * 0.35;
+        return;
+      } else {
+        // Detach if reed gone
+        this.isAnchoredToReed = false;
+        this.attachedReedId = null;
+      }
+    }
+    this.targetPos.y = getCachedSurfaceYAtX(this.pos.x) - this.currentSize / 2;
     this.pos.y = lerp(this.pos.y, this.targetPos.y, 0.1);
   }
 
@@ -91,10 +106,25 @@ class AlienPlant extends Entity {
 
   createNest() {
     let nestPos = this.pos.copy();
-  nestPos.y = getCachedSurfaceYAtX(nestPos.x) - 30; // Place nest on surface
-    Nest.nests.push(new Nest(nestPos, 40, this.color)); // Pass the plant's color
-    
-    // Destroy the plant after creating a nest
+    let attachedReedId = null;
+    if (this.isAnchoredToReed && typeof WindReed !== 'undefined') {
+      const reed = WindReed.reeds.find(r => r.id === this.attachedReedId);
+      if (reed) {
+        const tip = reed.getTipPosition();
+        nestPos.x = tip.x;
+  nestPos.y = tip.y + 10;
+        attachedReedId = reed.id;
+      } else {
+        nestPos.y = getCachedSurfaceYAtX(nestPos.x) - 30;
+      }
+    } else {
+      nestPos.y = getCachedSurfaceYAtX(nestPos.x) - 30;
+    }
+    const newNest = new Nest(nestPos, 40, this.color, attachedReedId);
+    Nest.nests.push(newNest);
+    if (attachedReedId && typeof WindReed !== 'undefined') {
+      WindReed.registerAttachment(attachedReedId, 'nest', newNest);
+    }
     this.destroy();
   }
 
@@ -115,6 +145,9 @@ static isInCluster(pos) {
   destroy() {
     let index = AlienPlant.plants.indexOf(this);
     if (index !== -1) {
+      if (this.isAnchoredToReed && typeof WindReed !== 'undefined') {
+        WindReed.unregisterAttachment(this.attachedReedId, this);
+      }
       AlienPlant.plants.splice(index, 1);
     }
   }
@@ -137,23 +170,55 @@ static isInCluster(pos) {
     if (AlienPlant.clusterCenters.length === 0 || random() < 0.1) {
       AlienPlant.createNewCluster();
     }
-
-    let clusterCenter = random(AlienPlant.clusterCenters);
-    let pos = createVector(
-      clusterCenter.x + random(-100, 100),
-      0
-    );
+    const clusterCenter = random(AlienPlant.clusterCenters);
     let size = random(40, 130);
-  pos.y = getCachedSurfaceYAtX(pos.x) - size; // Position the bottom of the plant on the surface
-
-    // Prefer lower areas
+    let attachedReedId = null;
+    if (typeof WindReed !== 'undefined' && WindReed.reeds.length) {
+      // Prefer reeds that don't already have an anchored plant
+      const anchoredTo = new Set();
+      for (let p of AlienPlant.plants) {
+        if (p.isAnchoredToReed && p.attachedReedId != null) anchoredTo.add(p.attachedReedId);
+      }
+      // Exclude reeds hosting a nest or fortress
+      if (typeof Nest !== 'undefined') {
+        for (let n of Nest.nests) {
+          if (n.isAnchoredToReed && n.attachedReedId != null) anchoredTo.add(n.attachedReedId);
+        }
+      }
+      if (typeof AlienFortress !== 'undefined') {
+        for (let f of AlienFortress.fortresses) {
+          if (f.isAnchoredToReed && f.attachedReedId != null) anchoredTo.add(f.attachedReedId);
+        }
+      }
+      const candidateReeds = WindReed.reeds.filter(r => {
+        const tip = r.getTipPosition();
+        const dx = tip.x - clusterCenter.x;
+        const dy = tip.y - clusterCenter.y;
+        const inCluster = dx*dx + dy*dy < WindReed.CLUSTER_RADIUS * WindReed.CLUSTER_RADIUS;
+        return inCluster && !anchoredTo.has(r.id);
+      });
+      if (candidateReeds.length) {
+        const chosen = random(candidateReeds);
+        attachedReedId = chosen.id;
+        const tip = chosen.getTipPosition();
+  const plantPos = createVector(tip.x, tip.y + size * 0.35);
+        const newPlant = new AlienPlant(plantPos, size, clusterCenter.color, attachedReedId);
+        AlienPlant.plants.push(newPlant);
+        if (attachedReedId) {
+          WindReed.registerAttachment(attachedReedId, 'plant', newPlant);
+        }
+        return;
+      }
+    }
+    // Fallback ground spawn
+    let pos = createVector(clusterCenter.x + random(-100, 100), 0);
+    pos.y = getCachedSurfaceYAtX(pos.x) - size;
     let attempts = 0;
     while (attempts < 5 && pos.y < clusterCenter.y - size) {
       pos.x = clusterCenter.x + random(-100, 100);
-  pos.y = getCachedSurfaceYAtX(pos.x) - size;
+      pos.y = getCachedSurfaceYAtX(pos.x) - size;
       attempts++;
     }
-
     AlienPlant.plants.push(new AlienPlant(pos, size, clusterCenter.color));
   }
 
@@ -262,6 +327,9 @@ static isInCluster(pos) {
 
   static destroyPlant(index) {
     let plant = AlienPlant.plants[index];
+    if (plant?.isAnchoredToReed && typeof WindReed !== 'undefined') {
+      WindReed.unregisterAttachment(plant.attachedReedId, plant);
+    }
     explosions.push(new Explosion(plant.pos, plant.currentSize, plant.color, color(50, 50, 50)));
     AlienPlant.plants.splice(index, 1);
   }
@@ -270,8 +338,9 @@ static isInCluster(pos) {
 class Nest extends Entity {
   static nests = [];
 
-  constructor(pos, size, colory) {
+  constructor(pos, size, colory, attachedReedId=null) {
     super(pos, createVector(0, 0), size);
+    this.uniqueId = `nest-${Math.floor(random(1e9))}`;
     this.health = 5;
     this.shootCooldown = 0;
     this.podsCollected = 0;
@@ -281,7 +350,9 @@ class Nest extends Entity {
     this.bulletSize = 8;
     this.wormSpawnChance = 0.001;
     this.color = colory || color(0, 255, 0); // Use passed color or default
-    this.color.setAlpha(255);
+  this.color.setAlpha(255);
+  this.attachedReedId = attachedReedId;
+  this.isAnchoredToReed = attachedReedId !== null;
 
     // Burst defense properties
     this.burstDefenseRadius = 200;
@@ -341,6 +412,18 @@ class Nest extends Entity {
   }
 
   update() {
+    if (this.isAnchoredToReed && typeof WindReed !== 'undefined') {
+      const reed = WindReed.reeds.find(r => r.id === this.attachedReedId);
+      if (reed) {
+        const tip = reed.getTipPosition();
+        this.pos.x = tip.x;
+  this.pos.y = tip.y + this.size * 0.25;
+      } else {
+        this.isAnchoredToReed = false;
+        this.attachedReedId = null;
+        this.pos.y = getCachedSurfaceYAtX(this.pos.x) - 10;
+      }
+    }
     if (this.shootCooldown > 0) {
       this.shootCooldown--;
     }
@@ -404,12 +487,19 @@ shoot() {
       nest.update();
       
       if (nest.health <= 0) {
+        if (nest.isAnchoredToReed && typeof WindReed !== 'undefined') {
+          WindReed.unregisterAttachment(nest.attachedReedId, nest);
+        }
         soundManager.play('nestDestruction');
         Nest.nests.splice(i, 1);
         money += 300;
       } else {
         // Small chance for nest to evolve into fortress
         if (random() < AlienFortress.FORTRESS_SPAWN_CHANCE) {
+          if (nest.isAnchoredToReed && typeof WindReed !== 'undefined') {
+            // Transition will register the fortress; remove the nest registration
+            WindReed.unregisterAttachment(nest.attachedReedId, nest);
+          }
           AlienFortress.createFromNest(nest);
           Nest.nests.splice(i, 1); // Remove the nest
         }
@@ -450,7 +540,25 @@ static createNests(count) {
       debug.log(`Couldn't find a suitable position for nest ${i + 1} after maximum attempts.`);
     }
 
-    Nest.nests.push(new Nest(nestPos, 40));
+    // If a reed tip is nearby, anchor this generated nest as well
+    let attachedReedId = null;
+    if (typeof WindReed !== 'undefined' && WindReed.reeds.length) {
+      const nearest = WindReed.reeds.reduce((best, r) => {
+        const tip = r.getTipPosition();
+        const dx = tip.x - nestPos.x; const dy = tip.y - nestPos.y;
+        const d2 = dx*dx + dy*dy;
+        return d2 < best.d2 ? { r, d2, tip } : best;
+      }, { r: null, d2: Infinity, tip: null });
+      if (nearest.r && nearest.d2 < 80*80) { // within 80px
+        attachedReedId = nearest.r.id;
+  nestPos = createVector(nearest.tip.x, nearest.tip.y + 10);
+      }
+    }
+    const nn = new Nest(nestPos, 40, null, attachedReedId);
+    Nest.nests.push(nn);
+    if (attachedReedId && typeof WindReed !== 'undefined') {
+      WindReed.registerAttachment(attachedReedId, 'nest', nn);
+    }
   }
 
   if (debug) {
@@ -475,8 +583,9 @@ class AlienFortress extends Nest {
   static fortresses = [];
   static FORTRESS_SPAWN_CHANCE = 0.000003; // Small chance per frame per nest
 
-  constructor(pos, size, colory) {
-    super(pos, size * 2, colory); // 2x larger than nest
+  constructor(pos, size, colory, attachedReedId=null) {
+    super(pos, size * 2, colory, attachedReedId); // 2x larger than nest
+    this.uniqueId = `fortress-${Math.floor(random(1e9))}`;
     
     // Much higher health
     this.health = 40; // 8x nest health
@@ -557,6 +666,9 @@ class AlienFortress extends Nest {
       fortress.update();
       
       if (fortress.health <= 0) {
+        if (fortress.isAnchoredToReed && typeof WindReed !== 'undefined') {
+          WindReed.unregisterAttachment(fortress.attachedReedId, fortress);
+        }
         soundManager.play('nestDestruction');
         AlienFortress.fortresses.splice(i, 1);
         money += 1200; // 4x nest reward
@@ -574,8 +686,11 @@ class AlienFortress extends Nest {
 
   static createFromNest(nest) {
     // Create fortress at nest position
-    let fortress = new AlienFortress(nest.pos.copy(), 40, nest.color);
+    let fortress = new AlienFortress(nest.pos.copy(), 40, nest.color, nest.attachedReedId || null);
     AlienFortress.fortresses.push(fortress);
+    if (fortress.attachedReedId && typeof WindReed !== 'undefined') {
+      WindReed.registerAttachment(fortress.attachedReedId, 'fortress', fortress);
+    }
     
     // Announce the transformation
     soundManager.play('nestBurstDefense'); // Reuse sound effect
