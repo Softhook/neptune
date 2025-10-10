@@ -3030,6 +3030,15 @@ class Missile extends Entity {
         return true;
       }
     }
+    // Check collision with plants (use currentSize for precision)
+    for (let plant of AlienPlant.plants) {
+      const dx = this.pos.x - plant.pos.x;
+      const dy = this.pos.y - plant.pos.y;
+      const minDist = halfSizePlusThreshold + (plant.currentSize || plant.size) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
+        return true;
+      }
+    }
     return false;
   }
 

@@ -65,6 +65,20 @@ class Meteor extends Entity {
       }
     }
 
+    // Check collision with plants (in-flight). Damage but don't explode on contact.
+    for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
+      const plant = AlienPlant.plants[i];
+      const dx = this.pos.x - plant.pos.x;
+      const dy = this.pos.y - plant.pos.y;
+      const minDist = (this.size + (plant.currentSize || plant.size)) / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
+        if (plant.takeDamage(30)) {
+          AlienPlant.destroyPlant(i);
+        }
+        // Continue flight without returning true
+      }
+    }
+
     // Check collision with moon surface
     for (let i = 0; i < moonSurface.length - 1; i++) {
       let start = moonSurface[i];
@@ -154,10 +168,13 @@ damageEntities() { //ground impact
       }
     }
 
-    // Damage plants
+    // Damage plants (use adjusted radius with plant's current size and squared distance)
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
-      let plant = AlienPlant.plants[i];
-      if (dist(this.pos.x, this.pos.y, plant.pos.x, plant.pos.y) < this.explosionRadius) {
+      const plant = AlienPlant.plants[i];
+      const dx = this.pos.x - plant.pos.x;
+      const dy = this.pos.y - plant.pos.y;
+      const adjustedRadius = this.explosionRadius + (plant.currentSize || plant.size) / 2;
+      if (dx * dx + dy * dy < adjustedRadius * adjustedRadius) {
         if (plant.takeDamage(this.damage)) {
           AlienPlant.destroyPlant(i);
         }
@@ -250,7 +267,7 @@ damageEntities() { //ground impact
     
   for (let plant of AlienPlant.plants) {
     let newY = min(this.getNewSurfaceY(plant.pos.x), height);
-    plant.targetPos.y = newY - plant.size / 2;
+    plant.targetPos.y = newY - (plant.currentSize || plant.size) / 2;
   }
 
     if (ship.isLanded) {
