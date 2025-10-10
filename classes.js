@@ -1542,10 +1542,16 @@ class Bullet extends Entity {
            this.checkCollisionWithEntities(Zapper.zappers) ||
            this.checkCollisionWithEntities(Destroyer.destroyers) ||
            this.checkCollisionWithWorms() ||
+           this.checkCollisionWithPlants() ||
            this.checkCollisionWithQueen() ||
            this.checkCollisionWithKing() ||
            this.checkCollisionWithNests() ||
            this.checkCollisionWithFortresses();
+  }
+
+  checkCollisionWithPlants() {
+    // Delegate to AlienPlant collision check to support both anchored and ground plants
+    return AlienPlant.checkCollisionWithBullet(this);
   }
 
   checkEnemyBulletCollisions() {
@@ -1941,6 +1947,16 @@ checkAlienCollision() {
     }
   }
   
+  // Check collision with plants (both ground and reed-anchored)
+  for (let plant of AlienPlant.plants) {
+    const dx = this.pos.x - plant.pos.x;
+    const dy = this.pos.y - plant.pos.y;
+    const minDist = (this.size + (plant.currentSize || plant.size)) / 2;
+    if (dx * dx + dy * dy < minDist * minDist) {
+      return true;
+    }
+  }
+
   // Check collision with regular aliens
   for (let alien of Alien.aliens) {
     const dx = this.pos.x - alien.pos.x;
