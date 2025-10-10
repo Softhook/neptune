@@ -159,7 +159,7 @@ class WindReed extends Entity {
     for (let i = 0; i < WindReed.reeds.length; i++) WindReed.reeds[i].update();
 
     // Ensure every reed tip has at least one anchored plant
-    WindReed.ensurePlantsAtTips();
+    //WindReed.ensurePlantsAtTips();
   }
 
   static tooClose(pos) {

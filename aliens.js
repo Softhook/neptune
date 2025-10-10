@@ -174,12 +174,11 @@ static isInCluster(pos) {
     let size = random(40, 130);
     let attachedReedId = null;
     if (typeof WindReed !== 'undefined' && WindReed.reeds.length) {
-      // Prefer reeds that don't already have an anchored plant
+      // Build exclusion set: reeds already hosting a plant, nest, or fortress
       const anchoredTo = new Set();
       for (let p of AlienPlant.plants) {
         if (p.isAnchoredToReed && p.attachedReedId != null) anchoredTo.add(p.attachedReedId);
       }
-      // Exclude reeds hosting a nest or fortress
       if (typeof Nest !== 'undefined') {
         for (let n of Nest.nests) {
           if (n.isAnchoredToReed && n.attachedReedId != null) anchoredTo.add(n.attachedReedId);
@@ -190,24 +189,65 @@ static isInCluster(pos) {
           if (f.isAnchoredToReed && f.attachedReedId != null) anchoredTo.add(f.attachedReedId);
         }
       }
-      const candidateReeds = WindReed.reeds.filter(r => {
+
+      // Helper for wrapped horizontal distance
+      const horizDist = (ax, bx) => {
+        const d = Math.abs(ax - bx);
+        return Math.min(d, worldWidth - d);
+      };
+
+      // 1) Primary: tip within an expanded radius from the cluster center
+      const R = (WindReed.CLUSTER_RADIUS || 100) * 3; // expanded to handle tip height
+      const tipRadiusReeds = WindReed.reeds.filter(r => {
+        if (anchoredTo.has(r.id)) return false;
         const tip = r.getTipPosition();
         const dx = tip.x - clusterCenter.x;
         const dy = tip.y - clusterCenter.y;
-        const inCluster = dx*dx + dy*dy < WindReed.CLUSTER_RADIUS * WindReed.CLUSTER_RADIUS;
-        return inCluster && !anchoredTo.has(r.id);
+        return (dx*dx + dy*dy) < R * R;
       });
-      if (candidateReeds.length) {
-        const chosen = random(candidateReeds);
+      if (tipRadiusReeds.length) {
+        const chosen = random(tipRadiusReeds);
         attachedReedId = chosen.id;
         const tip = chosen.getTipPosition();
-  const plantPos = createVector(tip.x, tip.y + size * 0.35);
+        const plantPos = createVector(tip.x, tip.y + size * 0.35);
         const newPlant = new AlienPlant(plantPos, size, clusterCenter.color, attachedReedId);
         AlienPlant.plants.push(newPlant);
-        if (attachedReedId) {
-          WindReed.registerAttachment(attachedReedId, 'plant', newPlant);
-        }
+        WindReed.registerAttachment(attachedReedId, 'plant', newPlant);
         return;
+      }
+
+      // 2) Secondary: reeds horizontally near the cluster center (ignore height)
+      const H = 240; // horizontal window around cluster center
+      const horizReeds = WindReed.reeds.filter(r => !anchoredTo.has(r.id) && horizDist(r.pos.x, clusterCenter.x) < H);
+      if (horizReeds.length) {
+        const chosen = random(horizReeds);
+        attachedReedId = chosen.id;
+        const tip = chosen.getTipPosition();
+        const plantPos = createVector(tip.x, tip.y + size * 0.35);
+        const newPlant = new AlienPlant(plantPos, size, clusterCenter.color, attachedReedId);
+        AlienPlant.plants.push(newPlant);
+        WindReed.registerAttachment(attachedReedId, 'plant', newPlant);
+        return;
+      }
+
+      // 3) Fallback: nearest unoccupied reed by horizontal distance to the cluster
+      const unoccupied = WindReed.reeds.filter(r => !anchoredTo.has(r.id));
+      if (unoccupied.length) {
+        let best = null;
+        let bestD = Infinity;
+        for (const r of unoccupied) {
+          const d = horizDist(r.pos.x, clusterCenter.x);
+          if (d < bestD) { bestD = d; best = r; }
+        }
+        if (best) {
+          attachedReedId = best.id;
+          const tip = best.getTipPosition();
+          const plantPos = createVector(tip.x, tip.y + size * 0.35);
+          const newPlant = new AlienPlant(plantPos, size, clusterCenter.color, attachedReedId);
+          AlienPlant.plants.push(newPlant);
+          WindReed.registerAttachment(attachedReedId, 'plant', newPlant);
+          return;
+        }
       }
     }
     // Fallback ground spawn
