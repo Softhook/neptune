@@ -252,10 +252,14 @@ static isInCluster(pos) {
     }
     // Fallback ground spawn
     let pos = createVector(clusterCenter.x + random(-100, 100), 0);
+    // Wrap x coordinate to stay within world bounds
+    pos.x = ((pos.x % worldWidth) + worldWidth) % worldWidth;
     pos.y = getCachedSurfaceYAtX(pos.x) - size;
     let attempts = 0;
     while (attempts < 5 && pos.y < clusterCenter.y - size) {
       pos.x = clusterCenter.x + random(-100, 100);
+      // Wrap x coordinate to stay within world bounds
+      pos.x = ((pos.x % worldWidth) + worldWidth) % worldWidth;
       pos.y = getCachedSurfaceYAtX(pos.x) - size;
       attempts++;
     }
