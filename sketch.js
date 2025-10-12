@@ -1822,7 +1822,12 @@ function getCachedSurfaceYAtX(x) {
   
   // Identify surrounding cache buckets for interpolation
   const baseBucket = Math.floor(x / TERRAIN_CACHE_RESOLUTION) * TERRAIN_CACHE_RESOLUTION;
-  const nextBucket = baseBucket + TERRAIN_CACHE_RESOLUTION;
+  let nextBucket = baseBucket + TERRAIN_CACHE_RESOLUTION;
+  
+  // Handle world wrapping for nextBucket to ensure cache keys are always in bounds
+  if (nextBucket >= worldWidth) {
+    nextBucket = nextBucket % worldWidth;
+  }
 
   // Fetch (or compute & cache) both bucket heights
   let y1 = terrainCache.get(baseBucket);
@@ -1830,6 +1835,7 @@ function getCachedSurfaceYAtX(x) {
     y1 = getSurfaceYAtX(baseBucket);
     terrainCache.set(baseBucket, y1);
   }
+  
   let y2 = terrainCache.get(nextBucket);
   if (y2 === undefined) {
     y2 = getSurfaceYAtX(nextBucket);
