@@ -337,8 +337,8 @@ class RuinedBase {
   }
 
   draw() {
-    // Draw the pre-rendered image
-    image(this.renderedImage, this.pos.x, this.pos.y - this.towerHeight);
+    // Draw the pre-rendered image centered around pos.x
+    image(this.renderedImage, this.pos.x - this.width / 2, this.pos.y - this.towerHeight);
   }
 
   static createFromMoonBase(moonBase) {
