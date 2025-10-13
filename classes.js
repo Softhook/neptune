@@ -81,7 +81,8 @@ static updateAll() {
 
   static createFromNest(nest) {
     if (!nest || !nest.pos) return;
-    const newBasePos = nest.pos.copy().sub(MoonBase.BASE_WIDTH / 2, (MoonBase.BASE_HEIGHT / 2) - 10);
+    // pos.x should be at center, pos.y should be at bottom (adjusted for height)
+    const newBasePos = nest.pos.copy().sub(0, (MoonBase.BASE_HEIGHT / 2) - 10);
     new MoonBase(MoonBase.BASE_WIDTH, MoonBase.BASE_HEIGHT, newBasePos);
   }
 
@@ -94,14 +95,16 @@ findSuitableLocation() {
   if (flattestSegment !== null) {
     const start = moonSurface[flattestSegment];
     const end = moonSurface[flattestSegment + 1];
+    const avgX = (start.x + end.x) / 2; // Center horizontally
     const avgY = (start.y + end.y) / 2;
-    return createVector(start.x, avgY - this.height);
+    return createVector(avgX, avgY - this.height);
   }
 
   const baseSegmentIndex = floor(random(moonSurface.length - 1));
   const start = moonSurface[baseSegmentIndex];
   const end = moonSurface[baseSegmentIndex + 1];
-  return createVector(start.x, (start.y + end.y) / 2 - this.height);
+  const avgX = (start.x + end.x) / 2; // Center horizontally
+  return createVector(avgX, (start.y + end.y) / 2 - this.height);
 }
 
 
@@ -125,9 +128,11 @@ findSuitableLocation() {
   draw() {
     push();
     fill(100, 100, 255);
-    rect(this.pos.x, this.pos.y, this.width, this.height);
+    // Draw base centered around pos.x (middle bottom)
+    const baseLeft = this.pos.x - this.width / 2;
+    rect(baseLeft, this.pos.y, this.width, this.height);
     fill(150, 150, 255);
-    const towerX = this.pos.x + this.width - this.towerWidth;
+    const towerX = baseLeft + this.width - this.towerWidth;
     const towerY = this.pos.y - this.towerHeight;
     rect(towerX, towerY, this.towerWidth, this.towerHeight);
 
@@ -139,7 +144,7 @@ findSuitableLocation() {
     pop();
 
     //fill(255, 0, 0);
-    //rect(this.pos.x, this.pos.y, 100 - this.health, 5);
+    //rect(baseLeft, this.pos.y, 100 - this.health, 5);
 
      const healthBarWidth = this.width; // Full base width
      const healthBarHeight = 5;
@@ -147,7 +152,7 @@ findSuitableLocation() {
 
      // Draw damage bar (red, grows as damage increases)
     fill(255, 0, 0);
-    rect(this.pos.x, this.pos.y, healthBarWidth * damagePercentage, healthBarHeight);
+    rect(baseLeft, this.pos.y, healthBarWidth * damagePercentage, healthBarHeight);
     pop();
   }
 
@@ -197,8 +202,9 @@ findSuitableLocation() {
   launchDrone() {
     if (this.drone) return; // Already has a drone
     
+    // Tower is at right edge: pos.x (center) + width/2 (right edge) - towerWidth/2 (tower center)
     const dronePos = createVector(
-      this.pos.x + this.width / 2,
+      this.pos.x + this.width / 2 - this.towerWidth / 2,
       this.pos.y - this.towerHeight - 20
     );
     this.drone = new BaseDrone(dronePos, createVector(0, 0), 12, this);
@@ -849,8 +855,9 @@ class Astronaut extends Entity {
   }
 
   isOverBase(base) {
-    return this.pos.x > base.pos.x && 
-           this.pos.x < base.pos.x + base.width &&
+    // base.pos.x is now at center, so check if within half width on each side
+    return this.pos.x > base.pos.x - base.width / 2 && 
+           this.pos.x < base.pos.x + base.width / 2 &&
            Math.abs(this.pos.y - (base.pos.y - this.size / 2)) < 20;
   }
 
@@ -942,8 +949,9 @@ class Ship extends Entity {
   dropBase() {
     if (money > 500) {
       money -= 500;
-      const basePos = this.pos.copy().sub((MoonBase.BASE_WIDTH / 2), 0);
-  basePos.y = getCachedSurfaceYAtX(basePos.x);
+      // basePos.x is at center of ship, which becomes center of base
+      const basePos = this.pos.copy();
+      basePos.y = getCachedSurfaceYAtX(basePos.x);
       new MoonBase(MoonBase.BASE_WIDTH, MoonBase.BASE_HEIGHT, basePos);
       soundManager.play('shipDropOffPod');
       announcer.speak("Base deployed", 0, 1, 1000);
@@ -1120,7 +1128,8 @@ class Ship extends Entity {
 
   isOverBase() {
     for (const base of MoonBase.moonBases) {
-      if (this.pos.x > base.pos.x && this.pos.x < base.pos.x + base.width && Math.abs(this.pos.y - (base.pos.y - this.size / 2)) < 5) {
+      // base.pos.x is now at center, so check if within half width on each side
+      if (this.pos.x > base.pos.x - base.width / 2 && this.pos.x < base.pos.x + base.width / 2 && Math.abs(this.pos.y - (base.pos.y - this.size / 2)) < 5) {
         return true;
       }
     }
@@ -1129,7 +1138,8 @@ class Ship extends Entity {
 
   findBaseUnder() {
     for (const base of MoonBase.moonBases) {
-      if (this.pos.x > base.pos.x && this.pos.x < base.pos.x + base.width) {
+      // base.pos.x is now at center, so check if within half width on each side
+      if (this.pos.x > base.pos.x - base.width / 2 && this.pos.x < base.pos.x + base.width / 2) {
         return base;
       }
     }
@@ -1144,7 +1154,8 @@ class Ship extends Entity {
   placeOnMoonBase() {
     const nearestBase = this.findNearestBase();
     if (nearestBase) {
-      const baseCenter = nearestBase.pos.x + nearestBase.width / 2;
+      // base.pos.x is now already at center
+      const baseCenter = nearestBase.pos.x;
       const surfaceY = this.getSurfaceY();
       this.pos.set(baseCenter, Math.min(nearestBase.pos.y, surfaceY) - this.size / 2);
       this.vel.set(0, 0);
@@ -1157,7 +1168,8 @@ class Ship extends Entity {
     let nearestBase = null;
     let shortestDistance = Infinity;
     for (const base of MoonBase.moonBases) {
-      const distance = dist(this.pos.x, this.pos.y, base.pos.x + base.width / 2, base.pos.y);
+      // base.pos.x is now at center, so no need to add width / 2
+      const distance = dist(this.pos.x, this.pos.y, base.pos.x, base.pos.y);
       if (distance < shortestDistance) {
         shortestDistance = distance;
         nearestBase = base;
@@ -1770,7 +1782,8 @@ checkCollisionWithWingmen() {
 
   checkCollisionWithMoonBases() {
     for (let base of MoonBase.moonBases) {
-      if (this.pos.x > base.pos.x && this.pos.x < base.pos.x + base.width &&
+      // base.pos.x is now at center, so check if within half width on each side
+      if (this.pos.x > base.pos.x - base.width / 2 && this.pos.x < base.pos.x + base.width / 2 &&
           this.pos.y > base.pos.y && this.pos.y < base.pos.y + base.height) {
         base.health -= 10;
         return true;
@@ -3511,8 +3524,9 @@ class BaseDrone extends Drone {
   }
 
   constrainToPatrolArea() {
+    // base.pos.x is now already at center
     let baseCenter = createVector(
-      this.homeBase.pos.x + this.homeBase.width / 2,
+      this.homeBase.pos.x,
       this.homeBase.pos.y
     );
     
