@@ -1960,8 +1960,9 @@ class AlienWorm {
     // Check collision with bases
     for (let base of MoonBase.moonBases) {
       for (let segment of this.segments) {
-        if (segment.pos.x > base.pos.x && 
-            segment.pos.x < base.pos.x + base.width &&
+        // base.pos.x is now at center, so check if within half width on each side
+        if (segment.pos.x > base.pos.x - base.width / 2 && 
+            segment.pos.x < base.pos.x + base.width / 2 &&
             Math.abs(segment.pos.y - base.pos.y) < segment.size / 2) {
           base.health -= 1;
           break; // Only damage the base once per frame
