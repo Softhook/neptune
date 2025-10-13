@@ -162,7 +162,8 @@ damageEntities() { //ground impact
 
     // Damage moon bases
     for (let base of MoonBase.moonBases) {
-      if (this.pos.x > base.pos.x && this.pos.x < base.pos.x + base.width &&
+      // base.pos.x is now at center, so check if within half width on each side
+      if (this.pos.x > base.pos.x - base.width / 2 && this.pos.x < base.pos.x + base.width / 2 &&
           Math.abs(this.pos.y - base.pos.y) < this.explosionRadius) {
         base.health -= this.damage;
       }
@@ -2228,7 +2229,8 @@ class LightningStorm {
     // Moon bases
     for (let i = MoonBase.moonBases.length - 1; i >= 0; i--) {
       const base = MoonBase.moonBases[i];
-      const bx = base.pos.x + base.width/2;
+      // base.pos.x is now already at center
+      const bx = base.pos.x;
       const by = base.pos.y + base.height/2;
       const damageMultiplier = getDamageMultiplier(bx, by);
       if (damageMultiplier > 0) {
