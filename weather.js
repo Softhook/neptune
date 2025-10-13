@@ -2171,33 +2171,58 @@ class LightningStorm {
   }
 
   applyStrikeDestruction(x, y) {
-    // Radius very small: direct hit only (tunable)
-    const r = 25; // small lethal radius
-    const rSq = r * r;
+    // Three damage zones for realistic lightning strike
+    const lethalRadius = 25;        // Instant death zone (direct strike)
+    const severeRadius = 50;        // Severe damage zone (close proximity)
+    const moderateRadius = 75;      // Moderate damage zone (shock wave)
+    
+    const lethalRadiusSq = lethalRadius * lethalRadius;
+    const severeRadiusSq = severeRadius * severeRadius;
+    const moderateRadiusSq = moderateRadius * moderateRadius;
 
-    // Helper to test squared distance
-    const within = (px, py) => {
+    // Helper to calculate damage based on distance
+    const getDamageMultiplier = (px, py) => {
       const dx = px - x;
       const dy = py - y;
-      return (dx*dx + dy*dy) <= rSq;
+      const distSq = dx*dx + dy*dy;
+      
+      if (distSq <= lethalRadiusSq) return 1.0;      // 100% damage (lethal)
+      if (distSq <= severeRadiusSq) return 0.7;      // 70% damage (severe)
+      if (distSq <= moderateRadiusSq) return 0.3;    // 30% damage (moderate)
+      return 0;                                       // No damage
+    };
+    
+    // Helper for simple distance check (any damage zone)
+    const withinDamageZone = (px, py) => {
+      const dx = px - x;
+      const dy = py - y;
+      return (dx*dx + dy*dy) <= moderateRadiusSq;
     };
 
     // Ship (only if landed and near surface endpoint)
-    if (ship && ship.isLanded && within(ship.pos.x, ship.pos.y + ship.size/2)) {
-      energy -= 1500; // heavy energy damage
-      if (soundManager) soundManager.play('shipHit');
+    if (ship && ship.isLanded) {
+      const damageMultiplier = getDamageMultiplier(ship.pos.x, ship.pos.y + ship.size/2);
+      if (damageMultiplier > 0) {
+        energy -= Math.floor(1500 * damageMultiplier); // Scaled energy damage
+        if (soundManager) soundManager.play('shipHit');
+      }
     }
 
     // Astronaut (walking mode)
-    if (isWalking && astronaut && within(astronaut.pos.x, astronaut.pos.y + astronaut.size/2)) {
-      energy -= 1000;
+    if (isWalking && astronaut) {
+      const damageMultiplier = getDamageMultiplier(astronaut.pos.x, astronaut.pos.y + astronaut.size/2);
+      if (damageMultiplier > 0) {
+        energy -= Math.floor(1000 * damageMultiplier); // Scaled energy damage
+      }
     }
 
     // Pod (if present at strike)
-    if (pod && !pod.pickedUpByShip && !pod.pickedUpByAstronaut && within(pod.pos.x, pod.pos.y)) {
-      // Simulate pod being destroyed: drop explosion & remove?
-      explosions.push(new Explosion(createVector(pod.pos.x, pod.pos.y), 40, color(255,255,255), color(120,120,255)));
-      pod.podDropOff(createVector(pod.pos.x, pod.pos.y - 30)); // minor displacement
+    if (pod && !pod.pickedUpByShip && !pod.pickedUpByAstronaut) {
+      const damageMultiplier = getDamageMultiplier(pod.pos.x, pod.pos.y);
+      if (damageMultiplier > 0) {
+        explosions.push(new Explosion(createVector(pod.pos.x, pod.pos.y), 40, color(255,255,255), color(120,120,255)));
+        pod.podDropOff(createVector(pod.pos.x, pod.pos.y - 30)); // minor displacement
+      }
     }
 
     // Moon bases
@@ -2205,8 +2230,9 @@ class LightningStorm {
       const base = MoonBase.moonBases[i];
       const bx = base.pos.x + base.width/2;
       const by = base.pos.y + base.height/2;
-      if (within(bx, by)) {
-        base.health -= 200;
+      const damageMultiplier = getDamageMultiplier(bx, by);
+      if (damageMultiplier > 0) {
+        base.health -= Math.floor(300 * damageMultiplier); // Scaled damage (increased from 200)
         if (base.health <= 0) {
           explosions.push(new Explosion(createVector(bx, by), 80, color(255,255,255), color(180,180,255)));
           MoonBase.moonBases.splice(i,1);
@@ -2217,54 +2243,67 @@ class LightningStorm {
     // Turrets
     for (let i = turrets.length - 1; i >= 0; i--) {
       const t = turrets[i];
-      if (within(t.pos.x, t.pos.y)) {
-        t.health = 0;
-        explosions.push(new Explosion(t.pos.copy(), 50, color(255,255,255), color(150,150,255)));
-        turrets.splice(i,1);
+      const damageMultiplier = getDamageMultiplier(t.pos.x, t.pos.y);
+      if (damageMultiplier > 0) {
+        t.health -= Math.floor(t.health * damageMultiplier); // Proportional damage
+        if (t.health <= 0) {
+          explosions.push(new Explosion(t.pos.copy(), 50, color(255,255,255), color(150,150,255)));
+          turrets.splice(i,1);
+        }
       }
     }
 
     // Drill Rigs
     for (let i = DrillRig.rigs.length - 1; i >= 0; i--) {
       const rig = DrillRig.rigs[i];
-      if (within(rig.pos.x, rig.pos.y)) {
-        rig.health = 0;
-        explosions.push(new Explosion(rig.pos.copy(), 50, color(255,255,255), color(150,150,255)));
-        DrillRig.rigs.splice(i,1);
+      const damageMultiplier = getDamageMultiplier(rig.pos.x, rig.pos.y);
+      if (damageMultiplier > 0) {
+        rig.health -= Math.floor(rig.health * damageMultiplier); // Proportional damage
+        if (rig.health <= 0) {
+          explosions.push(new Explosion(rig.pos.copy(), 50, color(255,255,255), color(150,150,255)));
+          DrillRig.rigs.splice(i,1);
+        }
       }
     }
 
     // Walkers
     for (let i = WalkerRobot.walkers.length - 1; i >= 0; i--) {
       const walker = WalkerRobot.walkers[i];
-      if (within(walker.pos.x, walker.pos.y)) {
-        walker.health = 0;
-        explosions.push(new Explosion(walker.pos.copy(), 40, color(255,255,255), color(120,120,255)));
-        WalkerRobot.walkers.splice(i,1);
+      const damageMultiplier = getDamageMultiplier(walker.pos.x, walker.pos.y);
+      if (damageMultiplier > 0) {
+        walker.health -= Math.floor(walker.health * damageMultiplier); // Proportional damage
+        if (walker.health <= 0) {
+          explosions.push(new Explosion(walker.pos.copy(), 40, color(255,255,255), color(120,120,255)));
+          WalkerRobot.walkers.splice(i,1);
+        }
       }
     }
 
-    // Aliens (and special alien types) generic function
-    const hitAlienArray = arr => {
+    // Aliens (and special alien types) - apply tiered damage
+    const damageAlienArray = arr => {
       for (let i = arr.length - 1; i >= 0; i--) {
         const a = arr[i];
-        if (within(a.pos.x, a.pos.y)) {
-          a.health = 0;
-          explosions.push(new Explosion(a.pos.copy(), a.size || 30, color(255,255,255), color(150,150,255)));
-          soundManager && soundManager.play('alienDestruction');
-          arr.splice(i,1);
+        const damageMultiplier = getDamageMultiplier(a.pos.x, a.pos.y);
+        if (damageMultiplier > 0) {
+          a.health -= Math.floor((a.health || 100) * damageMultiplier); // Proportional damage
+          if (a.health <= 0) {
+            explosions.push(new Explosion(a.pos.copy(), a.size || 30, color(255,255,255), color(150,150,255)));
+            soundManager && soundManager.play('alienDestruction');
+            arr.splice(i,1);
+          }
         }
       }
     };
-    hitAlienArray(Alien.aliens);
-    hitAlienArray(Hunter.hunters);
-    hitAlienArray(Zapper.zappers);
-    hitAlienArray(Destroyer.destroyers);
+    damageAlienArray(Alien.aliens);
+    damageAlienArray(Hunter.hunters);
+    damageAlienArray(Zapper.zappers);
+    damageAlienArray(Destroyer.destroyers);
 
     // Plants
     for (let i = AlienPlant.plants.length - 1; i >= 0; i--) {
       const plant = AlienPlant.plants[i];
-      if (within(plant.pos.x, plant.pos.y)) {
+      const damageMultiplier = getDamageMultiplier(plant.pos.x, plant.pos.y);
+      if (damageMultiplier > 0) {
         explosions.push(new Explosion(plant.pos.copy(), plant.size || 30, color(255,255,255), color(150,150,255)));
         AlienPlant.destroyPlant(i);
       }
@@ -2273,20 +2312,89 @@ class LightningStorm {
     // Nests
     for (let i = Nest.nests.length - 1; i >= 0; i--) {
       const nest = Nest.nests[i];
-      if (within(nest.pos.x, nest.pos.y)) {
-        nest.health = 0;
-        explosions.push(new Explosion(nest.pos.copy(), nest.size || 40, color(255,255,255), color(150,150,255)));
-        Nest.nests.splice(i,1);
+      const damageMultiplier = getDamageMultiplier(nest.pos.x, nest.pos.y);
+      if (damageMultiplier > 0) {
+        nest.health -= Math.floor((nest.health || 100) * damageMultiplier); // Proportional damage
+        if (nest.health <= 0) {
+          explosions.push(new Explosion(nest.pos.copy(), nest.size || 40, color(255,255,255), color(150,150,255)));
+          Nest.nests.splice(i,1);
+        }
       }
     }
 
     // Fortresses
     for (let i = AlienFortress.fortresses.length - 1; i >= 0; i--) {
       const fort = AlienFortress.fortresses[i];
-      if (within(fort.pos.x, fort.pos.y)) {
-        fort.health = 0;
-        explosions.push(new Explosion(fort.pos.copy(), fort.size || 60, color(255,255,255), color(150,150,255)));
-        AlienFortress.fortresses.splice(i,1);
+      const damageMultiplier = getDamageMultiplier(fort.pos.x, fort.pos.y);
+      if (damageMultiplier > 0) {
+        fort.health -= Math.floor((fort.health || 100) * damageMultiplier); // Proportional damage
+        if (fort.health <= 0) {
+          explosions.push(new Explosion(fort.pos.copy(), fort.size || 60, color(255,255,255), color(150,150,255)));
+          AlienFortress.fortresses.splice(i,1);
+        }
+      }
+    }
+    
+    // AlienWorms - check each segment
+    for (let i = AlienWorm.worms.length - 1; i >= 0; i--) {
+      const worm = AlienWorm.worms[i];
+      let maxDamageMultiplier = 0;
+      for (let segment of worm.segments) {
+        const damageMultiplier = getDamageMultiplier(segment.pos.x, segment.pos.y);
+        maxDamageMultiplier = Math.max(maxDamageMultiplier, damageMultiplier);
+      }
+      if (maxDamageMultiplier > 0) {
+        worm.health -= Math.floor((worm.health || 100) * maxDamageMultiplier);
+        if (worm.health <= 0 && worm.takeDamage) {
+          worm.takeDamage(worm.health); // Trigger worm death
+        }
+      }
+    }
+    
+    // Shields - damage or destroy
+    for (let i = Shield.shields.length - 1; i >= 0; i--) {
+      const shield = Shield.shields[i];
+      const damageMultiplier = getDamageMultiplier(shield.pos.x, shield.pos.y);
+      if (damageMultiplier > 0) {
+        shield.health -= Math.floor(100 * damageMultiplier); // Heavy damage to shields
+        if (shield.health <= 0) {
+          Shield.shields.splice(i,1);
+        }
+      }
+    }
+    
+    // Wingmen - player units are affected
+    for (let i = Wingman.wingmen.length - 1; i >= 0; i--) {
+      const wingman = Wingman.wingmen[i];
+      const damageMultiplier = getDamageMultiplier(wingman.pos.x, wingman.pos.y);
+      if (damageMultiplier > 0) {
+        wingman.health -= Math.floor((wingman.health || 100) * damageMultiplier);
+        if (wingman.health <= 0) {
+          explosions.push(new Explosion(wingman.pos.copy(), wingman.size || 30, color(255,255,255), color(150,150,255)));
+          Wingman.wingmen.splice(i,1);
+        }
+      }
+    }
+    
+    // Boss entities - AlienQueen
+    if (alienQueen) {
+      const damageMultiplier = getDamageMultiplier(alienQueen.pos.x, alienQueen.pos.y);
+      if (damageMultiplier > 0) {
+        const damage = Math.floor(500 * damageMultiplier); // Heavy damage to boss
+        if (alienQueen.takeDamage) {
+          alienQueen.takeDamage(damage);
+        }
+      }
+    }
+    
+    // Boss entities - AlienKing
+    if (alienKing) {
+      const damageMultiplier = getDamageMultiplier(alienKing.pos.x, alienKing.pos.y);
+      if (damageMultiplier > 0) {
+        const damage = Math.floor(500 * damageMultiplier); // Heavy damage to boss
+        if (alienKing.takeDamage) {
+          alienKing.takeDamage(damage);
+        }
       }
     }
   }
