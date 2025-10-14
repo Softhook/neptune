@@ -432,6 +432,11 @@ function drawGame() {
     earthquakeShake.x + tectonicShake.x,
     earthquakeShake.y + tectonicShake.y
   );
+  // Expose camera shake to screen-space overlays (labels)
+  try {
+    window.lastCameraShakeX = cameraShake.x;
+    window.lastCameraShakeY = cameraShake.y;
+  } catch (e) { /* ignore in non-browser env */ }
   translate(-cameraOffset + cameraShake.x, cameraShake.y);
   
   drawBackground();
@@ -539,6 +544,9 @@ function drawGame() {
 
   
   pop();
+  
+  // Draw map labels at the bottom of the screen aligned under their features (screen space)
+  try { if (typeof MapLabel !== 'undefined') MapLabel.drawBottomOverlay(); } catch(e) { /* ignore */ }
   
   drawHUD();
   drawPodIndicator();
@@ -793,6 +801,8 @@ function resetGame() {
   Bullet.activeObjects = [];
   Particle.pool = [];
   Particle.activeParticles = [];
+  // Reset map labels
+  if (typeof MapLabel !== 'undefined') MapLabel.reset();
 
   // Reset static properties
   Alien.totalAliens = 0;
@@ -895,6 +905,8 @@ function resetGame() {
 
   NoFlyZoneMission.resetMission();
   //console.log("Game fully reset");
+  // Initialize map labels scanning now that world is ready
+  if (typeof MapLabel !== 'undefined') MapLabel.initialize();
   
 
 

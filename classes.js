@@ -16,6 +16,349 @@ class Entity {
   }
 }
 
+// Lightweight world label entity + manager
+class MapLabel {
+  // Static collection of labels
+  static labels = [];
+  static MAX_TERRAIN_LABELS_PER_TYPE = 3;
+  static DETECTION_RADIUS_X = 300; // for de-duplication and proximity
+  static ACTIVE_RADIUS_X = 500; // when camera center is within this, show label
+  static SCAN_INTERVAL_MS = 15000; // periodic scan
+  static scanTimerKey = 'mapLabelsScan';
+  static _activeLabel = null;
+  static _alpha = 0; // for fade in/out
+
+  constructor(pos, type, name) {
+    this.pos = pos.copy();
+    this.type = type; // 'base' | 'peak' | 'valley' | 'cluster' | 'fauna'
+    this.name = name || MapLabel.generateName(pos.x, type);
+    MapLabel.labels.push(this);
+  }
+
+  static reset() {
+    MapLabel.labels = [];
+    MapLabel._activeLabel = null;
+    MapLabel._alpha = 0;
+    if (typeof GameTimer !== 'undefined') {
+      GameTimer.clearTimer(MapLabel.scanTimerKey);
+    }
+  }
+
+  static initialize() {
+    // kick off periodic scans once timers exist
+    if (typeof GameTimer !== 'undefined' && !GameTimer.exists(MapLabel.scanTimerKey)) {
+      GameTimer.create(MapLabel.scanTimerKey, () => {
+        try { MapLabel.scanWorld(); } catch (e) { if (debug) debug.error('MapLabel scan error', e); }
+      }, MapLabel.SCAN_INTERVAL_MS, true);
+    }
+    // Run an initial scan quickly to seed first labels
+    try { MapLabel.scanWorld(); } catch(e) { /* ignore */ }
+  }
+
+  // Deterministic name generator without touching p5 global RNG
+  static generateName(x, type) {
+    const adjectives = ['Craggy', 'Vast', 'Silent', 'Stormy', 'Frozen', 'Shifting', 'Shattered', 'Blue', 'Hidden', 'Luminous'];
+    const nounsPeak = ['Peak', 'Ridge', 'Spire', 'Crest'];
+    const nounsValley = ['Basin', 'Chasm', 'Hollow', 'Trench'];
+    const nounsCluster = ['Grove', 'Nestfield', 'Thicket', 'Bloom'];
+    const nounsFauna = ['Huntgrounds', 'Feeding Grounds', 'Warren', 'Hatch'];
+    const nounsBase = ['Forward Base', 'Outpost One', 'Pioneer Site', 'Founders Base'];
+
+    const h = MapLabel._hash(`${Math.floor(x)}|${type}`);
+    const adj = adjectives[h % adjectives.length];
+    let nounList = nounsPeak;
+    switch (type) {
+      case 'peak': nounList = nounsPeak; break;
+      case 'valley': nounList = nounsValley; break;
+      case 'cluster': nounList = nounsCluster; break;
+      case 'fauna': nounList = nounsFauna; break;
+      case 'base': nounList = nounsBase; break;
+    }
+    const noun = nounList[Math.floor(h / 7) % nounList.length];
+    // For base, prefer standalone name
+    if (type === 'base') return noun;
+    return `${adj} ${noun}`;
+  }
+
+  static _hash(str) {
+    let h = 2166136261 >>> 0; // FNV-1a 32-bit
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  // Primary world scan: bases, terrain features, plant clusters, fauna clusters
+  static scanWorld() {
+    if (typeof worldWidth === 'undefined' || !Array.isArray(moonSurface) || moonSurface.length === 0) return;
+
+    // 1) First base
+    if (Array.isArray(MoonBase?.moonBases) && MoonBase.moonBases.length > 0) {
+      const first = MoonBase.moonBases.reduce((min, b) => (min && min.id < b.id) ? min : b, null) || MoonBase.moonBases[0];
+      if (first && !MapLabel._hasNearbyOfType(first.pos, 'base', 80)) {
+        new MapLabel(createVector(first.pos.x, first.pos.y), 'base', 'First Landing');
+      }
+    }
+
+    // 2) Terrain features (peaks/valleys) - limit per type
+    MapLabel._scanTerrainFeatures();
+
+    // 3) Alien plant clusters -> label at cluster center
+    if (Array.isArray(AlienPlant?.clusterCenters)) {
+      for (const c of AlienPlant.clusterCenters) {
+        const p = createVector(c.x, getCachedSurfaceYAtX(c.x) - 10);
+        if (!MapLabel._hasNearbyOfType(p, 'cluster', 120)) {
+          new MapLabel(p, 'cluster');
+        }
+      }
+    }
+
+    // 4) Alien fauna clusters (aliens grouped by x bins)
+    if (Array.isArray(Alien?.aliens) && Alien.aliens.length >= 6) {
+      const binSize = 200;
+      const bins = new Map();
+      for (const a of Alien.aliens) {
+        const key = Math.floor(a.pos.x / binSize) * binSize;
+        const arr = bins.get(key) || [];
+        arr.push(a);
+        bins.set(key, arr);
+      }
+      for (const [key, arr] of bins.entries()) {
+        if (arr.length >= 6) {
+          const avgX = arr.reduce((s, a) => s + a.pos.x, 0) / arr.length;
+          const avgY = arr.reduce((s, a) => s + a.pos.y, 0) / arr.length;
+          const pos = createVector(avgX, Math.min(avgY, getCachedSurfaceYAtX(avgX) - 10));
+          if (!MapLabel._hasNearbyOfType(pos, 'fauna', 150)) {
+            new MapLabel(pos, 'fauna');
+          }
+        }
+      }
+    }
+  }
+
+  static _scanTerrainFeatures() {
+    let peakCount = MapLabel._countType('peak');
+    let valleyCount = MapLabel._countType('valley');
+    const wantPeaksInit = peakCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
+    const wantValleysInit = valleyCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
+    if (!wantPeaksInit && !wantValleysInit) return;
+
+    const step = 30; // index step across moonSurface (points are ~10px apart)
+    const win = 5; // window size left/right
+    for (let i = win; i < moonSurface.length - win; i += step) {
+      const y = moonSurface[i].y;
+      let isPeak = true;
+      let isValley = true;
+      for (let w = 1; w <= win; w++) {
+        // Peak: center y must be less than neighbors (higher elevation visually)
+        if (moonSurface[i - w].y <= y || moonSurface[i + w].y <= y) isPeak = false;
+        // Valley: center y must be greater than neighbors (lower visually)
+        if (moonSurface[i - w].y >= y || moonSurface[i + w].y >= y) isValley = false;
+        if (!isPeak && !isValley) break;
+      }
+      const wantPeaks = peakCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
+      const wantValleys = valleyCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
+      if (wantPeaks && isPeak) {
+        const pos = moonSurface[i].copy();
+        if (!MapLabel._hasNearbyOfType(pos, 'peak', 200)) {
+          new MapLabel(pos, 'peak');
+          peakCount++;
+        }
+      }
+      if (wantValleys && isValley) {
+        const pos = moonSurface[i].copy();
+        if (!MapLabel._hasNearbyOfType(pos, 'valley', 200)) {
+          new MapLabel(pos, 'valley');
+          valleyCount++;
+        }
+      }
+    }
+  }
+
+  static _countType(type) {
+    return MapLabel.labels.reduce((c, l) => c + (l.type === type ? 1 : 0), 0);
+  }
+
+  static _wrapDx(ax, bx) {
+    const dx = Math.abs(ax - bx);
+    return Math.min(dx, (typeof worldWidth === 'number' ? worldWidth : dx + 1) - dx);
+  }
+
+  static _hasNearbyOfType(pos, type, radiusX) {
+    const r = radiusX || MapLabel.DETECTION_RADIUS_X;
+    for (const l of MapLabel.labels) {
+      if (l.type !== type) continue;
+      const dx = MapLabel._wrapDx(l.pos.x, pos.x);
+      if (dx < r) return true;
+    }
+    return false;
+  }
+
+  // Draw active label as a HUD-style bottom overlay based on camera center
+  static drawActiveHUD() {
+    if (!MapLabel.labels.length) return;
+    const camCenterX = (typeof cameraOffset === 'number' ? cameraOffset : 0) + width / 2;
+    const nearest = MapLabel._findNearestToX(camCenterX);
+
+    if (nearest && MapLabel._wrapDx(nearest.pos.x, camCenterX) <= MapLabel.ACTIVE_RADIUS_X) {
+      MapLabel._activeLabel = nearest;
+      MapLabel._alpha = Math.min(MapLabel._alpha + 15, 200);
+    } else {
+      MapLabel._alpha = Math.max(MapLabel._alpha - 15, 0);
+      if (MapLabel._alpha === 0) MapLabel._activeLabel = null;
+    }
+
+    if (!MapLabel._activeLabel || MapLabel._alpha <= 0) return;
+
+    // Draw bottom-center label
+    push();
+    noStroke();
+    const pad = 8;
+    const textStr = MapLabel._activeLabel.name;
+    const barH = 26;
+    // subtle background
+    fill(0, 0, 0, 70);
+    rect(width/2 - 180, height - barH - 6, 360, barH, 6);
+    // text
+    fill(255, MapLabel._alpha);
+    textAlign(CENTER, BOTTOM);
+    textSize(16);
+    text(textStr, width / 2, height - pad);
+    pop();
+  }
+
+  static _findNearestToX(x) {
+    let best = null;
+    let bestDx = Infinity;
+    for (const l of MapLabel.labels) {
+      const dx = MapLabel._wrapDx(l.pos.x, x);
+      if (dx < bestDx) { bestDx = dx; best = l; }
+    }
+    return best;
+  }
+
+  // Draw labels anchored in the world at their landscape positions
+  static drawWorldLabels() {
+    if (!MapLabel.labels.length) return;
+    // Precompute camera bounds via isInView; draw minimal background and text
+    textAlign(CENTER, BOTTOM);
+    textSize(14);
+    for (const l of MapLabel.labels) {
+      const x = l.pos.x;
+      const surfaceY = (typeof getCachedSurfaceYAtX === 'function') ? getCachedSurfaceYAtX(x) : (l.pos.y || height);
+      const y = surfaceY - 28;
+      const pos = { x, y };
+      if (!isInView(pos, 60)) continue;
+
+      // Background pill
+      push();
+      noStroke();
+      fill(0, 0, 0, 80);
+      const w = max(80, textWidth ? textWidth(l.name) + 14 : 120);
+      const h = 20;
+      rect(x - w/2, y - h + 4, w, h, 6);
+      // Text
+      fill(255);
+      text(l.name, x, y);
+      // Connector line to surface
+      stroke(200, 200, 255, 120);
+      strokeWeight(1);
+      line(x, y - 12, x, surfaceY - 2);
+      pop();
+    }
+  }
+
+  // Draw labels projected to the bottom of the screen, centered under their feature X
+  static drawBottomOverlay() {
+    if (!MapLabel.labels.length) return;
+    if (typeof cameraOffset === 'undefined') return;
+
+    // Build candidates for visible features
+    const bottomCandidates = [];
+    const aboveCandidates = [];
+    const padX = 10;
+    const baselineY = height - 18; // bottom padding for bottom-row labels
+    const bottomThreshold = 50; // if feature is within this many px of bottom, draw above feature
+    push();
+    textAlign(CENTER, BOTTOM);
+    textSize(14);
+
+    // Split labels into bottom or above-feature groups
+    for (const l of MapLabel.labels) {
+      const screenX = l.pos.x - cameraOffset; // project to screen x
+      if (screenX < 0 || screenX > width) continue; // only labels whose feature is within view
+      const surfY = (typeof getCachedSurfaceYAtX === 'function') ? getCachedSurfaceYAtX(l.pos.x) : height;
+      const cameraShakeY = (typeof window !== 'undefined' && typeof window.lastCameraShakeY === 'number') ? window.lastCameraShakeY : 0;
+      const screenY = surfY + cameraShakeY; // where the terrain appears on screen
+      const tw = (typeof textWidth === 'function') ? textWidth(l.name) : (l.name?.length || 5) * 8;
+      const w = Math.max(40, tw + padX * 2);
+      const data = { x: screenX, w, text: l.name, type: l.type, screenY };
+      if (screenY > height - bottomThreshold) {
+        aboveCandidates.push(data);
+      } else {
+        bottomCandidates.push(data);
+      }
+    }
+
+    // Stable left-to-right ordering to reduce jitter
+    bottomCandidates.sort((a, b) => a.x - b.x);
+    aboveCandidates.sort((a, b) => a.x - b.x);
+
+    // Bottom row non-overlapping text (no background)
+    const placedBottom = [];
+    const gap = 6; // min horizontal gap
+    const maxLabels = 10;
+    for (const c of bottomCandidates) {
+      if (placedBottom.length >= maxLabels) break;
+      let left = Math.round(c.x - c.w / 2);
+      let right = Math.round(c.x + c.w / 2);
+      if (left < 4) { right += (4 - left); left = 4; }
+      if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
+      let overlaps = false;
+      for (const p of placedBottom) {
+        if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
+      }
+      if (overlaps) continue;
+      const center = Math.round((left + right) / 2);
+      placedBottom.push({ left, right, center, text: c.text });
+    }
+
+    // Render bottom labels (text only)
+    fill(255);
+    for (const p of placedBottom) {
+      text(p.text, p.center, baselineY);
+    }
+
+    // Above-feature labels if feature near bottom
+    // Keep minimal horizontal separation to avoid overlap
+    const placedAbove = [];
+    for (const c of aboveCandidates) {
+      const tw = c.w - padX * 2;
+      let left = Math.round(c.x - tw / 2);
+      let right = Math.round(c.x + tw / 2);
+      if (left < 4) { right += (4 - left); left = 4; }
+      if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
+      let overlaps = false;
+      for (const p of placedAbove) {
+        if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
+      }
+      if (overlaps) continue;
+      const center = Math.round((left + right) / 2);
+      const y = Math.max(16, Math.round(c.screenY - 22));
+      placedAbove.push({ left, right, center, text: c.text, y });
+    }
+
+    // Render above-feature labels (text only)
+    fill(255);
+    for (const p of placedAbove) {
+      text(p.text, p.center, p.y);
+    }
+
+    pop();
+  }
+}
+
 class MoonBase {
   static BASE_HEIGHT = 20;
   static BASE_WIDTH = 100;

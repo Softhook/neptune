@@ -81,6 +81,8 @@ class GameStateManager {
  
       this.validateLoadedState();
       this.setupEntityReferences();
+      // Ensure map label scanning resumes after load
+      try { if (typeof MapLabel !== 'undefined') MapLabel.initialize(); } catch(e) { /* ignore */ }
       
       return true;
     } catch (error) {
@@ -305,6 +307,7 @@ class EntitySerializer {
       drillRigs: DrillRig.rigs.map(rig => this.serializeDrillRig(rig)),
       strandedAstronaut: RescueMission.strandedAstronaut ? this.serializeStrandedAstronaut(RescueMission.strandedAstronaut) : null,
       walkers: WalkerRobot.walkers.map(walker => this.serializeWalker(walker)),
+      mapLabels: Array.isArray(MapLabel?.labels) ? MapLabel.labels.map(l => ({ pos: this.serializeVector(l.pos), type: l.type, name: l.name })) : [],
       activeMissile: activeMissile ? this.serializeMissile(activeMissile) : null,
     };
   }
@@ -345,6 +348,13 @@ class EntitySerializer {
     DrillRig.rigs = entities.drillRigs ? entities.drillRigs.map(rig => this.deserializeDrillRig(rig)) : [];
     WalkerRobot.walkers = entities.walkers ? entities.walkers.map(walkerData => this.deserializeWalker(walkerData)) : [];
     activeMissile = entities.activeMissile ? this.deserializeMissile(entities.activeMissile) : null;
+    if (Array.isArray(entities.mapLabels)) {
+      if (typeof MapLabel !== 'undefined') {
+        MapLabel.labels = entities.mapLabels.map(d => new MapLabel(this.deserializeVector(d.pos), d.type, d.name));
+      }
+    } else if (typeof MapLabel !== 'undefined') {
+      MapLabel.labels = MapLabel.labels || [];
+    }
     
     if (entities.alienQueen) {
       alienQueen = this.deserializeAlienQueen(entities.alienQueen);
