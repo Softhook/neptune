@@ -68,13 +68,18 @@ class AlienArtifactMission {
       
       // Only player bullets can damage the artifact
       if (bullet.isPlayerBullet && bullet.active && this.artifact && !this.artifact.isDestroyed) {
-        let distance = bullet.pos.dist(this.artifact.pos);
-        debug.log(`Bullet at (${bullet.pos.x.toFixed(2)}, ${bullet.pos.y.toFixed(2)}) is ${distance.toFixed(2)} units away from Artifact.`);
+        const dx = bullet.pos.x - this.artifact.pos.x;
+        const dy = bullet.pos.y - this.artifact.pos.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = bullet.size / 2 + this.artifact.size;
+        const minDistSq = minDist * minDist;
         
-        if (distance < (bullet.size / 2 + this.artifact.size)) {
+        if (distSq < minDistSq) {
           // Apply damage to the artifact
           const damage = Bullet.damageMultiplier; // Adjust damage as needed
           this.artifact.takeDamage(damage);
+          const distance = Math.sqrt(distSq);
+          debug.log(`Bullet at (${bullet.pos.x.toFixed(2)}, ${bullet.pos.y.toFixed(2)}) is ${distance.toFixed(2)} units away from Artifact.`);
           debug.log(`Artifact took damage. Current health: ${this.artifact.health}`);
           
           // Recycle the bullet
@@ -310,8 +315,11 @@ class SupplyRunMission {
     for (let supply of this.supplies) {
       if (!supply.isCollected) {
         supply.update();
-        // Check for collision with the ship
-        if (ship.pos.dist(supply.pos) < (ship.size / 2 + supply.size / 2)) {
+        // Check for collision with the ship (squared distance)
+        const dx = ship.pos.x - supply.pos.x;
+        const dy = ship.pos.y - supply.pos.y;
+        const minDist = ship.size / 2 + supply.size / 2;
+        if (dx * dx + dy * dy < minDist * minDist) {
           supply.collect();
           this.deliveredSupplies++;
           announcer.speak(
@@ -332,10 +340,14 @@ class SupplyRunMission {
     // Check if ship is at the target Moon Base and has collected all supplies
     if (
       this.deliveredSupplies >= this.requiredSupplies &&
-      this.targetMoonBase &&
-      ship.pos.dist(this.targetMoonBase.pos) < (ship.size / 2 + this.targetMoonBase.size / 2)
+      this.targetMoonBase
     ) {
-      this.completeMission(true);
+      const dx = ship.pos.x - this.targetMoonBase.pos.x;
+      const dy = ship.pos.y - this.targetMoonBase.pos.y;
+      const minDist = ship.size / 2 + this.targetMoonBase.size / 2;
+      if (dx * dx + dy * dy < minDist * minDist) {
+        this.completeMission(true);
+      }
     }
 
   }
@@ -667,11 +679,11 @@ class AlienPlantInfestation {
     const currentPlants = AlienPlant.plants;
     
     // Check for destroyed plants
-    this.lastKnownPlants.forEach(lastPlant => {
-      if (!currentPlants.includes(lastPlant)) {
+    for (let i = 0; i < this.lastKnownPlants.length; i++) {
+      if (!currentPlants.includes(this.lastKnownPlants[i])) {
         this.plantsDestroyed++;
       }
-    });
+    }
 
     // Update lastKnownPlants for the next check
     this.lastKnownPlants = [...currentPlants];
@@ -733,12 +745,12 @@ class WormHuntMission {
     const currentWorms = AlienWorm.worms;
     
     // Check for destroyed worms
-    this.lastKnownWorms.forEach(lastWorm => {
-      if (!currentWorms.includes(lastWorm)) {
+    for (let i = 0; i < this.lastKnownWorms.length; i++) {
+      if (!currentWorms.includes(this.lastKnownWorms[i])) {
         this.wormsDestroyed++;
         announcer.speak(`Worm destroyed. ${Math.max(0, this.requiredWorms - this.wormsDestroyed)} remaining.`, 1, 2, 0);
       }
-    });
+    }
 
     // Update lastKnownWorms for the next check
     this.lastKnownWorms = [...currentWorms];
@@ -974,12 +986,18 @@ class ArtifactRecoveryMission {
   }
 
   static checkShipCollision(artifact) {
-    return ship.pos.dist(artifact.pos) < ship.size / 2 + artifact.size / 2;
+    const dx = ship.pos.x - artifact.pos.x;
+    const dy = ship.pos.y - artifact.pos.y;
+    const minDist = ship.size / 2 + artifact.size / 2;
+    return dx * dx + dy * dy < minDist * minDist;
   }
 
   static checkAstronautCollision(artifact) {
-    return isWalking && !astronaut.isInShip && 
-           astronaut.pos.dist(artifact.pos) < astronaut.size / 2 + artifact.size / 2;
+    if (!isWalking || astronaut.isInShip) return false;
+    const dx = astronaut.pos.x - artifact.pos.x;
+    const dy = astronaut.pos.y - artifact.pos.y;
+    const minDist = astronaut.size / 2 + artifact.size / 2;
+    return dx * dx + dy * dy < minDist * minDist;
   }
 
   static collectArtifact(index) {
@@ -1109,15 +1127,24 @@ class RescueMission {
   static checkRescue() {
     if (!this.strandedAstronaut) return false;
 
-    // Check if ship is close enough
-    if (ship.isLanded && ship.pos.dist(this.strandedAstronaut.pos) < ship.size + this.strandedAstronaut.size) {
-      return true;
+    // Check if ship is close enough (squared distance)
+    if (ship.isLanded) {
+      const dx1 = ship.pos.x - this.strandedAstronaut.pos.x;
+      const dy1 = ship.pos.y - this.strandedAstronaut.pos.y;
+      const minDist1 = ship.size + this.strandedAstronaut.size;
+      if (dx1 * dx1 + dy1 * dy1 < minDist1 * minDist1) {
+        return true;
+      }
     }
 
-    // Check if astronaut is close enough
-    if (isWalking && !astronaut.isInShip && 
-        astronaut.pos.dist(this.strandedAstronaut.pos) < astronaut.size + this.strandedAstronaut.size) {
-      return true;
+    // Check if astronaut is close enough (squared distance)
+    if (isWalking && !astronaut.isInShip) {
+      const dx2 = astronaut.pos.x - this.strandedAstronaut.pos.x;
+      const dy2 = astronaut.pos.y - this.strandedAstronaut.pos.y;
+      const minDist2 = astronaut.size + this.strandedAstronaut.size;
+      if (dx2 * dx2 + dy2 * dy2 < minDist2 * minDist2) {
+        return true;
+      }
     }
 
     return false;
@@ -1176,7 +1203,10 @@ class StrandedAstronaut extends Astronaut {
     if (rescuer) {
       let direction = p5.Vector.sub(rescuer.pos, this.pos).normalize();
       this.pos.add(direction.mult(this.moveSpeed));
-      if (this.pos.dist(rescuer.pos) < this.size + rescuer.size) {
+      const dx = this.pos.x - rescuer.pos.x;
+      const dy = this.pos.y - rescuer.pos.y;
+      const minDist = this.size + rescuer.size;
+      if (dx * dx + dy * dy < minDist * minDist) {
         this.isRescued = true;
       }
     }
@@ -1186,12 +1216,25 @@ class StrandedAstronaut extends Astronaut {
   }
 
   findClosestRescuer() {
-    let shipDistance = ship.isLanded ? this.pos.dist(ship.pos) : Infinity;
-    let astronautDistance = isWalking && !astronaut.isInShip ? this.pos.dist(astronaut.pos) : Infinity;
+    const maxDistSq = 200 * 200;
+    let shipDistSq = Infinity;
+    let astronautDistSq = Infinity;
+    
+    if (ship.isLanded) {
+      const dx1 = this.pos.x - ship.pos.x;
+      const dy1 = this.pos.y - ship.pos.y;
+      shipDistSq = dx1 * dx1 + dy1 * dy1;
+    }
+    
+    if (isWalking && !astronaut.isInShip) {
+      const dx2 = this.pos.x - astronaut.pos.x;
+      const dy2 = this.pos.y - astronaut.pos.y;
+      astronautDistSq = dx2 * dx2 + dy2 * dy2;
+    }
 
-    if (shipDistance < astronautDistance && shipDistance < 200) {
+    if (shipDistSq < astronautDistSq && shipDistSq < maxDistSq) {
       return ship;
-    } else if (astronautDistance < 200) {
+    } else if (astronautDistSq < maxDistSq) {
       return astronaut;
     }
 
