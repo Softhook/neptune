@@ -562,16 +562,49 @@ findSuitableLocation() {
   findFlattestSegment() {
     let flattestSegment = null;
     let lowestSlope = Infinity;
+    const baseWidth = this.width || MoonBase.BASE_WIDTH; // Use the base width for evaluation
+    
+    // Evaluate regions that can accommodate the full base width
     for (let i = 0; i < moonSurface.length - 1; i++) {
-      const start = moonSurface[i];
-      const end = moonSurface[i + 1];
-      const segmentWidth = end.x - start.x;
-      const slope = Math.abs((end.y - start.y) / segmentWidth);
-      if (segmentWidth >= 40 && slope < lowestSlope) {
+      const startPoint = moonSurface[i];
+      
+      // Find the end of the region that spans at least the base width
+      let endIndex = i + 1;
+      let regionWidth = moonSurface[endIndex].x - startPoint.x;
+      
+      // Extend the region until it spans at least the base width
+      while (endIndex < moonSurface.length - 1 && regionWidth < baseWidth) {
+        endIndex++;
+        regionWidth = moonSurface[endIndex].x - startPoint.x;
+      }
+      
+      // Skip if we couldn't find a wide enough region
+      if (regionWidth < baseWidth) continue;
+      
+      const endPoint = moonSurface[endIndex];
+      
+      // Calculate the average slope across all segments in this region
+      let totalSlope = 0;
+      let segmentCount = 0;
+      for (let j = i; j < endIndex; j++) {
+        const segStart = moonSurface[j];
+        const segEnd = moonSurface[j + 1];
+        const segWidth = segEnd.x - segStart.x;
+        if (segWidth > 0) {
+          totalSlope += Math.abs((segEnd.y - segStart.y) / segWidth);
+          segmentCount++;
+        }
+      }
+      
+      const avgSlope = segmentCount > 0 ? totalSlope / segmentCount : Infinity;
+      
+      // Track the flattest region
+      if (avgSlope < lowestSlope) {
         flattestSegment = i;
-        lowestSlope = slope;
+        lowestSlope = avgSlope;
       }
     }
+    
     return flattestSegment;
   }
 
