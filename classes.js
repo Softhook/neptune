@@ -467,17 +467,21 @@ class MapLabel {
       }
     }
 
-    // Sort left-to-right
-    bottomCandidates.sort((a, b) => a.x - b.x);
+  // Sort left-to-right. We'll place base labels first to give them priority.
+  bottomCandidates.sort((a, b) => a.x - b.x);
     aboveCandidates.sort((a, b) => a.x - b.x);
 
     // Bottom row placement
     const placedBottom = MapLabel._layoutCache.placedBottom; placedBottom.length = 0;
     const gap = 6;
     const maxBottom = 10;
-    for (let i = 0; i < bottomCandidates.length; i++) {
+    // Prioritize base labels: place bases first (in x-order), then others.
+    const baseFirst = bottomCandidates.filter(c => c.type === 'base');
+    const nonBase = bottomCandidates.filter(c => c.type !== 'base');
+    const orderedBottom = baseFirst.concat(nonBase);
+    for (let i = 0; i < orderedBottom.length; i++) {
       if (placedBottom.length >= maxBottom) break;
-      const c = bottomCandidates[i];
+      const c = orderedBottom[i];
       let left = Math.round(c.x - c.w / 2);
       let right = Math.round(c.x + c.w / 2);
       if (left < 4) { right += (4 - left); left = 4; }
