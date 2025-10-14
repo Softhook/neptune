@@ -496,8 +496,10 @@ class MapLabel {
       placedBottom.push({ left, right, center, text: c.text });
     }
 
-    // Above-feature placement (cap count)
+    // Above-feature placement (cap count). Avoid overlap with already placed bottom labels and enforce vertical separation.
     const placedAbove = MapLabel._layoutCache.placedAbove; placedAbove.length = 0;
+    const baselineY = height - 18;
+    const minVerticalSeparation = 28; // px above bottom baseline to avoid near-overlap
     for (let i = 0; i < aboveCandidates.length; i++) {
       if (placedAbove.length >= MapLabel.MAX_ABOVE_LABELS) break;
       const c = aboveCandidates[i];
@@ -507,13 +509,24 @@ class MapLabel {
       if (left < 4) { right += (4 - left); left = 4; }
       if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
       let overlaps = false;
+      // Check overlap with existing above labels
       for (let j = 0; j < placedAbove.length; j++) {
         const p = placedAbove[j];
         if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
       }
+      // Also prevent overlap with bottom labels
+      if (!overlaps) {
+        const placedBottom = MapLabel._layoutCache.placedBottom;
+        for (let j = 0; j < placedBottom.length; j++) {
+          const pb = placedBottom[j];
+          if (!(right + gap < pb.left || left - gap > pb.right)) { overlaps = true; break; }
+        }
+      }
       if (overlaps) continue;
       const center = Math.round((left + right) / 2);
-      const baseY = Math.max(16, Math.round(c.surfY - 22));
+      // Clamp Y so it sits clearly above the bottom baseline
+      const unclampedY = Math.round(c.surfY - 22);
+      const baseY = Math.max(16, Math.min(unclampedY, baselineY - minVerticalSeparation));
       placedAbove.push({ left, right, center, text: c.text, baseY });
     }
   }
