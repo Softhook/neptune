@@ -792,6 +792,7 @@ static deserializePod(podData) {
       width: base.width,
       height: base.height,
       pos: EntitySerializer.serializeVector(base.pos),
+      name: base.name || null,
       health: base.health,
       maxHealth: base.maxHealth,
       healRate: base.healRate,
@@ -806,6 +807,7 @@ static deserializePod(podData) {
 
   static deserializeMoonBase(data) {
     let base = new MoonBase(data.width, data.height, EntitySerializer.deserializeVector(data.pos));
+    base.name = data.name || MoonBase.generateNameForBase(base.pos.x, base.id || 1);
     base.health = data.health;
     base.maxHealth = data.maxHealth;
     base.healRate = data.healRate;

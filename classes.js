@@ -145,14 +145,16 @@ class MapLabel {
         template = '{bio} {terrain}';
         break;
       case 'base':
-        // Prefer a standalone tech/base noun possibly preceded by a narrative/noun
+        // Prefer a curated human military name if provided, else narrative + tech fallback
+        if (pools && Array.isArray(pools.humanMilitaryNames) && pools.humanMilitaryNames.length) {
+          return pick(pools.humanMilitaryNames, 11);
+        }
         if (pools) {
           const nar = pick(pools.narrativeNouns || [], 5);
           const tech = pick(techPool, 7);
           return nar ? `${nar} ${tech}` : tech;
-        } else {
-          return pick(fallback.base, 7);
         }
+        return pick(fallback.base, 7);
       default:
         template = pick(templates, 3);
     }
@@ -188,12 +190,13 @@ class MapLabel {
   // Primary world scan: bases, terrain features, plant clusters, fauna clusters
   static scanWorld() {
     if (typeof worldWidth === 'undefined' || !Array.isArray(moonSurface) || moonSurface.length === 0) return;
-
-    // 1) First base
+    // 1) Bases: ensure each base has a label with its unique name
     if (Array.isArray(MoonBase?.moonBases) && MoonBase.moonBases.length > 0) {
-      const first = MoonBase.moonBases.reduce((min, b) => (min && min.id < b.id) ? min : b, null) || MoonBase.moonBases[0];
-      if (first && !MapLabel._hasNearbyOfType(first.pos, 'base', 80)) {
-        new MapLabel(createVector(first.pos.x, first.pos.y), 'base', 'First Landing');
+      for (const base of MoonBase.moonBases) {
+        const p = createVector(base.pos.x, getCachedSurfaceYAtX(base.pos.x) - 10);
+        if (!MapLabel._hasNearbyOfType(p, 'base', 80)) {
+          new MapLabel(p, 'base', base.name || MoonBase.generateNameForBase(base.pos.x, base.id || 1));
+        }
       }
     }
 
@@ -454,7 +457,10 @@ class MapLabel {
       }
       const w = l._boxWidth;
       const data = { x: screenX, w, text: l.name, type: l.type, surfY };
-      if (surfY > height - bottomThreshold) {
+      // Base labels must always be at the bottom overlay (never above-feature)
+      if (l.type === 'base') {
+        bottomCandidates.push(data);
+      } else if (surfY > height - bottomThreshold) {
         aboveCandidates.push(data);
       } else {
         bottomCandidates.push(data);
@@ -514,6 +520,15 @@ class MoonBase {
   static BASE_WIDTH = 100;
   static moonBases = [];
   static maxBalloons = 0;
+  static generateNameForBase(x, id) {
+    try {
+      // Use MapLabel generator with slight id offset to ensure uniqueness
+      const baseName = MapLabel.generateName(x + id * 31, 'base');
+      return baseName && baseName.trim() ? baseName : `Base ${id}`;
+    } catch (e) {
+      return `Base ${id}`;
+    }
+  }
 
   constructor(width, height, pos) {
     this.width = width;
@@ -536,6 +551,15 @@ class MoonBase {
 
     MoonBase.moonBases.push(this);
     this.id = MoonBase.moonBases.length;
+    // Assign deterministic, individual base name
+    this.name = MoonBase.generateNameForBase(this.pos.x, this.id);
+    // Ensure uniqueness if a duplicate occurs (append roman numerals)
+    let duplicateCount = 1;
+    while (MoonBase.moonBases.some(b => b !== this && b.name === this.name)) {
+      duplicateCount++;
+      this.name = `${MoonBase.generateNameForBase(this.pos.x + duplicateCount * 17, this.id)} ${'I'.repeat(duplicateCount)}`;
+      if (duplicateCount > 5) break; // safety cap
+    }
 
     GameTimer.create(`moonbase_heal_${this.id}`, () => this.heal(), 3000, true);
     GameTimer.create(`moonbase_balloon_${this.id}`, () => this.launchBarrageBalloon(), 10000, true);
@@ -647,6 +671,7 @@ findSuitableLocation() {
     fill(255, 0, 0);
     rect(baseLeft, this.pos.y, healthBarWidth * damagePercentage, healthBarHeight);
     pop();
+
   }
 
 
@@ -1448,6 +1473,8 @@ class Ship extends Entity {
       new MoonBase(MoonBase.BASE_WIDTH, MoonBase.BASE_HEIGHT, basePos);
       soundManager.play('shipDropOffPod');
       announcer.speak("Base deployed", 0, 1, 1000);
+      // Immediately update feature labels
+      try { if (typeof MapLabel !== 'undefined') MapLabel.scanWorld(); } catch(e) { /* ignore */ }
     }
   }
 
