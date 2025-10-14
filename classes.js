@@ -21,24 +21,50 @@ class MapLabel {
   // Static collection of labels
   static labels = [];
   static MAX_TERRAIN_LABELS_PER_TYPE = 3;
+  static MAX_CLUSTER_LABELS = 6;
+  static MAX_FAUNA_LABELS = 6;
+  static MAX_ABOVE_LABELS = 6;
   static DETECTION_RADIUS_X = 300; // for de-duplication and proximity
   static ACTIVE_RADIUS_X = 500; // when camera center is within this, show label
   static SCAN_INTERVAL_MS = 15000; // periodic scan
   static scanTimerKey = 'mapLabelsScan';
   static _activeLabel = null;
   static _alpha = 0; // for fade in/out
+  static _tmpBottom = [];
+  static _tmpAbove = [];
+  static _tmpPlacedBottom = [];
+  static _tmpPlacedAbove = [];
+  static _lastTextSize = 14;
+  static _labelsVersion = 0;
+  static _layoutCache = {
+    camOffset: null,
+    width: null,
+    height: null,
+    labelsVersion: -1,
+    textSize: 14,
+    placedBottom: [],
+    placedAbove: [],
+  };
 
   constructor(pos, type, name) {
     this.pos = pos.copy();
     this.type = type; // 'base' | 'peak' | 'valley' | 'cluster' | 'fauna'
     this.name = name || MapLabel.generateName(pos.x, type);
     MapLabel.labels.push(this);
+    // Cached metrics for overlay drawing
+    this._textWidth = null; // measured at MapLabel._lastTextSize
+    this._boxWidth = null;  // includes padding
+    MapLabel._labelsVersion++;
   }
 
   static reset() {
     MapLabel.labels = [];
     MapLabel._activeLabel = null;
     MapLabel._alpha = 0;
+    MapLabel._labelsVersion = 0;
+    MapLabel._layoutCache.placedBottom.length = 0;
+    MapLabel._layoutCache.placedAbove.length = 0;
+    MapLabel._layoutCache.labelsVersion = -1;
     if (typeof GameTimer !== 'undefined') {
       GameTimer.clearTimer(MapLabel.scanTimerKey);
     }
@@ -104,17 +130,20 @@ class MapLabel {
     // 2) Terrain features (peaks/valleys) - limit per type
     MapLabel._scanTerrainFeatures();
 
-    // 3) Alien plant clusters -> label at cluster center
+    // 3) Alien plant clusters -> label at cluster center (cap total)
     if (Array.isArray(AlienPlant?.clusterCenters)) {
+      let clusterCount = MapLabel._countType('cluster');
       for (const c of AlienPlant.clusterCenters) {
+        if (clusterCount >= MapLabel.MAX_CLUSTER_LABELS) break;
         const p = createVector(c.x, getCachedSurfaceYAtX(c.x) - 10);
         if (!MapLabel._hasNearbyOfType(p, 'cluster', 120)) {
           new MapLabel(p, 'cluster');
+          clusterCount++;
         }
       }
     }
 
-    // 4) Alien fauna clusters (aliens grouped by x bins)
+    // 4) Alien fauna clusters (aliens grouped by x bins) - cap total
     if (Array.isArray(Alien?.aliens) && Alien.aliens.length >= 6) {
       const binSize = 200;
       const bins = new Map();
@@ -124,13 +153,16 @@ class MapLabel {
         arr.push(a);
         bins.set(key, arr);
       }
+      let faunaCount = MapLabel._countType('fauna');
       for (const [key, arr] of bins.entries()) {
+        if (faunaCount >= MapLabel.MAX_FAUNA_LABELS) break;
         if (arr.length >= 6) {
           const avgX = arr.reduce((s, a) => s + a.pos.x, 0) / arr.length;
           const avgY = arr.reduce((s, a) => s + a.pos.y, 0) / arr.length;
           const pos = createVector(avgX, Math.min(avgY, getCachedSurfaceYAtX(avgX) - 10));
           if (!MapLabel._hasNearbyOfType(pos, 'fauna', 150)) {
             new MapLabel(pos, 'fauna');
+            faunaCount++;
           }
         }
       }
@@ -273,50 +305,110 @@ class MapLabel {
   static drawBottomOverlay() {
     if (!MapLabel.labels.length) return;
     if (typeof cameraOffset === 'undefined') return;
+    // Ensure cached layout exists and is current
+    MapLabel._ensureLayout();
 
-    // Build candidates for visible features
-    const bottomCandidates = [];
-    const aboveCandidates = [];
-    const padX = 10;
-    const baselineY = height - 18; // bottom padding for bottom-row labels
-    const bottomThreshold = 50; // if feature is within this many px of bottom, draw above feature
     push();
     textAlign(CENTER, BOTTOM);
-    textSize(14);
+    textSize(MapLabel._lastTextSize);
+    fill(255);
 
-    // Split labels into bottom or above-feature groups
-    for (const l of MapLabel.labels) {
-      const screenX = l.pos.x - cameraOffset; // project to screen x
-      if (screenX < 0 || screenX > width) continue; // only labels whose feature is within view
+    const baselineY = height - 18;
+    // Draw bottom labels
+    const placedBottom = MapLabel._layoutCache.placedBottom;
+    for (let i = 0; i < placedBottom.length; i++) {
+      const p = placedBottom[i];
+      text(p.text, p.center, baselineY);
+    }
+
+    // Draw above-feature labels, adding current camera shake Y to cached baseY
+    const placedAbove = MapLabel._layoutCache.placedAbove;
+    const cameraShakeY = (typeof window !== 'undefined' && typeof window.lastCameraShakeY === 'number') ? window.lastCameraShakeY : 0;
+    for (let i = 0; i < placedAbove.length; i++) {
+      const p = placedAbove[i];
+      text(p.text, p.center, p.baseY + cameraShakeY);
+    }
+
+    pop();
+  }
+
+  static _ensureLayout() {
+    const cam = cameraOffset | 0; // integer snap for stability
+    const w = width | 0, h = height | 0;
+    const needRecalc = (
+      MapLabel._layoutCache.camOffset !== cam ||
+      MapLabel._layoutCache.width !== w ||
+      MapLabel._layoutCache.height !== h ||
+      MapLabel._layoutCache.labelsVersion !== MapLabel._labelsVersion ||
+      MapLabel._layoutCache.textSize !== MapLabel._lastTextSize
+    );
+    if (!needRecalc) return;
+  MapLabel._layoutCache.camOffset = cam;
+  MapLabel._layoutCache.width = w;
+  MapLabel._layoutCache.height = h;
+  MapLabel._layoutCache.labelsVersion = MapLabel._labelsVersion;
+
+  // Recompute placement (this will invalidate per-label widths if text size changed)
+  MapLabel._computeLayout();
+  MapLabel._layoutCache.textSize = MapLabel._lastTextSize;
+  }
+
+  static _computeLayout() {
+    // Reuse scratch arrays
+    const bottomCandidates = MapLabel._tmpBottom; bottomCandidates.length = 0;
+    const aboveCandidates = MapLabel._tmpAbove; aboveCandidates.length = 0;
+    const padX = 10;
+    const bottomThreshold = 50; // if feature is within this many px of bottom, draw above feature
+
+    // Text settings and width cache invalidation if size changed
+    const textSz = MapLabel._lastTextSize;
+    textSize(textSz);
+    if (MapLabel._layoutCache.textSize !== textSz) {
+      for (let i = 0; i < MapLabel.labels.length; i++) {
+        MapLabel.labels[i]._textWidth = null;
+        MapLabel.labels[i]._boxWidth = null;
+      }
+    }
+
+    // Collect candidates (classify using surface Y without shake to avoid jitter)
+    for (let i = 0; i < MapLabel.labels.length; i++) {
+      const l = MapLabel.labels[i];
+      const screenX = l.pos.x - cameraOffset;
+      if (screenX < 0 || screenX > width) continue;
       const surfY = (typeof getCachedSurfaceYAtX === 'function') ? getCachedSurfaceYAtX(l.pos.x) : height;
-      const cameraShakeY = (typeof window !== 'undefined' && typeof window.lastCameraShakeY === 'number') ? window.lastCameraShakeY : 0;
-      const screenY = surfY + cameraShakeY; // where the terrain appears on screen
-      const tw = (typeof textWidth === 'function') ? textWidth(l.name) : (l.name?.length || 5) * 8;
-      const w = Math.max(40, tw + padX * 2);
-      const data = { x: screenX, w, text: l.name, type: l.type, screenY };
-      if (screenY > height - bottomThreshold) {
+
+      if (l._textWidth == null) {
+        const tw = (typeof textWidth === 'function') ? textWidth(l.name) : (l.name?.length || 5) * 8;
+        l._textWidth = Math.max(1, tw);
+        l._boxWidth = Math.max(40, l._textWidth + padX * 2);
+      }
+      const w = l._boxWidth;
+      const data = { x: screenX, w, text: l.name, type: l.type, surfY };
+      if (surfY > height - bottomThreshold) {
         aboveCandidates.push(data);
       } else {
         bottomCandidates.push(data);
       }
     }
 
-    // Stable left-to-right ordering to reduce jitter
+    // Sort left-to-right
     bottomCandidates.sort((a, b) => a.x - b.x);
     aboveCandidates.sort((a, b) => a.x - b.x);
 
-    // Bottom row non-overlapping text (no background)
-    const placedBottom = [];
-    const gap = 6; // min horizontal gap
-    const maxLabels = 10;
-    for (const c of bottomCandidates) {
-      if (placedBottom.length >= maxLabels) break;
+    // Bottom row placement
+    const placedBottom = MapLabel._layoutCache.placedBottom; placedBottom.length = 0;
+    const gap = 6;
+    const maxBottom = 10;
+    for (let i = 0; i < bottomCandidates.length; i++) {
+      if (placedBottom.length >= maxBottom) break;
+      const c = bottomCandidates[i];
       let left = Math.round(c.x - c.w / 2);
       let right = Math.round(c.x + c.w / 2);
       if (left < 4) { right += (4 - left); left = 4; }
       if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
       let overlaps = false;
-      for (const p of placedBottom) {
+      for (let j = 0; j < placedBottom.length; j++) {
+        const p = placedBottom[j];
         if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
       }
       if (overlaps) continue;
@@ -324,38 +416,26 @@ class MapLabel {
       placedBottom.push({ left, right, center, text: c.text });
     }
 
-    // Render bottom labels (text only)
-    fill(255);
-    for (const p of placedBottom) {
-      text(p.text, p.center, baselineY);
-    }
-
-    // Above-feature labels if feature near bottom
-    // Keep minimal horizontal separation to avoid overlap
-    const placedAbove = [];
-    for (const c of aboveCandidates) {
-      const tw = c.w - padX * 2;
+    // Above-feature placement (cap count)
+    const placedAbove = MapLabel._layoutCache.placedAbove; placedAbove.length = 0;
+    for (let i = 0; i < aboveCandidates.length; i++) {
+      if (placedAbove.length >= MapLabel.MAX_ABOVE_LABELS) break;
+      const c = aboveCandidates[i];
+      const tw = Math.max(1, c.w - padX * 2);
       let left = Math.round(c.x - tw / 2);
       let right = Math.round(c.x + tw / 2);
       if (left < 4) { right += (4 - left); left = 4; }
       if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
       let overlaps = false;
-      for (const p of placedAbove) {
+      for (let j = 0; j < placedAbove.length; j++) {
+        const p = placedAbove[j];
         if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
       }
       if (overlaps) continue;
       const center = Math.round((left + right) / 2);
-      const y = Math.max(16, Math.round(c.screenY - 22));
-      placedAbove.push({ left, right, center, text: c.text, y });
+      const baseY = Math.max(16, Math.round(c.surfY - 22));
+      placedAbove.push({ left, right, center, text: c.text, baseY });
     }
-
-    // Render above-feature labels (text only)
-    fill(255);
-    for (const p of placedAbove) {
-      text(p.text, p.center, p.y);
-    }
-
-    pop();
   }
 }
 
