@@ -803,6 +803,11 @@ function resetGame() {
   explosions = [];
   alienQueen.reset();
   
+  // Reset WindReeds (flora)
+  if (typeof WindReed !== 'undefined') {
+    WindReed.reeds = [];
+  }
+  
   // Reset object pools
   Bullet.pool = [];
   Bullet.activeObjects = [];
