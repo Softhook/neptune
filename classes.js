@@ -300,79 +300,7 @@ class MapLabel {
     return false;
   }
 
-  // Draw active label as a HUD-style bottom overlay based on camera center
-  static drawActiveHUD() {
-    if (!MapLabel.labels.length) return;
-    const camCenterX = (typeof cameraOffset === 'number' ? cameraOffset : 0) + width / 2;
-    const nearest = MapLabel._findNearestToX(camCenterX);
-
-    if (nearest && MapLabel._wrapDx(nearest.pos.x, camCenterX) <= MapLabel.ACTIVE_RADIUS_X) {
-      MapLabel._activeLabel = nearest;
-      MapLabel._alpha = Math.min(MapLabel._alpha + 15, 200);
-    } else {
-      MapLabel._alpha = Math.max(MapLabel._alpha - 15, 0);
-      if (MapLabel._alpha === 0) MapLabel._activeLabel = null;
-    }
-
-    if (!MapLabel._activeLabel || MapLabel._alpha <= 0) return;
-
-    // Draw bottom-center label
-    push();
-    noStroke();
-    const pad = 8;
-    const textStr = MapLabel._activeLabel.name;
-    const barH = 26;
-    // subtle background
-    fill(0, 0, 0, 70);
-    rect(width/2 - 180, height - barH - 6, 360, barH, 6);
-    // text
-    fill(255, MapLabel._alpha);
-    textAlign(CENTER, BOTTOM);
-    textSize(16);
-    text(textStr, width / 2, height - pad);
-    pop();
-  }
-
-  static _findNearestToX(x) {
-    let best = null;
-    let bestDx = Infinity;
-    for (const l of MapLabel.labels) {
-      const dx = MapLabel._wrapDx(l.pos.x, x);
-      if (dx < bestDx) { bestDx = dx; best = l; }
-    }
-    return best;
-  }
-
-  // Draw labels anchored in the world at their landscape positions
-  static drawWorldLabels() {
-    if (!MapLabel.labels.length) return;
-    // Precompute camera bounds via isInView; draw minimal background and text
-    textAlign(CENTER, BOTTOM);
-    textSize(14);
-    for (const l of MapLabel.labels) {
-      const x = l.pos.x;
-      const surfaceY = (typeof getCachedSurfaceYAtX === 'function') ? getCachedSurfaceYAtX(x) : (l.pos.y || height);
-      const y = surfaceY - 28;
-      const pos = { x, y };
-      if (!isInView(pos, 60)) continue;
-
-      // Background pill
-      push();
-      noStroke();
-      fill(0, 0, 0, 80);
-      const w = max(80, textWidth ? textWidth(l.name) + 14 : 120);
-      const h = 20;
-      rect(x - w/2, y - h + 4, w, h, 6);
-      // Text
-      fill(255);
-      text(l.name, x, y);
-      // Connector line to surface
-      stroke(200, 200, 255, 120);
-      strokeWeight(1);
-      line(x, y - 12, x, surfaceY - 2);
-      pop();
-    }
-  }
+  // Legacy methods removed - now using drawBottomOverlay() exclusively
 
   // Draw labels projected to the bottom of the screen, centered under their feature X
   static drawBottomOverlay() {
@@ -514,9 +442,8 @@ class MapLabel {
         const p = placedAbove[j];
         if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
       }
-      // Also prevent overlap with bottom labels
+      // Also prevent overlap with bottom labels (use placedBottom from outer scope)
       if (!overlaps) {
-        const placedBottom = MapLabel._layoutCache.placedBottom;
         for (let j = 0; j < placedBottom.length; j++) {
           const pb = placedBottom[j];
           if (!(right + gap < pb.left || left - gap > pb.right)) { overlaps = true; break; }
