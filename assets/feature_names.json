@@ -1,0 +1,105 @@
+{
+  "terrainNouns": [
+    "Peak", "Ridge", "Spur", "Spire", "Bluff", "Escarpment", "Step", "Shelf", "Ledge", "Rampart", "Barrens", "Scarp", "Saddle", "Saddleback", "Col", "Notch", "Pass", "Divide", "Crest", "Crown",
+    "Basin", "Hollow", "Sink", "Dell", "Vale", "Valley", "Trough", "Trench", "Gulch", "Gully", "Ravine", "Chute", "Channel", "Coulee", "Wash", "Arroyo", "Fold", "Rift", "Sunders", "Breaks",
+    "Plain", "Flats", "Expanse", "Steppe", "Plateau", "Mesa", "Butte", "Table", "Terrace", "Bench", "Dune", "Drift", "Field", "Benchland", "Tableland", "Terraceline",
+    "Crater", "Caldera", "Patera", "Pit", "Bowl", "Cup", "Depression", "Impact", "Ring", "Ramp", "Rim", "Lip",
+    "Cliff", "Wall", "Bulwark", "Bastion", "Parapet", "Palisade", "Buttress", "Facet", "Face", "Sheer",
+    "Chasm", "Abyss", "Gash", "Scar", "Cleft", "Fissure", "Fracture", "Fault", "Crevasse", "Rille", "Fossa", "Chasma", "Fret", "Catena", "Dorsum",
+    "Delta", "Fan", "Alluvion", "Outwash", "Spill", "Runoff", "Lobe", "Tongue",
+    "Shore", "Strand", "Ledgeway", "Headland", "Promontory", "Overlook", "Outlook", "Crownrock", "Skypoint"
+  ],
+  "astralNouns": [
+    "Zenith", "Nadir", "Terminator", "Meridian", "Aphelion", "Perihelion", "Periastron", "Node", "Perigee", "Apogee",
+    "Aurora", "Corona", "Halo", "Nimbus", "Nacre", "Arc", "Ring", "Bow", "Veil", "Sheet",
+    "Orbit", "Transit", "Eclipse", "Occultation", "Penumbra", "Umbra", "Terminus", "Eventide",
+    "Comet", "Meteor", "Bolide", "Shard", "Fragment", "Dustfall", "Stardrift", "Tail", "Wake",
+    "Nebula", "Cloudbank", "Plume", "Jet", "Flare", "Stream", "Current", "Tide", "Swell"
+  ],
+  "weatherNouns": [
+    "Storm", "Tempest", "Squall", "Gale", "Gustfront", "Whirl", "Vortex", "Gyre", "Maelstrom", "Cyclone", "Eddy", "Shear", "Jetstream", "Downdraft", "Updraft", "Crosswind",
+    "Surge", "Pulse", "Flicker", "Arc", "Discharge", "Crackle", "Burst", "Spike", "Fluctuation", "Drift", "Veer",
+    "Front", "Cell", "Anvil", "Shelfcloud", "Rollcloud", "Wallcloud", "Outflow", "Inflow"
+  ],
+  "anomalyNouns": [
+    "Anomaly", "Distortion", "Riptide", "Flux", "Singularity", "Knot", "Faultline", "Lattice", "Mesh", "Web", "Curtain", "Filament", "Loom", "Interference", "Echo",
+    "Node", "Relay", "Anchor", "Beacon", "Locus", "Focus", "Nexus", "Gate", "Threshold", "Aperture", "Breach", "Tear", "Fray", "Warp", "Fold", "Rind",
+    "Residue", "Residuum", "Afterglow", "Haze", "Mirage", "Shimmer", "Phosphor", "Glow", "Trace"
+  ],
+  "bioNouns": [
+    "Grove", "Thicket", "Tangle", "Copse", "Cluster", "Bloom", "Sprawl", "Mat", "Lace", "Net", "Mycelium", "Lattice", "Filigree", "Tendril", "Frond", "Bract", "Sporefield",
+    "Nest", "Hive", "Warren", "Hatch", "Nursery", "Brood", "Burrow", "Den", "Lair", "Warrens", "Keep",
+    "Trail", "Run", "Track", "Scuttleway", "Migration", "Route", "Corridor", "Funnel", "Concourse",
+    "Carapace", "Shellbed", "Huskfield", "Spinewalk", "Thornbank", "Pollenfall", "Spoor", "Resinwell", "Sapwell",
+    "Chorus", "Murmur", "Howl", "Chitter", "Hiss", "Cacophony"
+  ],
+  "techNouns": [
+    "Base", "Outpost", "Relay", "Array", "Beacon", "Station", "Node", "Spire", "Mast", "Dish", "Antenna", "Probe", "Gantry", "Dock", "Depot", "Annex", "Vault", "Archive", "Cache",
+    "Factory", "Forge", "Foundry", "Refinery", "Rig", "Derrick", "Pylon", "Silo", "Sump", "Reservoir",
+    "Lab", "Ward", "Clinic", "Bay", "Hangar", "Cradle", "Yard",
+    "Terminal", "Gateway", "Conduit", "Uplink", "Downlink", "Switchyard", "Junction"
+  ],
+  "narrativeNouns": [
+    "Pioneer", "Founder", "Pilgrim", "Voyager", "Warden", "Sentinel", "Watch", "Watchpost", "Guard", "Bulwark",
+    "Echo", "Memory", "Omen", "Augury", "Chronicle", "Ledger", "Record", "Testament", "Relic", "Reliquary",
+    "Threshold", "Passage", "Crossing", "Gate", "Portage", "Drift", "Way", "Traverse",
+    "Covenant", "Truce", "Tryst", "Compact", "Accord", "Pledge", "Edict", "Decree"
+  ],
+  "colorsMaterials": [
+    "Cobalt", "Cerulean", "Azure", "Indigo", "Umber", "Umbral", "Sable", "Onyx", "Obsidian", "Jet", "Shale", "Slate", "Granite", "Basalt", "Basanite", "Gabbro",
+    "Ferric", "Ferrous", "Verdigris", "Verdant", "Viridian", "Jade", "Malachite", "Olivine", "Peridot", "Beryl",
+    "Auric", "Aureate", "Gilded", "Brass", "Bronze", "Cupric", "Argent", "Quicksilver",
+    "Chalk", "Alabaster", "Marble", "Porphyry", "Jasper", "Agate", "Opal", "Opaline", "Opalescent"
+  ],
+  "adjectivesEnvironmental": [
+    "Craggy", "Broken", "Shattered", "Splintered", "Riven", "Fractured", "Fissured", "Scored", "Striated", "Fluted",
+    "Silent", "Hushed", "Muted", "Whispering", "Murmuring", "Howling", "Moaning", "Roaring", "Hissing",
+    "Frozen", "Glacial", "Hoarfrost", "Rimed", "Frosted", "Permafrosted", "Icy", "Gelid", "Niveous",
+    "Dusty", "Ashen", "Sooted", "Silted", "Loess", "Powdered", "Chalky", "Gritted", "Pitted", "Pumiced",
+    "Windswept", "Stormlit", "Sunken", "Skystruck", "Starburned", "Nightbound", "Dawnlit", "Duskward",
+    "Vast", "Measureless", "Boundless", "Endless", "Farflung", "Remote", "Hinter", "Outlying", "Fringe",
+    "Hidden", "Veiled", "Shrouded", "Masked", "Secret", "Lurking", "Buried", "Subducted"
+  ],
+  "adjectivesEnergetic": [
+    "Auroral", "Solar", "Polar", "Magnetar", "Zephyric", "Cyclonic", "Vortical", "Tidal", "Liminal", "Nodal", "Numinous",
+    "Umbral", "Penumbral", "Coronal", "Radiant", "Ionized", "Charged", "Fluxing", "Phasebound", "Phasic", "Harmonic",
+    "Interference", "Coherent", "Resonant", "Stochastic", "Chaotic", "Fractal", "Recursive", "Nonlinear",
+    "Neptunian", "Thalassic", "Pelagic", "Abyssal", "Bathyal", "Hadal"
+  ],
+  "adjectivesEmotive": [
+    "Lonely", "Forsaken", "Forgotten", "Abandoned", "Exiled", "Feral", "Wild", "Primeval", "Ancestral", "Eld",
+    "Brave", "Stalwart", "Steadfast", "Resolute", "Grim", "Iron", "Adamant", "Unyielding",
+    "Luminous", "Lustral", "Glimmering", "Glistening", "Opaline", "Iridescent", "Smoky", "Tenebrous"
+  ],
+  "suffixes": [
+    "peak", "spire", "ridge", "step", "shelf", "bench", "ledge", "crown", "point", "crest",
+    "hollow", "basin", "vale", "trench", "chasm", "rift", "scar", "fissure", "rille", "fossa",
+    "field", "flats", "plain", "benchland", "table", "terrace", "butte", "mesa",
+    "grove", "thicket", "bloom", "nest", "warren", "hatch", "nursery", "burrow",
+    "storm", "vortex", "eddy", "shear", "front", "surge", "squall", "whirl",
+    "relay", "array", "beacon", "node", "vault", "archive", "yard", "bay", "gantry"
+  ],
+  "mythicSeeds": [
+    "Leviathan", "Oracle", "Pilgrim", "Harbinger", "Revenant", "Seraph", "Shade", "Warden", "Keeper", "Sovereign", "Regent", "Queen", "King", "Herald", "Tempest", "Titan", "Colossus", "Chimera", "Hydra", "Kraken",
+    "Founder", "Pioneer", "Voyager", "Nomad", "Sentinel", "Outrider", "Pathfinder", "Cartographer", "Surveyor"
+  ],
+  "alienCoinages": [
+    "Sporebloom", "Thornspire", "Resinwell", "Huskfield", "Spinewalk", "Glowmire", "Dusthaven", "Nightreach",
+    "Starweld", "Frostweld", "Riftweld", "Moonwarren", "Windrille", "Gloomfossa", "Echochasm", "Fluxgate",
+    "Phasefold", "Shardplain", "Driftcrown", "Hazeveil", "Emberstrand", "Ironsill", "Aetherstep", "Stormledge",
+    "Voidcove", "Lumenreach", "Cinderbench", "Quillgrove", "Brineflats", "Mirecrown", "Quartzpass", "Opalhollow",
+    "Slatefall", "Galeshelf", "Shadowrun", "Dawnscar", "Frostgate"
+  ],
+  "templates": [
+    "{adjective} {terrain}",
+    "{colorMaterial} {terrain}",
+    "{phenomenon} {terrain}",
+    "{bio} {terrain}",
+    "{narrative} {terrain}",
+    "{mythic} {terrain}",
+    "{adjective} {anomaly}",
+    "{terrain} of the {mythic}",
+    "{terrain} of {narrative}",
+    "{mythic} {anomaly}"
+  ]
+}

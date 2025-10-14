@@ -81,29 +81,99 @@ class MapLabel {
     try { MapLabel.scanWorld(); } catch(e) { /* ignore */ }
   }
 
-  // Deterministic name generator without touching p5 global RNG
+  // Deterministic name generator (uses featureNames JSON if available)
   static generateName(x, type) {
-    const adjectives = ['Craggy', 'Vast', 'Silent', 'Stormy', 'Frozen', 'Shifting', 'Shattered', 'Blue', 'Hidden', 'Luminous'];
-    const nounsPeak = ['Peak', 'Ridge', 'Spire', 'Crest'];
-    const nounsValley = ['Basin', 'Chasm', 'Hollow', 'Trench'];
-    const nounsCluster = ['Grove', 'Nestfield', 'Thicket', 'Bloom'];
-    const nounsFauna = ['Huntgrounds', 'Feeding Grounds', 'Warren', 'Hatch'];
-    const nounsBase = ['Forward Base', 'Outpost One', 'Pioneer Site', 'Founders Base'];
+    // Fallback seed lists if JSON isn't loaded yet
+    const fallback = {
+      adjectives: ['Craggy', 'Vast', 'Silent', 'Stormy', 'Frozen', 'Shifting', 'Shattered', 'Blue', 'Hidden', 'Luminous'],
+      terrain: ['Peak', 'Ridge', 'Spire', 'Crest', 'Basin', 'Hollow', 'Trench', 'Vale', 'Flats', 'Plain'],
+      bio: ['Grove', 'Thicket', 'Bloom', 'Nest', 'Warren'],
+      fauna: ['Huntgrounds', 'Feeding Grounds', 'Warren', 'Hatch'],
+      base: ['Forward Base', 'Outpost One', 'Pioneer Site', 'Founders Base'],
+      templates: ['{adjective} {terrain}']
+    };
 
+    // Pull from loaded JSON if available
+    const pools = (typeof featureNames === 'object' && featureNames) ? featureNames : null;
     const h = MapLabel._hash(`${Math.floor(x)}|${type}`);
-    const adj = adjectives[h % adjectives.length];
-    let nounList = nounsPeak;
-    switch (type) {
-      case 'peak': nounList = nounsPeak; break;
-      case 'valley': nounList = nounsValley; break;
-      case 'cluster': nounList = nounsCluster; break;
-      case 'fauna': nounList = nounsFauna; break;
-      case 'base': nounList = nounsBase; break;
+
+    // Helper to pick deterministically from array using an offset
+    const pick = (arr, off = 0) => {
+      if (!arr || !arr.length) return '';
+      return arr[(Math.abs(h + off)) % arr.length];
+    };
+
+    // Build context pools per type
+    let adjectivePool, terrainPool, bioPool, techPool, anomalyPool, mythicPool, colorMatPool, templates;
+    if (pools) {
+      adjectivePool = [
+        ...(pools.adjectivesEnvironmental || []),
+        ...(pools.adjectivesEnergetic || []),
+        ...(pools.adjectivesEmotive || [])
+      ];
+      terrainPool = pools.terrainNouns || [];
+      bioPool = pools.bioNouns || [];
+      techPool = pools.techNouns || [];
+      anomalyPool = pools.anomalyNouns || [];
+      mythicPool = pools.mythicSeeds || [];
+      colorMatPool = pools.colorsMaterials || [];
+      templates = pools.templates || fallback.templates;
+    } else {
+      adjectivePool = fallback.adjectives;
+      terrainPool = fallback.terrain;
+      bioPool = fallback.bio;
+      techPool = fallback.base; // use base list as tech fallback
+      anomalyPool = ['Anomaly', 'Rift', 'Gate'];
+      mythicPool = ['Warden', 'Pioneer', 'Sovereign'];
+      colorMatPool = ['Cobalt', 'Basalt', 'Obsidian'];
+      templates = fallback.templates;
     }
-    const noun = nounList[Math.floor(h / 7) % nounList.length];
-    // For base, prefer standalone name
-    if (type === 'base') return noun;
-    return `${adj} ${noun}`;
+
+    // Select a template based on type
+    let template;
+    switch (type) {
+      case 'peak':
+        template = pick(templates, 13);
+        break;
+      case 'valley':
+        template = pick(templates, 29);
+        break;
+      case 'cluster':
+        template = '{bio} {terrain}';
+        break;
+      case 'fauna':
+        template = '{bio} {terrain}';
+        break;
+      case 'base':
+        // Prefer a standalone tech/base noun possibly preceded by a narrative/noun
+        if (pools) {
+          const nar = pick(pools.narrativeNouns || [], 5);
+          const tech = pick(techPool, 7);
+          return nar ? `${nar} ${tech}` : tech;
+        } else {
+          return pick(fallback.base, 7);
+        }
+      default:
+        template = pick(templates, 3);
+    }
+
+    // Populate template deterministically
+    const mapping = {
+      '{adjective}': pick(adjectivePool, 1),
+      '{terrain}': pick(terrainPool, 2),
+      '{bio}': pick(bioPool, 3),
+      '{phenomenon}': pick((pools && pools.weatherNouns) || ['Storm', 'Vortex', 'Gale'], 4),
+      '{anomaly}': pick(anomalyPool, 5),
+      '{narrative}': pick((pools && pools.narrativeNouns) || ['Pioneer', 'Sentinel', 'Founder'], 6),
+      '{mythic}': pick(mythicPool, 7),
+      '{colorMaterial}': pick(colorMatPool, 8)
+    };
+
+    let result = template;
+    for (const key in mapping) {
+      result = result.replace(key, mapping[key]);
+    }
+    return result.trim().replace(/\s+/g, ' ');
   }
 
   static _hash(str) {

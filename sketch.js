@@ -100,6 +100,7 @@ let eclipse;
 let lightningStorm;
 
 let alienKing = null;
+let featureNames = null; // Loaded from assets/feature_names.json
 
 // Version Manager for GitHub API (date-based version string dd.mm.yyyy)
 class VersionManager {
@@ -335,6 +336,12 @@ function preload() {
   font = loadFont('assets/Neptune.otf');
   neptuneImage = loadImage('assets/neptune.jpg');
   earthImage = loadImage('assets/earth.png');
+  // Load naming word pools for MapLabel.generateName()
+  try {
+    featureNames = loadJSON('assets/feature_names.json');
+  } catch (e) {
+    featureNames = null;
+  }
   soundManager = new SoundManager();
   totalAssets = soundManager.getTotalAssets();
   soundManager.preloadWithCallback(assetLoaded);
