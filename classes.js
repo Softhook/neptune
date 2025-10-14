@@ -184,6 +184,19 @@ class MapLabel {
   // Primary world scan: bases, terrain features, plant clusters, fauna clusters
   static scanWorld() {
     if (typeof worldWidth === 'undefined' || !Array.isArray(moonSurface) || moonSurface.length === 0) return;
+    
+    // Cleanup: remove labels for bases that no longer exist
+    if (Array.isArray(MoonBase?.moonBases)) {
+      const baseNames = new Set(MoonBase.moonBases.map(b => b.name));
+      MapLabel.labels = MapLabel.labels.filter(l => {
+        if (l.type === 'base' && !baseNames.has(l.name)) {
+          MapLabel._labelsVersion++;
+          return false; // remove this label
+        }
+        return true; // keep this label
+      });
+    }
+    
     // 1) Bases: ensure each base has a label with its unique name
     if (Array.isArray(MoonBase?.moonBases) && MoonBase.moonBases.length > 0) {
       for (const base of MoonBase.moonBases) {
@@ -239,9 +252,7 @@ class MapLabel {
   static _scanTerrainFeatures() {
     let peakCount = MapLabel._countType('peak');
     let valleyCount = MapLabel._countType('valley');
-    const wantPeaksInit = peakCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
-    const wantValleysInit = valleyCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
-    if (!wantPeaksInit && !wantValleysInit) return;
+    if (peakCount >= MapLabel.MAX_TERRAIN_LABELS_PER_TYPE && valleyCount >= MapLabel.MAX_TERRAIN_LABELS_PER_TYPE) return;
 
     const step = 30; // index step across moonSurface (points are ~10px apart)
     const win = 5; // window size left/right
@@ -256,16 +267,14 @@ class MapLabel {
         if (moonSurface[i - w].y >= y || moonSurface[i + w].y >= y) isValley = false;
         if (!isPeak && !isValley) break;
       }
-      const wantPeaks = peakCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
-      const wantValleys = valleyCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE;
-      if (wantPeaks && isPeak) {
+      if (isPeak && peakCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE) {
         const pos = moonSurface[i].copy();
         if (!MapLabel._hasNearbyOfType(pos, 'peak', 200)) {
           new MapLabel(pos, 'peak');
           peakCount++;
         }
       }
-      if (wantValleys && isValley) {
+      if (isValley && valleyCount < MapLabel.MAX_TERRAIN_LABELS_PER_TYPE) {
         const pos = moonSurface[i].copy();
         if (!MapLabel._hasNearbyOfType(pos, 'valley', 200)) {
           new MapLabel(pos, 'valley');
@@ -281,7 +290,8 @@ class MapLabel {
 
   static _wrapDx(ax, bx) {
     const dx = Math.abs(ax - bx);
-    return Math.min(dx, (typeof worldWidth === 'number' ? worldWidth : dx + 1) - dx);
+    if (typeof worldWidth !== 'number') return dx;
+    return Math.min(dx, worldWidth - dx);
   }
 
   // Helper to clamp label bounds within screen with edge padding
@@ -290,6 +300,8 @@ class MapLabel {
     let right = Math.round(x + w / 2);
     if (left < edgePad) { right += (edgePad - left); left = edgePad; }
     if (right > screenWidth - edgePad) { left -= (right - (screenWidth - edgePad)); right = screenWidth - edgePad; }
+    // Ensure left doesn't go negative after double-clamping (when label is too wide)
+    if (left < edgePad) left = edgePad;
     return { left, right, center: Math.round((left + right) / 2) };
   }
 
@@ -375,8 +387,9 @@ class MapLabel {
 
     // Text settings and width cache invalidation if size changed
     const textSz = MapLabel._lastTextSize;
+    const prevTextSize = MapLabel._layoutCache.textSize;
     textSize(textSz);
-    if (MapLabel._layoutCache.textSize !== textSz) {
+    if (prevTextSize !== textSz) {
       for (let i = 0; i < MapLabel.labels.length; i++) {
         MapLabel.labels[i]._textWidth = null;
         MapLabel.labels[i]._boxWidth = null;
@@ -411,14 +424,18 @@ class MapLabel {
   bottomCandidates.sort((a, b) => a.x - b.x);
     aboveCandidates.sort((a, b) => a.x - b.x);
 
-    // Bottom row placement
+    // Bottom row placement - partition bases vs non-bases in single pass
     const placedBottom = MapLabel._layoutCache.placedBottom; placedBottom.length = 0;
     const gap = 6;
     const maxBottom = 10;
-    // Prioritize base labels: place bases first (in x-order), then others.
-    const baseFirst = bottomCandidates.filter(c => c.type === 'base');
-    const nonBase = bottomCandidates.filter(c => c.type !== 'base');
-    const orderedBottom = baseFirst.concat(nonBase);
+    // Single-pass partition: bases first, then others
+    const orderedBottom = [];
+    for (let i = 0; i < bottomCandidates.length; i++) {
+      if (bottomCandidates[i].type === 'base') orderedBottom.push(bottomCandidates[i]);
+    }
+    for (let i = 0; i < bottomCandidates.length; i++) {
+      if (bottomCandidates[i].type !== 'base') orderedBottom.push(bottomCandidates[i]);
+    }
     for (let i = 0; i < orderedBottom.length; i++) {
       if (placedBottom.length >= maxBottom) break;
       const c = orderedBottom[i];
