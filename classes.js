@@ -28,12 +28,8 @@ class MapLabel {
   static ACTIVE_RADIUS_X = 500; // when camera center is within this, show label
   static SCAN_INTERVAL_MS = 15000; // periodic scan
   static scanTimerKey = 'mapLabelsScan';
-  static _activeLabel = null;
-  static _alpha = 0; // for fade in/out
   static _tmpBottom = [];
   static _tmpAbove = [];
-  static _tmpPlacedBottom = [];
-  static _tmpPlacedAbove = [];
   static _lastTextSize = 14;
   static _labelsVersion = 0;
   static _layoutCache = {
@@ -59,8 +55,6 @@ class MapLabel {
 
   static reset() {
     MapLabel.labels = [];
-    MapLabel._activeLabel = null;
-    MapLabel._alpha = 0;
     MapLabel._labelsVersion = 0;
     MapLabel._layoutCache.placedBottom.length = 0;
     MapLabel._layoutCache.placedAbove.length = 0;
@@ -290,6 +284,24 @@ class MapLabel {
     return Math.min(dx, (typeof worldWidth === 'number' ? worldWidth : dx + 1) - dx);
   }
 
+  // Helper to clamp label bounds within screen with edge padding
+  static _clampBounds(x, w, screenWidth, edgePad = 4) {
+    let left = Math.round(x - w / 2);
+    let right = Math.round(x + w / 2);
+    if (left < edgePad) { right += (edgePad - left); left = edgePad; }
+    if (right > screenWidth - edgePad) { left -= (right - (screenWidth - edgePad)); right = screenWidth - edgePad; }
+    return { left, right, center: Math.round((left + right) / 2) };
+  }
+
+  // Check if bounds overlap with any placed labels
+  static _checkOverlap(left, right, placedLabels, gap = 6) {
+    for (let i = 0; i < placedLabels.length; i++) {
+      const p = placedLabels[i];
+      if (!(right + gap < p.left || left - gap > p.right)) return true;
+    }
+    return false;
+  }
+
   static _hasNearbyOfType(pos, type, radiusX) {
     const r = radiusX || MapLabel.DETECTION_RADIUS_X;
     for (const l of MapLabel.labels) {
@@ -410,18 +422,9 @@ class MapLabel {
     for (let i = 0; i < orderedBottom.length; i++) {
       if (placedBottom.length >= maxBottom) break;
       const c = orderedBottom[i];
-      let left = Math.round(c.x - c.w / 2);
-      let right = Math.round(c.x + c.w / 2);
-      if (left < 4) { right += (4 - left); left = 4; }
-      if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
-      let overlaps = false;
-      for (let j = 0; j < placedBottom.length; j++) {
-        const p = placedBottom[j];
-        if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
-      }
-      if (overlaps) continue;
-      const center = Math.round((left + right) / 2);
-      placedBottom.push({ left, right, center, text: c.text });
+      const bounds = MapLabel._clampBounds(c.x, c.w, width);
+      if (MapLabel._checkOverlap(bounds.left, bounds.right, placedBottom, gap)) continue;
+      placedBottom.push({ left: bounds.left, right: bounds.right, center: bounds.center, text: c.text });
     }
 
     // Above-feature placement (cap count). Avoid overlap with already placed bottom labels and enforce vertical separation.
@@ -432,29 +435,16 @@ class MapLabel {
       if (placedAbove.length >= MapLabel.MAX_ABOVE_LABELS) break;
       const c = aboveCandidates[i];
       const tw = Math.max(1, c.w - padX * 2);
-      let left = Math.round(c.x - tw / 2);
-      let right = Math.round(c.x + tw / 2);
-      if (left < 4) { right += (4 - left); left = 4; }
-      if (right > width - 4) { left -= (right - (width - 4)); right = width - 4; }
-      let overlaps = false;
-      // Check overlap with existing above labels
-      for (let j = 0; j < placedAbove.length; j++) {
-        const p = placedAbove[j];
-        if (!(right + gap < p.left || left - gap > p.right)) { overlaps = true; break; }
+      const bounds = MapLabel._clampBounds(c.x, tw, width);
+      // Check overlap with both above and bottom labels
+      if (MapLabel._checkOverlap(bounds.left, bounds.right, placedAbove, gap) ||
+          MapLabel._checkOverlap(bounds.left, bounds.right, placedBottom, gap)) {
+        continue;
       }
-      // Also prevent overlap with bottom labels (use placedBottom from outer scope)
-      if (!overlaps) {
-        for (let j = 0; j < placedBottom.length; j++) {
-          const pb = placedBottom[j];
-          if (!(right + gap < pb.left || left - gap > pb.right)) { overlaps = true; break; }
-        }
-      }
-      if (overlaps) continue;
-      const center = Math.round((left + right) / 2);
       // Clamp Y so it sits clearly above the bottom baseline
       const unclampedY = Math.round(c.surfY - 22);
       const baseY = Math.max(16, Math.min(unclampedY, baselineY - minVerticalSeparation));
-      placedAbove.push({ left, right, center, text: c.text, baseY });
+      placedAbove.push({ left: bounds.left, right: bounds.right, center: bounds.center, text: c.text, baseY });
     }
   }
 }
