@@ -40,10 +40,11 @@
     "Terminal", "Gateway", "Conduit", "Uplink", "Downlink", "Switchyard", "Junction"
   ],
   "narrativeNouns": [
-    "Pioneer", "Founder", "Pilgrim", "Voyager", "Warden", "Sentinel", "Watch", "Watchpost", "Guard", "Bulwark",
+    "Pioneer", "Founder", "Lord Smithe", "Pilgrim", "Voyager", "Warden", "Sentinel", "Watch", "Watchpost", "Guard", "Bulwark",
     "Echo", "Memory", "Omen", "Augury", "Chronicle", "Ledger", "Record", "Testament", "Relic", "Reliquary",
     "Threshold", "Passage", "Crossing", "Gate", "Portage", "Drift", "Way", "Traverse",
-    "Covenant", "Truce", "Tryst", "Compact", "Accord", "Pledge", "Edict", "Decree"
+    "Covenant", "Truce", "Tryst", "Compact", "Accord", "Pledge", "Edict", "Decree",
+    "Sanctuary", "Shrine", "Temple", "Altar", "Chapel", "Sacrament", "Blessing", "Prayer", "Offering", "Vigil", "Martyr", "Saint", "Prophet", "Oracle", "Sacristy", "Reliquary", "Sanctum", "Devotion", "Faith", "Grace"
   ],
   "colorsMaterials": [
     "Cobalt", "Cerulean", "Azure", "Indigo", "Umber", "Umbral", "Sable", "Onyx", "Obsidian", "Jet", "Shale", "Slate", "Granite", "Basalt", "Basanite", "Gabbro",
@@ -58,7 +59,8 @@
     "Dusty", "Ashen", "Sooted", "Silted", "Loess", "Powdered", "Chalky", "Gritted", "Pitted", "Pumiced",
     "Windswept", "Stormlit", "Sunken", "Skystruck", "Starburned", "Nightbound", "Dawnlit", "Duskward",
     "Vast", "Measureless", "Boundless", "Endless", "Farflung", "Remote", "Hinter", "Outlying", "Fringe",
-    "Hidden", "Veiled", "Shrouded", "Masked", "Secret", "Lurking", "Buried", "Subducted"
+    "Hidden", "Veiled", "Shrouded", "Masked", "Secret", "Lurking", "Buried", "Subducted",
+    "Cosmic", "Stellar", "Nebulous", "Galactic", "Voidal", "Astral", "Celestial", "Interstellar", "Meteoritic", "Cometary", "Asteroidal", "Planetary", "Orbital", "Heliocentric", "Lunar", "Martian", "Saturnine", "Jovian", "Plutonian", "Exoplanar"
   ],
   "adjectivesEnergetic": [
     "Auroral", "Solar", "Polar", "Magnetar", "Zephyric", "Cyclonic", "Vortical", "Tidal", "Liminal", "Nodal", "Numinous",
@@ -69,7 +71,9 @@
   "adjectivesEmotive": [
     "Lonely", "Forsaken", "Forgotten", "Abandoned", "Exiled", "Feral", "Wild", "Primeval", "Ancestral", "Eld",
     "Brave", "Stalwart", "Steadfast", "Resolute", "Grim", "Iron", "Adamant", "Unyielding",
-    "Luminous", "Lustral", "Glimmering", "Glistening", "Opaline", "Iridescent", "Smoky", "Tenebrous"
+    "Luminous", "Lustral", "Glimmering", "Glistening", "Opaline", "Iridescent", "Smoky", "Tenebrous",
+    "Desolate", "Bleak", "Haunting", "Eerie", "Spectral", "Phantom", "Ethereal", "Radiant", "Shimmering",
+    "Melancholy", "Serene", "Wrathful", "Dauntless", "Indomitable", "Fierce", "Valiant", "Majestic", "Awe-Inspiring"
   ],
   "suffixes": [
     "peak", "spire", "ridge", "step", "shelf", "bench", "ledge", "crown", "point", "crest",
@@ -81,14 +85,31 @@
   ],
   "mythicSeeds": [
     "Leviathan", "Oracle", "Pilgrim", "Harbinger", "Revenant", "Seraph", "Shade", "Warden", "Keeper", "Sovereign", "Regent", "Queen", "King", "Herald", "Tempest", "Titan", "Colossus", "Chimera", "Hydra", "Kraken",
-    "Founder", "Pioneer", "Voyager", "Nomad", "Sentinel", "Outrider", "Pathfinder", "Cartographer", "Surveyor"
+    "Founder", "Pioneer", "Voyager", "Nomad", "Sentinel", "Outrider", "Pathfinder", "Cartographer", "Surveyor",
+    "Zeus", "Athena", "Poseidon", "Hades", "Apollo", "Artemis", "Hermes", "Ares", "Aphrodite", "Hercules", "Odysseus", "Medusa", "Minotaur", "Cyclops", "Pegasus", "Phoenix",
+    "Odin", "Thor", "Loki", "Freyja", "Freyr", "Tyr", "Heimdall", "Baldur", "Frigg", "Fenrir", "Jormungandr", "Yggdrasil",
+    "Ra", "Isis", "Osiris", "Anubis", "Horus", "Bastet", "Thoth", "Set", "Hathor", "Amun",
+    "Vishnu", "Shiva", "Brahma", "Krishna", "Kali", "Ganesha", "Hanuman", "Lakshmi", "Saraswati", "Indra",
+    "Dragon", "Phoenix", "Jade Emperor", "Guan Yu", "Sun Wukong", "Nezha", "Chang'e", "Hou Yi",
+    "Gilgamesh", "Enkidu", "Ishtar", "Marduk", "Tiamat",
+    "Ogun", "Shango", "Yemoja", "Obatala",
+    "Coyote", "Raven", "Thunderbird", "Manitou",
+    "Morrigan", "Cernunnos", "Dagda", "Brigid",
+    "Amaterasu", "Susanoo", "Izanagi", "Izanami", "Raijin", "Fujin",
+    "Selene", "Endymion", "Atlas", "Prometheus", "Epimetheus", "Diana", "Luna"
   ],
   "alienCoinages": [
     "Sporebloom", "Thornspire", "Resinwell", "Huskfield", "Spinewalk", "Glowmire", "Dusthaven", "Nightreach",
     "Starweld", "Frostweld", "Riftweld", "Moonwarren", "Windrille", "Gloomfossa", "Echochasm", "Fluxgate",
     "Phasefold", "Shardplain", "Driftcrown", "Hazeveil", "Emberstrand", "Ironsill", "Aetherstep", "Stormledge",
     "Voidcove", "Lumenreach", "Cinderbench", "Quillgrove", "Brineflats", "Mirecrown", "Quartzpass", "Opalhollow",
-    "Slatefall", "Galeshelf", "Shadowrun", "Dawnscar", "Frostgate"
+    "Slatefall", "Galeshelf", "Shadowrun", "Dawnscar", "Frostgate",
+    "Nebulix", "Zynthar", "Vorath", "Kryllon", "Xylophor", "Quorvex", "Lyranth", "Drakthor", "Sylphara", "Vortigon",
+    "Thrallspire", "Ebonrift", "Luminex", "Voidthorn", "Aetherbloom", "Glimmerfen", "Shadowveil", "Frostbloom",
+    "Embercove", "Quillrift", "Brinemire", "Opalspire", "Slatecrown", "Galehaven", "Dawnfold",
+    "Zørk", "Xÿz", "Vøid", "Nebulon∑", "∫-Void", "Δ-Spire", "Ω-Gate", "∞-Reach", "☿-Forge", "♀-Bloom", "♂-Rift",
+    "Ψ-Warp", "Λ-Field", "Γ-Cluster", "Σ-Nest", "Φ-Plain", "Θ-Haven", "Ξ-Trail", "Π-Grove", "Υ-Spore",
+    "Kryp†or", "Vexør", "Lumin∆", "Shadøw", "Echø", "Flux∞", "Void∆", "Nebul▲", "Star▼", "Moon◆"
   ],
   "templates": [
     "{adjective} {terrain}",
@@ -113,6 +134,8 @@
     "Fort Independence",
     "Fort Endurance",
     "Fort Ironclad",
+    "Fort Granite",
+    "Camp Liberty",
     "Camp Victory",
     "Camp Valor",
     "Camp Resolute",
@@ -122,6 +145,8 @@
     "Camp Endeavor",
     "Camp Horizon",
     "Camp Rampart",
+    "Camp Hellion",
+    "Camp HellYeah",
     "Camp Granite",
     "Outpost Ranger",
     "Outpost Guardian",
@@ -129,12 +154,12 @@
     "Outpost Watchtower",
     "Outpost Bastion",
     "Outpost Frontier",
-    "FOB Falcon",
-    "FOB Thunder",
-    "FOB Longbow",
-    "FOB Sabre",
-    "FOB Sentinel",
-    "FOB Copperhead",
+    "Forward Base Falcon",
+    "Forward Base Thunder",
+    "Forward Base Longbow",
+    "Forward Base Sabre",
+    "Forward Base Sentinel",
+    "Forward Base Copperhead",
     "Forward Base Alpha",
     "Forward Base Bravo",
     "Forward Base Charlie",
@@ -182,11 +207,11 @@
     "Base Horizon",
     "Base Trident",
     "Base Vanguard",
-    "LZ Falcon",
-    "LZ Thunder",
-    "LZ Granite",
-    "LZ Liberty",
-    "LZ Sentinel",
+    "Falcon Redoubt",
+    "Thunder Redoubt",
+    "Longbow Redoubt",
+    "Sabre Redoubt",  
+    "Liberty Redoubt",
     "Watchpoint Liberty",
     "Watchpoint Vanguard",
     "Watchpoint Summit",
@@ -206,6 +231,7 @@
     "Patriot Station ",
     "Vanguard Station ",
     "Liberty Station ",
+    "Last Frontier",
     "Sentinel Station "
   ]
 }
