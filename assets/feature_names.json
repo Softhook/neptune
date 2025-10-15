@@ -1,4 +1,29 @@
 {
+  "terrainNounsHigh": [
+    "Peak", "Ridge", "Spur", "Spire", "Bluff", "Escarpment", "Step", "Shelf", "Ledge", "Rampart", "Scarp", "Saddle", "Saddleback", "Col", "Notch", "Pass", "Divide", "Crest", "Crown",
+    "Cliff", "Wall", "Bulwark", "Bastion", "Parapet", "Palisade", "Buttress", "Facet", "Face", "Sheer",
+    "Headland", "Promontory", "Overlook", "Outlook", "Crownrock", "Skypoint", "Summit", "Pinnacle", "Apex", "Height", "Tor", "Butte", "Mesa", "Table", "Plateau"
+  ],
+  "terrainNounsLow": [
+    "Basin", "Hollow", "Sink", "Dell", "Vale", "Valley", "Trough", "Trench", "Gulch", "Gully", "Ravine", "Chute", "Channel", "Coulee", "Wash", "Arroyo", "Fold", "Rift", "Sunders", "Breaks",
+    "Crater", "Caldera", "Patera", "Pit", "Bowl", "Cup", "Depression", "Impact", "Ring",
+    "Chasm", "Abyss", "Gash", "Scar", "Cleft", "Fissure", "Fracture", "Fault", "Crevasse", "Rille", "Fossa", "Chasma", "Fret", "Catena", "Gorge", "Canyon", "Defile"
+  ],
+  "terrainNounsNeutral": [
+    "Plain", "Flats", "Expanse", "Steppe", "Terrace", "Bench", "Dune", "Drift", "Field", "Benchland", "Tableland", "Terraceline",
+    "Ramp", "Rim", "Lip", "Delta", "Fan", "Alluvion", "Outwash", "Spill", "Runoff", "Lobe", "Tongue",
+    "Shore", "Strand", "Ledgeway", "Dorsum"
+  ],
+  "adjectivesHigh": [
+    "Towering", "Lofty", "Soaring", "Elevated", "Rising", "Ascending", "Upper", "Supreme", "Exalted", "Crowned", "Majestic",
+    "Celestial", "Stellar", "Skyward", "Zenith", "Apical", "Uppermost", "Skystruck", "Starburned", "Dawnlit",
+    "Cosmic", "Astral", "Solar", "Auroral", "Radiant", "Luminous"
+  ],
+  "adjectivesLow": [
+    "Sunken", "Deep", "Plunging", "Descending", "Lower", "Subterranean", "Buried", "Subducted", "Profound", "Nether",
+    "Abyssal", "Bathyal", "Hadal", "Hollow", "Cavernous", "Depths", "Deepmost", "Bottommost", "Shadowed", "Umbral",
+    "Hidden", "Veiled", "Shrouded", "Secret", "Lurking"
+  ],
   "terrainNouns": [
     "Peak", "Ridge", "Spur", "Spire", "Bluff", "Escarpment", "Step", "Shelf", "Ledge", "Rampart", "Barrens", "Scarp", "Saddle", "Saddleback", "Col", "Notch", "Pass", "Divide", "Crest", "Crown",
     "Basin", "Hollow", "Sink", "Dell", "Vale", "Valley", "Trough", "Trench", "Gulch", "Gully", "Ravine", "Chute", "Channel", "Coulee", "Wash", "Arroyo", "Fold", "Rift", "Sunders", "Breaks",

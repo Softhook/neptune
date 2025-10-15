@@ -79,8 +79,11 @@ class MapLabel {
   static generateName(x, type) {
     // Fallback seed lists if JSON isn't loaded yet
     const fallback = {
-      adjectives: ['Craggy', 'Vast', 'Silent', 'Stormy', 'Frozen', 'Shifting', 'Shattered', 'Blue', 'Hidden', 'Luminous'],
-      terrain: ['Peak', 'Ridge', 'Spire', 'Crest', 'Basin', 'Hollow', 'Trench', 'Vale', 'Flats', 'Plain'],
+      adjectivesHigh: ['Towering', 'Lofty', 'Soaring', 'Elevated', 'Rising', 'Crowned', 'Summit', 'Apex'],
+      adjectivesLow: ['Sunken', 'Deep', 'Plunging', 'Hollow', 'Subterranean', 'Abyssal', 'Buried', 'Descending'],
+      terrainHigh: ['Peak', 'Ridge', 'Spire', 'Crest', 'Crown', 'Summit', 'Pinnacle', 'Height'],
+      terrainLow: ['Basin', 'Hollow', 'Trench', 'Vale', 'Valley', 'Trough', 'Chasm', 'Abyss', 'Depth'],
+      adjectivesNeutral: ['Craggy', 'Vast', 'Silent', 'Stormy', 'Frozen', 'Shifting', 'Shattered', 'Blue', 'Hidden', 'Luminous'],
       bio: ['Grove', 'Thicket', 'Bloom', 'Nest', 'Warren'],
       fauna: ['Huntgrounds', 'Feeding Grounds', 'Warren', 'Hatch'],
       base: ['Forward Base', 'Outpost One', 'Pioneer Site', 'Founders Base'],
@@ -99,7 +102,15 @@ class MapLabel {
 
     // Build context pools per type
     let adjectivePool, terrainPool, bioPool, techPool, anomalyPool, mythicPool, colorMatPool, templates;
+    let adjectiveHighPool, adjectiveLowPool, terrainHighPool, terrainLowPool;
+    
     if (pools) {
+      // Use explicit high/low word lists from JSON
+      adjectiveHighPool = pools.adjectivesHigh || fallback.adjectivesHigh;
+      adjectiveLowPool = pools.adjectivesLow || fallback.adjectivesLow;
+      terrainHighPool = pools.terrainNounsHigh || fallback.terrainHigh;
+      terrainLowPool = pools.terrainNounsLow || fallback.terrainLow;
+      
       adjectivePool = [
         ...(pools.adjectivesEnvironmental || []),
         ...(pools.adjectivesEnergetic || []),
@@ -113,10 +124,14 @@ class MapLabel {
       colorMatPool = pools.colorsMaterials || [];
       templates = pools.templates || fallback.templates;
     } else {
-      adjectivePool = fallback.adjectives;
-      terrainPool = fallback.terrain;
+      adjectiveHighPool = fallback.adjectivesHigh;
+      adjectiveLowPool = fallback.adjectivesLow;
+      terrainHighPool = fallback.terrainHigh;
+      terrainLowPool = fallback.terrainLow;
+      adjectivePool = fallback.adjectivesNeutral;
+      terrainPool = [...fallback.terrainHigh, ...fallback.terrainLow];
       bioPool = fallback.bio;
-      techPool = fallback.base; // use base list as tech fallback
+      techPool = fallback.base;
       anomalyPool = ['Anomaly', 'Rift', 'Gate'];
       mythicPool = ['Warden', 'Pioneer', 'Sovereign'];
       colorMatPool = ['Cobalt', 'Basalt', 'Obsidian'];
@@ -127,10 +142,10 @@ class MapLabel {
     let template;
     switch (type) {
       case 'peak':
-        template = pick(templates, 13);
+        template = '{adjectiveHigh} {terrainHigh}';
         break;
       case 'valley':
-        template = pick(templates, 29);
+        template = '{adjectiveLow} {terrainLow}';
         break;
       case 'cluster':
         template = '{bio} {terrain}';
@@ -157,6 +172,10 @@ class MapLabel {
     const mapping = {
       '{adjective}': pick(adjectivePool, 1),
       '{terrain}': pick(terrainPool, 2),
+      '{adjectiveHigh}': pick(adjectiveHighPool, 13),
+      '{adjectiveLow}': pick(adjectiveLowPool, 14),
+      '{terrainHigh}': pick(terrainHighPool, 15),
+      '{terrainLow}': pick(terrainLowPool, 16),
       '{bio}': pick(bioPool, 3),
       '{phenomenon}': pick((pools && pools.weatherNouns) || ['Storm', 'Vortex', 'Gale'], 4),
       '{anomaly}': pick(anomalyPool, 5),
